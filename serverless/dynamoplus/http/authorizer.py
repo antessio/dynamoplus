@@ -38,7 +38,7 @@ def authorize(event, context):
 def jwt_verify(auth_token, public_key):
     public_key = format_public_key(public_key)
     pub_key = convert_certificate_to_pem(public_key)
-    payload = jwt.decode(auth_token, pub_key, algorithms=['RS256'], audience=AUTH0_CLIENT_ID)
+    payload = jwt.decode(auth_token, pub_key, algorithms=['RS256'], audience=AUDIENCE)
     return payload['sub']
 
 
