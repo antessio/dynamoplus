@@ -10,7 +10,7 @@ from cryptography.x509 import load_pem_x509_certificate
 AUTH0_CLIENT_ID = os.getenv('AUTH0_CLIENT_ID')
 AUTH0_CLIENT_PUBLIC_KEY = os.getenv('AUTH0_CLIENT_PUBLIC_KEY')
 
-def auth(event, context):
+def authorize(event, context):
     whole_auth_token = event.get('authorizationToken')
     if not whole_auth_token:
         raise Exception('Unauthorized')
