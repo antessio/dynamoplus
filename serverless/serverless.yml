@@ -10,8 +10,8 @@ custom:
   dynamodb:
     start:
       migrate: true
-  indexes: "host#address.country__address.region__address.province__address.city__ORDER_BY__address.city,host#objectId,host#published__ORDER_BY__top,host#user_owner,host#metadata.book2work.group,host#user_owner,host#metadata.book2work.category.id,category#active__ORDER_BY__ordering,category#objectId"
-  entities: "host#id#creation_date_time,category#id#ordering"
+  indexes: "example#address.country__address.region__address.province__address.city__ORDER_BY__creation_date_time,example#metadata.category.id,category#active__ORDER_BY__ordering"
+  entities: "example#id#creation_date_time,category#id#ordering"
 frameworkVersion: ">=1.1.0 <2.0.0"
 
 provider:
