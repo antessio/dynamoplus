@@ -9,6 +9,7 @@ from cryptography.x509 import load_pem_x509_certificate
 # Set by serverless.yml
 AUTH0_CLIENT_ID = os.getenv('AUTH0_CLIENT_ID')
 AUTH0_CLIENT_PUBLIC_KEY = os.getenv('AUTH0_CLIENT_PUBLIC_KEY')
+AUDIENCE = os.getenv('AUDIENCE')
 
 def authorize(event, context):
     whole_auth_token = event.get('authorizationToken')
