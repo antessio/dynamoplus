@@ -2,7 +2,7 @@ import logging
 import os
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
-from dynamoplus.service.IndexService import IndexUtils
+from dynamoplus.service.IndexService import IndexUtils,IndexService
 from dynamoplus.repository.Repository import IndexRepository
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -26,8 +26,8 @@ def dynamoStreamHandler(event, context):
     indexes = os.environ['INDEXES'].split(",")
     entities = os.environ['ENTITIES'].split(",")
     logger.info("Events on dynamo {} ".format(str(event)))
-    systemEntitiesIndexService = IndexService(self.dynamoTable, "entity", "entity#name",self.dynamoDB)
-    systemIndexesIndexService = IndexService(self.dynamoTable, "index", "index#entity.name",self.dynamoDB)
+    systemEntitiesIndexService = IndexService(tableName, "entity", "entity#name",dynamodb)
+    systemIndexesIndexService = IndexService(tableName, "index", "index#entity.name",dynamodb)
     for record in event.get('Records'):
         keys = record['dynamodb']['Keys']
         
