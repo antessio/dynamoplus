@@ -1,0 +1,161 @@
+service: dynamoplus
+
+plugins:
+  - serverless-python-requirements
+custom:
+  pythonRequirements:
+    dockerizePip: true
+  serverless-offline:
+    host: 0.0.0.0
+  dynamodb:
+    start:
+      migrate: true
+  indexes: "host#address.country__address.region__address.province__address.city__ORDER_BY__address.city,host#objectId,host#published__ORDER_BY__top,host#user_owner,host#metadata.book2work.group,host#user_owner,host#metadata.book2work.category.id,category#active__ORDER_BY__ordering,category#objectId"
+  entities: "host#id#creation_date_time,category#id#ordering"
+frameworkVersion: ">=1.1.0 <2.0.0"
+
+provider:
+  name: aws
+  runtime: python3.7
+  region: eu-west-1
+  memorySize: 256
+
+  environment:
+    DYNAMODB_TABLE_NAME: ${self:service}-domain-${opt:stage, self:provider.stage}
+    DYNAMODB_TABLE: { Ref: DomainDynamoDbTable }
+    INDEXES: ${self:custom.indexes}
+    entities: ${self:custom.entities}
+    AUTH0_CLIENT_ID: ${file(./secrets.json):AUTH0_CLIENT_ID}
+    AUTH0_CLIENT_PUBLIC_KEY: ${file(./public_key)}
+    
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        # New permissions needed for stream
+        - dynamodb:GetRecords
+        - dynamodb:GetShardIterator
+        - dynamodb:DescribeStream
+        - dynamodb:ListStreams
+      Resource: [!GetAtt DomainDynamoDbTable.Arn, !Join [ '/',[!GetAtt DomainDynamoDbTable.Arn,index/*]]]
+
+
+functions:
+  auth:
+    handler: dynamoplus/http/authorizer.authorize
+    cors: true
+  handleStream:
+    handler: dynamoplus/events/dynamodb.dynamoStreamHandler
+    events:
+      - stream:
+          type: dynamodb
+          arn: { Fn::GetAtt: [ DomainDynamoDbTable, StreamArn ] }
+          batchSize: 1
+  create:
+    handler: dynamoplus/http/create.create
+    events:
+      - http:
+          path: dynamoplus/{entity}
+          method: post
+          cors: true
+          authorizer: auth
+
+  query:
+    handler: dynamoplus/http/query.query
+    events:
+      - http:
+          path: dynamoplus/{entity}/query/{queryId}
+          method: post
+          cors: true
+          authorizer: auth
+
+  get:
+    handler: dynamoplus/http/get.get
+    events:
+      - http:
+          path: dynamoplus/{entity}/{id}
+          method: get
+          cors: true
+          authorizer: auth
+
+  update:
+    handler: dynamoplus/http/update.update
+    events:
+      - http:
+          path: dynamoplus/{entity}/{id}
+          method: put
+          cors: true
+          authorizer: auth
+
+  delete:
+    handler: dynamoplus/http/delete.delete
+    events:
+      - http:
+          path: dynamoplus/{entity}/{id}
+          method: delete
+          cors: true
+          authorizer: auth
+
+resources:
+  Resources:
+    # This response is needed for custom authorizer failures cors support ¯\_(ツ)_/¯
+    GatewayResponse:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: EXPIRED_TOKEN
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '401'
+    AuthFailureGatewayResponse:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: UNAUTHORIZED
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '401'
+    DomainDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: S
+          - AttributeName: sk
+            AttributeType: S
+          - AttributeName: data
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+          - AttributeName: sk
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE_NAME}
+        GlobalSecondaryIndexes:
+        - IndexName: sk-data-index
+          KeySchema:
+          - AttributeName: sk
+            KeyType: HASH
+          - AttributeName: data
+            KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: '1'
+            WriteCapacityUnits: '1'
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+      
