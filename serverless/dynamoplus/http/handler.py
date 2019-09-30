@@ -25,8 +25,7 @@ class HttpHandler(object):
                 "statusCode": 400,
                 "body": self._formatJson({"msg": "entity {} not handled".format(targetEntity)})
             }
-        targetConfigurationArray = targetConfiguration.split("#")
-        repository = self._getRepositoryFromTargetEntityConfiguration(targetConfigurationArray)
+        repository = self._getRepositoryFromTargetEntityConfiguration(targetConfiguration)
         logging.info("get {} by id {}".format(targetEntity,id))
         result = repository.get(id)
         if result:
@@ -43,12 +42,11 @@ class HttpHandler(object):
                 "statusCode": 400,
                 "body": self._formatJson({"msg": "entity {} not handled".format(targetEntity)})
             }
-        targetConfigurationArray = targetConfiguration.split("#")
-        repository = self._getRepositoryFromTargetEntityConfiguration(targetConfigurationArray)
+        repository = self._getRepositoryFromTargetEntityConfiguration(targetConfiguration)
         data = json.loads(body.replace("'", '"'),parse_float=Decimal)
         timestamp = datetime.utcnow()
         uid=str(uuid.uuid1())
-        data[targetConfigurationArray[1]]=uid
+        data[targetConfigurationArray["idKey"]]=uid
         data["creation_date_time"]=timestamp.isoformat()
         logging.info("Creating "+data.__str__())
         try:
@@ -68,8 +66,8 @@ class HttpHandler(object):
                 "statusCode": 400,
                 "body": self._formatJson({"msg": "entity {} not handled".format(targetEntity)})
             }
-        targetConfigurationArray = targetConfiguration.split("#")
-        repository = self._getRepositoryFromTargetEntityConfiguration(targetConfigurationArray)
+        
+        repository = self._getRepositoryFromTargetEntityConfiguration(targetConfiguration)
         data = json.loads(body.replace("'", '"'),parse_float=Decimal)
         timestamp = datetime.utcnow()
         data["update_date_time"]=timestamp.isoformat()
@@ -92,8 +90,7 @@ class HttpHandler(object):
                 "statusCode": 400,
                 "body": self._formatJson({"msg": "entity {} not handled".format(targetEntity)})
             }
-        targetConfigurationArray = targetConfiguration.split("#")
-        repository = self._getRepositoryFromTargetEntityConfiguration(targetConfigurationArray)
+        repository = self._getRepositoryFromTargetEntityConfiguration(targetConfiguration)
         logging.info("delete {} by id {}".format(targetEntity,id))
         try:
             repository.delete(id)
@@ -114,8 +111,8 @@ class HttpHandler(object):
         queryId = pathParameters['queryId']
         queryIndex = targetEntity+"#"+queryId
         logging.info("Received {} as index".format(queryIndex))
-        targetConfigurationArray = targetConfiguration.split("#")
-        entityName = targetConfigurationArray[0]
+        
+        entityName = targetConfiguration["name"]
         indexService = IndexService(self.dynamoTable, entityName, queryIndex,self.dynamoDB)
         entity=json.loads(body.replace("'", '"'),parse_float=Decimal)
         limit = None
@@ -134,16 +131,26 @@ class HttpHandler(object):
         return json.dumps(obj, cls=DecimalEncoder)
     def _getTargetEntityConfiguration(self, targetEntity):
         targetConfiguration = next(filter(lambda tc: tc.split("#")[0]==targetEntity, self.entityConfigurations),None)
-        return targetConfiguration
+        if targetConfiguration:
+            logging.info("Accessing to system entity {}".format(targetConfiguration))
+            targetConfigurationArray=targetConfiguration.split("#")
+            return {"name": targetConfigurationArray[0], "idKey": targetConfigurationArray[1], "orderingKey": targetConfigurationArray[2]}
+        else:
+            indexService = IndexService(self.dynamoTable, "entity", "entity#name",self.dynamoDB)
+            result = indexService.findByExample({"name": targetEntity},limit,startFrom)
+            if "data" in result:
+                if len(result["data"])>0:
+                    return result["data"][0]
+            return None
 
     def _getTargetEntity(self, pathParameters):
         targetEntity = pathParameters['entity']
         return targetEntity
 
     def _getRepositoryFromTargetEntityConfiguration(self, targetConfiguration):
-        entity=targetConfiguration[0]
-        idKey = targetConfiguration[1]
-        orderingKey = targetConfiguration[2]
+        entity=targetConfiguration["name"]
+        idKey = targetConfiguration["idKey"]
+        orderingKey = targetConfiguration["orderingKey"]
         return self._getRepository(entity, idKey,orderingKey)
     def _getRepository(self, entity, idKey, orderingKey):
         return Repository(self.dynamoTable,entity, idKey,orderingKey,dynamoDB=self.dynamoDB)

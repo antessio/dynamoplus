@@ -7,7 +7,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 def create(event, context):
-    entities = os.environ['entities']
+    entities = os.environ['ENTITIES']
     dynamodbTable = os.environ['DYNAMODB_TABLE']
     handler = HttpHandler(entities,dynamodbTable)
     return handler.create(event["pathParameters"],body=event["body"])
