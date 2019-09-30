@@ -46,7 +46,7 @@ class HttpHandler(object):
         data = json.loads(body.replace("'", '"'),parse_float=Decimal)
         timestamp = datetime.utcnow()
         uid=str(uuid.uuid1())
-        data[targetConfigurationArray["idKey"]]=uid
+        data[targetConfiguration["idKey"]]=uid
         data["creation_date_time"]=timestamp.isoformat()
         logging.info("Creating "+data.__str__())
         try:
