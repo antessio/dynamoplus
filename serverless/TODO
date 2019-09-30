@@ -1,0 +1,10 @@
+- add limit to query
+- lambda update indexes (dynamodb streams)
+    -> update index => Verify 
+- lambda permissions check
+- validation
+- add multi tenant key
+
+
+ISSUES: 
+- limit parsing fails in query

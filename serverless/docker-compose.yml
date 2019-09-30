@@ -1,0 +1,23 @@
+version: '3.5'
+services:
+  serverless:
+    build: .
+    tty: true
+    stdin_open: true
+    image: serverless
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/local/bin/docker:/usr/local/bin/docker
+
+    ports:
+      - 3000:3000
+    container_name: serverless
+    env_file:
+      - .env.docker
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

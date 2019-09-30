@@ -1,0 +1,191 @@
+[
+    {
+       "metadata": {
+            "book2work":{
+                "dimension":50,
+       "group":"HOST",
+       "rules":[
+          null
+       ],
+       "category":{
+          "id":"5cdefd3d1fab4d0001fb4da4"
+       },
+       "tools":[
+          {
+             "id":"131"
+          },
+          {
+             "id":"120"
+          },
+          {
+             "id":"121"
+          },
+          {
+             "id":"112"
+          },
+          {
+             "id":"113"
+          },
+          {
+             "id":"127"
+          },
+          {
+             "id":"129"
+          },
+          {
+             "id":"119"
+          }
+       ]
+        }
+       },
+        "id":"5ce6e53923a0a40001a4d329",
+        "title":"Falegnameria Megahub",
+        "description":"Nella Falegnameria di Megahub potete trovare:\n\nCombinata con sega circolare, pialla a spessore, pialla a filo\nAvvitatore\nSeghetto alternativo\nLevigatrice orbitale\nLamello ZP-2\nFresa manuale verticale\nTrapano a colonna\nTroncatrice inclinabile\nBanco da lavoro con morsetti e attrezzatura varia e minuta",
+        "user_owner":"formazione@megahub.it",
+        "latitude":45.7095493,
+        "longitude":11.374982,
+        "address":{
+           "description": "Via Paraiso, 60, 36015 Schio VI, Italy",
+           "country": "IT",
+           "province": "VI",
+           "region": "Veneto",
+           "city": "Schio"
+        },
+        "published":true,
+        "images":[
+            "MTU1Nzc0NzkxNTM1MiNmb3JtYXppb25lQG1lZ2FodWIuaXQ=",
+            "MTU1Nzc0ODM2MTg5MiNmb3JtYXppb25lQG1lZ2FodWIuaXQ="
+        ],
+        "creationDatetime":"2019-05-13 11:54:31",
+        "lastUpdateDatetime":"2019-05-14 08:35:14",
+        "prices":[
+            {
+            "value":0,
+            "timeframe":"HOURLY"
+            },
+            {
+            "value":0,
+            "timeframe":"HALF_DAY"
+            },
+            {
+            "value":0,
+            "timeframe":"DAILY"
+            },
+            {
+            "value":10,
+            "timeframe":"WEEKLY"
+            }
+        ]
+    },
+    {
+        "metadata": {
+            "book2work":{
+                "dimension":350,
+                "group":"HOST",
+                "rules":[
+                ],
+                "category":{
+                   "id":"5cdefd3d1fab4d0001fb4db1"
+                },
+                "tools":[
+          
+                ]
+        }
+        },
+        "id":"5ce6e53923a0a40001a4d32b",
+        "title":"Coworking Officina/Fablab",
+        "description":"Nel coworking artigiano di Megahub puoi avere uno spazio di 10 mq ad uso prototipativo con la possibilità di inserire i tuoi macchinari e/o affittare i nostri.\n\nNella quota mensile sono compresi: connessione wifi, servizi igienici, utilizzo  falegnameria e carpenteria, utilizzo cucina al piano superiore.",
+        "user_owner":"formazione@megahub.it",
+        "latitude":45.7095493,
+        "longitude":11.374982,
+        "address":{
+         "description": "Via Paraiso, 60, 36015 Schio VI, Italy",
+         "country": "IT",
+         "province": "VI",
+         "region": "Veneto",
+         "city": "Schio"
+      },
+        "published":true,
+        "images":[
+            "MTU1Nzc0NzYyMzc5NCNmb3JtYXppb25lQG1lZ2FodWIuaXQ="
+        ],
+        "creationDatetime":"2019-05-13 11:41:42",
+        "lastUpdateDatetime":"2019-05-14 08:35:11",
+        "prices":[
+            {
+            "value":0,
+            "timeframe":"HOURLY"
+            },
+            {
+            "value":0,
+            "timeframe":"HALF_DAY"
+            },
+            {
+            "value":0,
+            "timeframe":"DAILY"
+            },
+            {
+            "value":35,
+            "timeframe":"WEEKLY"
+            }
+        ]
+    },
+    {
+        "metadata":{
+            "book2work": {
+                "dimension":800,
+                "group":"HOST",
+                "rules":[
+                 
+                ],
+                "category":{
+                   "id":"5cdefd3d1fab4d0001fb4db1",
+                   "name":"Coworking Artigiano"
+                },
+                "tools":[
+          
+                ]
+            }
+        },
+        "id":"5ce6e53923a0a40001a4d32d",
+        "title":"coworking",
+        "description":"Leonardo Digital Campus offre spazi flessibili, dinamici ed organizzati in aree formali ed informali che soddisfano le più diverse esigenze di interazione, comunicazione, condivisione, lavoro di squadra, privacy, concentrazione e relax. È il luogo ideale in cui incontrare professionisti ed aziende innovative.\n\nLeonardo Digital Campus è un luogo in cui vivere uno spazio personale per il proprio lavoro, ma anche un insieme di ambienti e servizi per far incontrare le idee in un’atmosfera a metà strada tra il comfort rassicurante di una casa e la solida immagine professionale di un ufficio.\n\nOffriamo spazi ed occasioni che facilitano lo scambio tra professionisti ed aziende. \n\nPersone provenienti da diversi background contribuiscono a creare un efficace e competitivo ecosistema dell’innovazione: dall’imprenditore ai nomadi digitali, ognuno porta con sé skill ed esperienze, arricchendo così i nostri eventi e la nostra community.\n",
+        "user_owner":"info@leonardodigitalcampus.com",
+        "latitude":41.79834169999999,
+        "longitude":12.2953796,
+        "address":{
+         "description": "Via Gian Lorenzo Bernini, 29, 00054 Fiumicino RM, Italy",
+         "country": "IT",
+         "province": "RM",
+         "region": "Lazio",
+         "city": "Fiumicino"
+      },
+        "published":false,
+        "images":[
+            "MTU1MzY4Mjc3Njk2NiNpbmZvQGxlb25hcmRvZGlnaXRhbGNhbXB1cy5jb20=",
+            "MTU1MzY4Mjc3ODg0NCNpbmZvQGxlb25hcmRvZGlnaXRhbGNhbXB1cy5jb20=",
+            "MTU1MzY4Mjc2OTM4MyNpbmZvQGxlb25hcmRvZGlnaXRhbGNhbXB1cy5jb20=",
+            "MTU1MzY4Mjc3NDA0NiNpbmZvQGxlb25hcmRvZGlnaXRhbGNhbXB1cy5jb20="
+        ],
+        "creationDatetime":"2019-03-27 10:39:18",
+        "lastUpdateDatetime":"2019-03-27 10:42:10",
+        "prices":[
+            {
+            "value":15,
+            "timeframe":"HOURLY"
+            },
+            {
+            "value":15,
+            "timeframe":"HALF_DAY"
+            },
+            {
+            "value":15,
+            "timeframe":"DAILY"
+            },
+            {
+            "value":100,
+            "timeframe":"WEEKLY"
+            }
+        ]
+    }
+ ]
