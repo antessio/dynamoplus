@@ -10,8 +10,8 @@ custom:
   dynamodb:
     start:
       migrate: true
-  system_indexes: "entity#name,index#name,index#entity.name"
-  system_entities: "entity#id#creation_date_time,index#id#creation_date_time"
+  system_indexes: "document-type#name,index#name,index#document-type.name"
+  system_document_types: "document-type#id#creation_date_time,index#id#creation_date_time"
 frameworkVersion: ">=1.1.0 <2.0.0"
 
 provider:
@@ -24,7 +24,7 @@ provider:
     DYNAMODB_TABLE_NAME: ${self:service}-domain-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE: { Ref: DomainDynamoDbTable }
     INDEXES: ${self:custom.system_indexes}
-    ENTITIES: ${self:custom.system_entities}
+    ENTITIES: ${self:custom.system_document_types}
     AUTH0_CLIENT_ID: ${file(./secrets.json):AUTH0_CLIENT_ID}
     AUTH0_CLIENT_PUBLIC_KEY: ${file(./public_key)}
     AUDIENCE: ${file(./secrets.json):AUDIENCE}
