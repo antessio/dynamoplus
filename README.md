@@ -18,7 +18,7 @@ A serverless back-end to create REST endpoint in python
 
 There are two special entities:
 
-- `entity`
+- `document_type`
     ```
     //example
     {
@@ -31,36 +31,37 @@ There are two special entities:
     ```
     //example
     {
-        "entity": {
+        "document_type": {
             "name": "example
         },
         "name": "address.country__address.region__address.province__address.city__ORDER_BY__creation_date_time"
     }
     ```
 
-To create a new entity: 
+To create a new document_type: 
 
 ```
-POST /dynamoplus/entity
+POST /dynamoplus/document_type
 {
-    "name": "my-entity",
+    "name": "my-document_type",
     "idKey": "objectId",
     "orderingKey": "custom_attribute"
 }
 ```
 
-Note: `custom_attribute` will be mandatory when creating a new row for `my-entity`
+Note: `custom_attribute` will be mandatory when creating a new row for `my-document_type`
 
 To create a new index:
 ```
 POST /dynamoplus/index
 {
-    "entity": {
+    "document_type": {
         "name": "example
         },
     "name": "address.country__address.region__address.province__address.city__ORDER_BY__creation_date_time"
 }
 ```
 
-# System Entities and indexes
+Once created some new endpoints will be available:
+- `POST /dynamoplus/<document_type-name>` to create a new document
 
