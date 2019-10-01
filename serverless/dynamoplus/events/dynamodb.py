@@ -47,12 +47,15 @@ def dynamoStreamHandler(event, context):
                     entity=entityConfiguration["name"]
                     idKey = entityConfiguration["idKey"]
                     customIndexes =  None
+                    logger.info("Search custom indexes for entity {}".format(entity))
                     customIndexesResult = systemIndexesIndexService.findByExample({"entity":{"name": entity}})
                     if customIndexesResult:
                         if "data" in customIndexesResult:
+                            logger.info("Found {} for entity {}".format(len(customIndexesResult["data"]),entity))
                             if len(customIndexesResult["data"])>0:
-                               customIndexes= ",".join(map(lambda i: i["entity"]["name"]+"#"+i["name"], customIndexesResult["data"]))
+                                customIndexes= ",".join(map(lambda i: i["entity"]["name"]+"#"+i["name"], customIndexesResult["data"]))
                     if customIndexes:
+                        logger.info("Custom indexes string {}".format(customIndexes))
                         customMatchingIndexes = indexUtils.findIndexFromEntity(customIndexes,newRecord,sk)
                         for i in customMatchingIndexes.keys():
                             try:
@@ -70,7 +73,9 @@ def dynamoStreamHandler(event, context):
                             except Exception as e:
                                 logger.warning("Unable to create the index {}".format(i),exc_info=e)
 
+                    logger.info("System indexes string {}".format(indexes))
                     systemMatchingIndexes = indexUtils.findIndexFromEntity(indexes,newRecord,sk)
+                    logger.info("Found {} indexes matching the record for system indexes".format(len(systemMatchingIndexes)))
                     for i in systemMatchingIndexes.keys():
                         try:
                             logger.info("index found {}".format(i))
