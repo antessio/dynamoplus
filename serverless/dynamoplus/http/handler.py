@@ -12,8 +12,8 @@ import json
 logging.basicConfig(level=logging.INFO)
 
 class HttpHandler(object):
-    def __init__(self, entityConfiguration,dynamoTable,dynamoDB=None):
-        self.entityConfigurations = entityConfiguration.split(",")
+    def __init__(self, documentConfiguration,dynamoTable,dynamoDB=None):
+        self.documentConfigurations = documentConfiguration.split(",")
         self.dynamoTable = dynamoTable
         self.dynamoDB = dynamoDB
     def get(self, pathParameters, queryStringParameters=[], body=None, headers=None):
@@ -130,7 +130,7 @@ class HttpHandler(object):
     def _formatJson(self, obj):
         return json.dumps(obj, cls=DecimalEncoder)
     def _getTargetEntityConfiguration(self, targetEntity):
-        targetConfiguration = next(filter(lambda tc: tc.split("#")[0]==targetEntity, self.entityConfigurations),None)
+        targetConfiguration = next(filter(lambda tc: tc.split("#")[0]==targetEntity, self.targetConfigurations),None)
         if targetConfiguration:
             logging.info("Accessing to system entity {}".format(targetConfiguration))
             targetConfigurationArray=targetConfiguration.split("#")
