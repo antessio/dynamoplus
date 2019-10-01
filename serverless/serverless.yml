@@ -10,8 +10,8 @@ custom:
   dynamodb:
     start:
       migrate: true
-  system_indexes: "document-type#name,index#name,index#document-type.name"
-  system_document_types: "document-type#id#creation_date_time,index#id#creation_date_time"
+  system_indexes: "document_type#name,index#name,index#document_type.name"
+  system_document_types: "document_type#id#creation_date_time,index#id#creation_date_time"
 frameworkVersion: ">=1.1.0 <2.0.0"
 
 provider:

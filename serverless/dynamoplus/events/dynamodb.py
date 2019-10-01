@@ -26,7 +26,7 @@ def dynamoStreamHandler(event, context):
     indexes = os.environ['INDEXES'].split(",")
     entities = os.environ['ENTITIES'].split(",")
     logger.info("Events on dynamo {} ".format(str(event)))
-    systemDocumentTypesIndexService = IndexService(tableName, "entity", "document_type#name",dynamodb)
+    systemDocumentTypesIndexService = IndexService(tableName, "document_type", "document_type#name",dynamodb)
     systemIndexesIndexService = IndexService(tableName, "index", "index#document_type.name",dynamodb)
     for record in event.get('Records'):
         keys = record['dynamodb']['Keys']
@@ -36,12 +36,17 @@ def dynamoStreamHandler(event, context):
         indexUtils = IndexUtils()
         if "#" not in sk:
             documentConfiguration = None
+            documentConfigurationString = next(filter(lambda tc: tc.split("#")[0]==sk, entities),None)
             logger.info("Find documentType by name {}".format(sk))
-            documentTypesResult = systemDocumentTypesIndexService.findByExample({"name": sk})
-            logger.info("Response is {}".format(str(documentTypesResult)))
-            if "data" in documentTypesResult:
-                if len(documentTypesResult["data"])>0:
-                    documentConfiguration = documentTypesResult["data"][0]
+            if not documentConfigurationString:
+                documentTypesResult = systemDocumentTypesIndexService.findByExample({"name": sk})
+                logger.info("Response is {}".format(str(documentTypesResult)))
+                if "data" in documentTypesResult:
+                    if len(documentTypesResult["data"])>0:
+                        documentConfiguration = documentTypesResult["data"][0]
+            else:
+                documentConfigurationArray = documentConfigurationString.split("#")
+                documentConfiguration={"name": documentConfigurationArray[0], "idKey": documentConfigurationArray[1], "orderingKey": documentConfigurationArray[2]}
                 
             if record.get('eventName') == 'INSERT':
                 newRecord = deserialize(record['dynamodb']['NewImage'])
@@ -53,13 +58,13 @@ def dynamoStreamHandler(event, context):
                 newRecord = deserialize(record['dynamodb']['NewImage'])
                 document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], newRecord.items()))
                 logger.info("updating index for {}".format(str(document)))
-                handleIndexes(lambda repository,idKey: repository.update(document),documentConfiguration, systemDocumentTypesIndexService, indexUtils, newRecord, sk, tableName,indexes)
+                handleIndexes(lambda repository,idKey: repository.update(document),documentConfiguration, systemIndexesIndexService, indexUtils, newRecord, sk, tableName,indexes)
                 
             elif record.get('eventName') == 'REMOVE':
                 oldRecord = deserialize(record['dynamodb']['OldImage'])
                 document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], oldRecord.items()))
                 logger.info('removing index on record  {}'.format(pk))
-                handleIndexes(lambda repository,idKey : repository.delete(oldRecord[idKey]),documentConfiguration, systemDocumentTypesIndexService, indexUtils, oldRecord, sk, tableName,indexes)
+                handleIndexes(lambda repository,idKey : repository.delete(oldRecord[idKey]),documentConfiguration, systemIndexesIndexService, indexUtils, oldRecord, sk, tableName,indexes)
         else:
             logger.debug('Skipping indexing on record {} - {}'.format(pk,sk))
 
