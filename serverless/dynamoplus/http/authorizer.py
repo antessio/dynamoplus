@@ -32,7 +32,7 @@ def authorize(event, context):
         payload = jwt_verify(auth_token, AUTH0_CLIENT_PUBLIC_KEY)
         print("Auth0 payload "+str(payload))
         principal_id = payload['sub']
-        policy = generate_policy(principal_id, 'Allow', event['methodArn'])
+        policy = generate_policy(principal_id, 'Allow', "*")
         return policy
     except Exception as e:
         print(f'Exception encountered: {e}')
