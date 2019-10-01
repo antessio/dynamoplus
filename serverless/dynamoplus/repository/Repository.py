@@ -162,7 +162,9 @@ class IndexRepository(Repository):
         logging.info("orderKey {}".format(self.orderKey))
         orderingPart = _convertToString(findValue(entity,self.orderKey.split("."))) if self.orderKey is not None and query is False else None
         logging.debug("orderingPart {}".format(orderingPart))
+        logging.info("Entity {}".format(str(entity)))
         if self.indexKeys:
+            logging.info("Index keys {}".format(self.indexKeys))
             keyPart = _convertToString(getByKeyRecursive(entity,self.indexKeys,not query))
             return keyPart+("#"+orderingPart if orderingPart is not None else "")
         elif orderingPart is not None:

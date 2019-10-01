@@ -130,14 +130,14 @@ class HttpHandler(object):
     def _formatJson(self, obj):
         return json.dumps(obj, cls=DecimalEncoder)
     def _getTargetEntityConfiguration(self, targetEntity):
-        targetConfiguration = next(filter(lambda tc: tc.split("#")[0]==targetEntity, self.targetConfigurations),None)
+        targetConfiguration = next(filter(lambda tc: tc.split("#")[0]==targetEntity, self.documentConfigurations),None)
         if targetConfiguration:
             logging.info("Accessing to system entity {}".format(targetConfiguration))
             targetConfigurationArray=targetConfiguration.split("#")
             return {"name": targetConfigurationArray[0], "idKey": targetConfigurationArray[1], "orderingKey": targetConfigurationArray[2]}
         else:
             indexService = IndexService(self.dynamoTable, "entity", "entity#name",self.dynamoDB)
-            result = indexService.findByExample({"name": targetEntity},limit,startFrom)
+            result = indexService.findByExample({"name": targetEntity})
             if "data" in result:
                 if len(result["data"])>0:
                     return result["data"][0]
