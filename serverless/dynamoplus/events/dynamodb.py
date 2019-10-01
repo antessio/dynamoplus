@@ -36,7 +36,9 @@ def dynamoStreamHandler(event, context):
         indexUtils = IndexUtils()
         if "#" not in sk:
             entityConfiguration = None
+            logger.info("Find entity by name {}".format(sk))
             systemEntitiesResult = systemEntitiesIndexService.findByExample({"name": sk})
+            logger.info("Response is {}".format(str(systemEntitiesResult)))
             if "data" in systemEntitiesResult:
                 if len(systemEntitiesResult["data"])>0:
                     entityConfiguration = systemEntitiesResult["data"][0]
