@@ -79,7 +79,7 @@ def handleIndexes(repositoryLambda, documentConfiguration, systemIndexesIndexSer
             if "data" in customIndexesResult:
                 logger.info("Found {} for document {}".format(len(customIndexesResult["data"]),documentTypeName))
                 if len(customIndexesResult["data"])>0:
-                    customIndexes= ",".join(map(lambda i: i["entity"]["name"]+"#"+i["name"], customIndexesResult["data"]))
+                    customIndexes= list(map(lambda i: i["document_type"]["name"]+"#"+i["name"], customIndexesResult["data"]))
         if customIndexes:
             logger.info("Custom indexes string {}".format(customIndexes))
             customMatchingIndexes = indexUtils.findIndexFromEntity(customIndexes,newRecord,sk)

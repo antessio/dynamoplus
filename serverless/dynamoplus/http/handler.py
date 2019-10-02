@@ -19,7 +19,7 @@ class HttpHandler(object):
     def get(self, pathParameters, queryStringParameters=[], body=None, headers=None):
         id = pathParameters['id']
         targetEntity = self._getTargetEntity(pathParameters)
-        targetConfiguration = self._getTargetEntityConfiguration(targetEntity)
+        targetConfiguration = self._getDocumentTypeConfiguration(targetEntity)
         if not targetConfiguration:
             return {
                 "statusCode": 400,
@@ -36,14 +36,14 @@ class HttpHandler(object):
 
     def create(self, pathParameters, queryStringParameters=[], body=None, headers=None):
         targetEntity = self._getTargetEntity(pathParameters)
-        targetConfiguration = self._getTargetEntityConfiguration(targetEntity)
+        targetConfiguration = self._getDocumentTypeConfiguration(targetEntity)
         if not targetConfiguration:
             return {
                 "statusCode": 400,
                 "body": self._formatJson({"msg": "entity {} not handled".format(targetEntity)})
             }
         repository = self._getRepositoryFromTargetEntityConfiguration(targetConfiguration)
-        data = json.loads(body.replace("'", '"'),parse_float=Decimal)
+        data = json.loads(body,parse_float=Decimal)
         timestamp = datetime.utcnow()
         uid=str(uuid.uuid1())
         data[targetConfiguration["idKey"]]=uid
@@ -60,7 +60,7 @@ class HttpHandler(object):
     
     def update(self, pathParameters, queryStringParameters=[], body=None, headers=None):
         targetEntity = self._getTargetEntity(pathParameters)
-        targetConfiguration = self._getTargetEntityConfiguration(targetEntity)
+        targetConfiguration = self._getDocumentTypeConfiguration(targetEntity)
         if not targetConfiguration:
             return {
                 "statusCode": 400,
@@ -68,7 +68,7 @@ class HttpHandler(object):
             }
         
         repository = self._getRepositoryFromTargetEntityConfiguration(targetConfiguration)
-        data = json.loads(body.replace("'", '"'),parse_float=Decimal)
+        data = json.loads(body,parse_float=Decimal)
         timestamp = datetime.utcnow()
         data["update_date_time"]=timestamp.isoformat()
         logging.info("Updating  "+data.__str__())
@@ -84,7 +84,7 @@ class HttpHandler(object):
     def delete(self, pathParameters, queryStringParameters=[], body=None, headers=None):
         id = pathParameters['id']
         targetEntity = self._getTargetEntity(pathParameters)
-        targetConfiguration = self._getTargetEntityConfiguration(targetEntity)
+        targetConfiguration = self._getDocumentTypeConfiguration(targetEntity)
         if not targetConfiguration:
             return {
                 "statusCode": 400,
@@ -102,7 +102,7 @@ class HttpHandler(object):
 
     def query(self, pathParameters, queryStringParameters={}, body=None, headers=None):
         targetEntity = self._getTargetEntity(pathParameters)
-        targetConfiguration = self._getTargetEntityConfiguration(targetEntity)
+        targetConfiguration = self._getDocumentTypeConfiguration(targetEntity)
         if not targetConfiguration:
             return {
                 "statusCode": 400,
@@ -114,7 +114,7 @@ class HttpHandler(object):
         
         entityName = targetConfiguration["name"]
         indexService = IndexService(self.dynamoTable, entityName, queryIndex,self.dynamoDB)
-        entity=json.loads(body.replace("'", '"'),parse_float=Decimal)
+        entity=json.loads(body,parse_float=Decimal)
         limit = None
         startFrom = None
         if queryStringParameters is not None and "limit" in queryStringParameters:
@@ -154,3 +154,17 @@ class HttpHandler(object):
         return self._getRepository(entity, idKey,orderingKey)
     def _getRepository(self, entity, idKey, orderingKey):
         return Repository(self.dynamoTable,entity, idKey,orderingKey,dynamoDB=self.dynamoDB)
+
+    def _getDocumentTypeConfiguration(self, targetEntity):
+        targetConfiguration = self._getTargetEntityConfiguration(targetEntity)
+        if not targetConfiguration:
+            '''
+                find the entity 
+            '''
+            systemDocumentTypesIndexService = IndexService(self.dynamoTable, "document_type", "document_type#name",self.dynamoDB)
+            documentTypesResult = systemDocumentTypesIndexService.findByExample({"name": targetEntity})
+            logging.info("Response is {}".format(str(documentTypesResult)))
+            if "data" in documentTypesResult:
+                if len(documentTypesResult["data"])>0:
+                    targetConfiguration = documentTypesResult["data"][0]
+        return targetConfiguration
