@@ -46,3 +46,28 @@ def getValuesByKeyRecursive(data, keys, skipIfNotFound=True):
             if not skipIfNotFound:
                 raise Exception("{} not found in {} ".format(k,data))
     return result
+
+context = decimal.Context(
+    Emin=-128, Emax=126, rounding=None, prec=38,
+    traps=[decimal.Clamped, decimal.Overflow, decimal.Underflow]
+)
+
+def sanitize(data):
+    """ Sanitizes an object so it can be updated to dynamodb (recursive) """
+    if not data and isinstance(data, (str, Set)):
+        new_data = ""  # empty strings/sets are forbidden by dynamodb
+    elif isinstance(data, (str, bool)):
+        new_data = data  # important to handle these one before sequence and int!
+    elif isinstance(data, Mapping):
+        new_data = {key: sanitize(data[key]) for key in data}
+    elif isinstance(data, collections.abc.Sequence):
+        new_data = [sanitize(item) for item in data]
+    elif isinstance(data, Set):
+        new_data = {sanitize(item) for item in data}
+    elif isinstance(data, (float, int, complex)):
+        new_data = context.create_decimal(data)
+    elif isinstance(data, datetime):
+        new_data = data.isoformat()
+    else:
+        new_data = data
+    return new_data

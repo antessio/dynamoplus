@@ -29,6 +29,10 @@ class Model(object):
     def orderValue(self):
         if self.orderKey:
             return findValue(self.document, self.orderKey.split("."))
+    def toDynamoDbItem(self):
+        return {**self.document, "pk": self.pk(), "sk": self.sk(), "data": self.data()}
+    def fromDynamoDbItem(self, dynamoDbItem):
+        return {k: v for k, v in dynamoDbItem.items() if k not in ["pk","sk","data"]}
 
 class IndexModel(Model):
     def __init__(self, documentTypeConfiguration, document, index:Index):
