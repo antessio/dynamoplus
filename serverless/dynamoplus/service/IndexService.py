@@ -1,21 +1,21 @@
 import json
+import typing
 from boto3.dynamodb.conditions import Key, Attr
 import logging
 from dynamoplus.service.Utils import getByKeyRecursive, findValue, convertToString
 from dynamoplus.repository.Repository import IndexRepository,Repository
-
+from dynamoplus.models.indexes.indexes import Index
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
 class IndexService(object):
-    def __init__(self, tableName, entityName,queryIndex, dynamoDB):
+    def __init__(self, index:Index, tableName:str, dynamoDB):
         indexUtils = IndexUtils()
-        self.orderBy, self.index = indexUtils.buildIndex(queryIndex)
-        indexKeys = self.index["conditions"]
-        self.repository = IndexRepository(tableName,entityName,queryIndex,self.orderBy,indexKeys,dynamoDB=dynamoDB)
+        self.orderBy, self.conditions = indexUtils.buildIndex(index.indexName)
+        self.repository = IndexRepository(tableName,index.entityName,index.indexName,self.orderBy,self.conditions,dynamoDB=dynamoDB)
 
-    def findByExample(self, entity, limit=None, startFrom=None):
+    def findByExample(self, entity:str, limit:int=None, startFrom:str=None):
         query={
             "entity": entity
         }
@@ -86,21 +86,14 @@ class IndexUtils(object):
             logger.warning("the order by key {} was not found".format(orderBy))
             return None
 
-    def buildIndex(self, i):
-        part1 = i.split("#")
-        entityName=part1[0]
-        queryPart = part1[1]
-        part2 = queryPart.split("__ORDER_BY__")
+    def buildIndex(self, indexName:str):
+        part2 = indexName.split("__ORDER_BY__")
         conditionsPart=part2[0]
         orderBy=part2[1] if len(part2)>1 else None
-        logger.info("index {} and conditions {}".format(i,conditionsPart))
+        logger.info("index {} and conditions {}".format(indexName,conditionsPart))
         conditionsList = conditionsPart.split("__")
-        logger.info("Index for {}, attributes are {} ".format(entityName,conditionsList))
-        foundIndex = {
-            "tablePrefix": entityName,
-            "conditions": conditionsList
-        }
-        return orderBy, foundIndex
+        logger.info("Index for {}, attributes are {} ".format(indexName,conditionsList))
+        return orderBy, conditionsList
 
     def dictDiffs(self,d1,d2):
         result={}
