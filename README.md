@@ -1,4 +1,4 @@
-https://travis-ci.com/antessio/dynamoplus.svg?branch=feature%2FrefactoringDynamicEntityAndIndex
+[![Build Status develop](https://travis-ci.com/antessio/dynamoplus.svg?branch=develop)](https://travis-ci.com/antessio/dynamoplus)
 
 
 # dyamoplus
