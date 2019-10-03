@@ -15,7 +15,7 @@ from os.path import abspath, exists
 from jsonschema import ValidationError
 
 @mock_dynamodb2
-class TestRepository(unittest.TestCase):
+class TestRepository():
     
     @mock_dynamodb2
     def setUp(self):
