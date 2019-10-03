@@ -4,10 +4,10 @@ import numbers
 import decimal
 from datetime import datetime
 from boto3.dynamodb.conditions import Key, Attr
+import boto3
 from dynamoplus.service.Utils import getByKeyRecursive, findValue
 import logging
 import json
-import boto3
 logging.basicConfig(level=logging.DEBUG)
 
 def _convertToString(val):
