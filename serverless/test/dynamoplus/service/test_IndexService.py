@@ -1,10 +1,10 @@
 import unittest
 import decimal
-from  dynamoplus.service.IndexService import IndexUtils
+from dynamoplus.service.IndexService import IndexUtils
 from dynamoplus.service.Utils import fromParametersToDict
 
 
-class TestIndexService(unittest.TestCase):
+class TestIndexService():
 
     def setUp(self):
         self.indexes = ["example#address.country__address.region__address.province__address.city__ORDER_BY__address.city","example#published__ORDER_BY__top","example#user_owner","category#active__ORDER_BY__ordering","category#objectId__ORDER_BY__ordering"]

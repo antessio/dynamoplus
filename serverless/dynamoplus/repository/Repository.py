@@ -4,10 +4,10 @@ import numbers
 import decimal
 from datetime import datetime
 from boto3.dynamodb.conditions import Key, Attr
+import boto3
 from dynamoplus.service.Utils import getByKeyRecursive, findValue
 import logging
 import json
-import boto3
 logging.basicConfig(level=logging.DEBUG)
 
 def _convertToString(val):
@@ -162,7 +162,9 @@ class IndexRepository(Repository):
         logging.info("orderKey {}".format(self.orderKey))
         orderingPart = _convertToString(findValue(entity,self.orderKey.split("."))) if self.orderKey is not None and query is False else None
         logging.debug("orderingPart {}".format(orderingPart))
+        logging.info("Entity {}".format(str(entity)))
         if self.indexKeys:
+            logging.info("Index keys {}".format(self.indexKeys))
             keyPart = _convertToString(getByKeyRecursive(entity,self.indexKeys,not query))
             return keyPart+("#"+orderingPart if orderingPart is not None else "")
         elif orderingPart is not None:
