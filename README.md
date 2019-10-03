@@ -1,3 +1,6 @@
+https://travis-ci.com/antessio/dynamoplus.svg?branch=feature%2FrefactoringDynamicEntityAndIndex
+
+
 # dyamoplus
 A serverless back-end to create REST endpoint in python
 
