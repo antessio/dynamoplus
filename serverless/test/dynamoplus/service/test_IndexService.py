@@ -1,6 +1,6 @@
 import unittest
 import decimal
-from  dynamoplus.service.IndexService import IndexUtils
+from dynamoplus.service.IndexService import IndexUtils
 from dynamoplus.service.Utils import fromParametersToDict
 
 
