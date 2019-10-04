@@ -3,16 +3,14 @@ import os
 import sys
 from unittest.mock import patch
 from dynamoplus.http.handler import HttpHandler
-from dynamoplus.repository.Repository import Repository
-from dynamoplus.service.IndexService import IndexUtils
 
 class TestHttpHandler(unittest.TestCase):
     def setUp(self):
         self.httpHandler = HttpHandler()
-    def test_getTargetEntity(self):
-        path_parameters={"document_type":"example","query": "name"}
-        result=self.httpHandler.getDocumentTypeFromPathParameters(path_parameters)
-        self.assertEqual(result,"example")
+    # def test_getTargetEntity(self):
+    #     path_parameters={"document_type":"example","query": "name"}
+    #     result=self.httpHandler.getDocumentTypeFromPathParameters(path_parameters)
+    #     self.assertEqual(result,"example")
         
 
     # @patch.object(Repository, "getEntityDTO")
