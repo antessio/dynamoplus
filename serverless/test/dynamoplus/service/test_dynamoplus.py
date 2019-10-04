@@ -2,7 +2,6 @@ import unittest
 import decimal
 from dynamoplus.models.indexes.indexes import Index
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
-from dynamoplus.service.IndexService import IndexUtils
 from dynamoplus.repository.repositories import Repository
 from dynamoplus.models.indexes.indexes import Query, Index
 from dynamoplus.repository.models import QueryResult, Model
