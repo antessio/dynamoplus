@@ -1,13 +1,16 @@
 from typing import *
 import logging
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
-from dynamoplus.models.indexes.indexes import Index
-from dynamoplus.repository.models import Model
+from dynamoplus.models.indexes.indexes import Index, Query
+from dynamoplus.repository.models import Model,IndexModel, QueryResult
 from dynamoplus.utils.utils import convertToString, findValue, sanitize
 from boto3.dynamodb.conditions import Key, Attr
 import boto3
 import os
 logging.basicConfig(level=logging.INFO)
+logging.getLogger("botocore").setLevel(logging.WARNING)
+logging.getLogger("boto3").setLevel(logging.WARNING)
+
 
 class Repository(object):
     def __init__(self, documentTypeConfiguration: DocumentTypeConfiguration):
@@ -69,3 +72,32 @@ class Repository(object):
         if response['ResponseMetadata']['HTTPStatusCode']!=200:
             logging.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
             raise Exception("Error code {}".format(response['ResponseMetadata']['HTTPStatusCode']))
+    def find(self, query: Query):
+        document = query.document
+        indexModel = IndexModel(self.documentTypeConfiguration,document,query.index)
+        orderValue = indexModel.orderValue()
+        limit = query.limit
+        startFrom = query.startFrom
+        if orderValue is None:
+            key=Key('sk').eq(indexModel.sk()) & Key('data').eq(indexModel.data())
+            logging.info("The key that will be used is sk={} data={}".format(indexModel.sk(), indexModel.data()))
+        else:
+            key=Key('sk').eq(indexModel.sk()) & Key('data').begins_with(indexModel.data())
+            logging.info("The key that will be used is sk={} data={}".format(indexModel.sk(), indexModel.data()))
+            
+        
+        dynamoQuery=dict(
+            IndexName="sk-data-index",
+            KeyConditionExpression=key,
+            Limit=limit,
+            ExclusiveStartKey=startFrom
+        )
+        response = self.table.query(
+                **{k: v for k, v in dynamoQuery.items() if v is not None}
+            )
+        logging.info("Response from dynamo db {}".format(str(response)))
+        lastKey=None
+    
+        if 'LastEvaluatedKey' in response:
+            lastKey=response['LastEvaluatedKey']
+        return QueryResult(list(map(lambda i: Model(self.documentTypeConfiguration, i),response[u'Items'])),lastKey)

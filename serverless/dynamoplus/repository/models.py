@@ -7,6 +7,12 @@ from dynamoplus.utils.utils import convertToString, findValue, getValuesByKeyRec
 
 logging.basicConfig(level=logging.INFO)
 
+
+class QueryResult(object):
+    def __init__(self, data:List['Model'], lastEvaluatedKey:dict=None):
+        self.data = data
+        self.lastEvaluatedKey=lastEvaluatedKey
+        
 class Model(object):
     def __init__(self, documentTypeConfiguration: DocumentTypeConfiguration,document:dict):
         self.idKey = documentTypeConfiguration.idKey
@@ -15,24 +21,28 @@ class Model(object):
         self.document = document
     
     def pk(self):
-        return self.entityName+"#"+self.document[self.idKey]
+        return self.document["pk"] if "pk" in self.document else  self.entityName+"#"+self.document[self.idKey]
     
     def sk(self):        
-        return self.entityName
+        return self.document["sk"] if "sk" in self.document else self.entityName
     
     def data(self):
-        data = convertToString(self.document[self.idKey])
-        orderValue = self.orderValue()
-        if orderValue:
-            data = self.document[self.idKey]+"#"+orderValue
-        return data
+        if "data" in self.document:
+            return self.document["data"]
+        else:
+            data = convertToString(self.document[self.idKey])
+            orderValue = self.orderValue()
+            if orderValue:
+                data = self.document[self.idKey]+"#"+orderValue
+            return data
     def orderValue(self):
         if self.orderKey:
             return findValue(self.document, self.orderKey.split("."))
     def toDynamoDbItem(self):
         return {**self.document, "pk": self.pk(), "sk": self.sk(), "data": self.data()}
-    def fromDynamoDbItem(self, dynamoDbItem):
-        return {k: v for k, v in dynamoDbItem.items() if k not in ["pk","sk","data"]}
+
+    def fromDynamoDbItem(self):
+        return {k: v for k, v in self.document.items() if k not in ["pk","sk","data"]}
 
 class IndexModel(Model):
     def __init__(self, documentTypeConfiguration, document, index:Index):
