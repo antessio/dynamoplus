@@ -1,5 +1,11 @@
+[![Build Status master](https://travis-ci.com/antessio/dynamoplus.svg?branch=master)](https://travis-ci.com/antessio/dynamoplus)
+
+
 [![Build Status develop](https://travis-ci.com/antessio/dynamoplus.svg?branch=develop)](https://travis-ci.com/antessio/dynamoplus)
 
+[![Coverage Status master](https://coveralls.io/repos/github/antessio/dynamoplus/badge.svg?branch=master)](https://coveralls.io/github/antessio/dynamoplus?branch=master)
+
+[![Coverage Status develop](https://coveralls.io/repos/github/antessio/dynamoplus/badge.svg?branch=develop)](https://coveralls.io/github/antessio/dynamoplus?branch=develop)
 
 # dyamoplus
 A serverless back-end to create REST endpoint in python
