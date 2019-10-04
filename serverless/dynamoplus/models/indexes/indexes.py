@@ -2,15 +2,15 @@ from typing import *
 
 
 class Index(object):
-    def __init__(self,entityName:str, conditions:List[str], orderingKey:str):
-        self.entityName = entityName
+    def __init__(self,documentType:str, conditions:List[str], orderingKey:str=None):
+        self.entityName = documentType
         self.conditions = conditions
         self.orderingKey = orderingKey
     
     def conditions(self):
         return self.conditions
     
-    def entityName(self):
+    def documentType(self):
         return self.entityName
     
     def indexName(self):
@@ -22,4 +22,4 @@ class Query(object):
         self.index = index
         self.startFrom = startFrom
         self.limit = limit
-    
+        

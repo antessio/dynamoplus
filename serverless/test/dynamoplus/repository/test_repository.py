@@ -1,11 +1,14 @@
 import unittest
 from typing import *
-from dynamoplus.repository.repositories import Model
+from dynamoplus.repository.models import Model,IndexModel
+from dynamoplus.models.indexes.indexes import Query,Index
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.repository.repositories import Repository
 from moto import mock_dynamodb2
 import boto3
 import os
+
+from boto3.dynamodb.conditions import Key, Attr
 
 @mock_dynamodb2
 class TestRepository(unittest.TestCase):
@@ -69,3 +72,13 @@ class TestRepository(unittest.TestCase):
         self.assertEqual(result["pk"],"example#1234")
         self.assertEqual(result["sk"],"example")
         self.assertEqual(result["data"],"1234")
+    def test_query(self):
+        for i in range(1,10):
+            document = {"id": str(i), "attribute1": str(i%2), "attribute2":"value_"+str(i)}
+            self.table.put_item(Item={"pk":"example#"+str(i),"sk":"example","data":str(i),**document})
+            self.table.put_item(Item={"pk":"example#"+str(i),"sk":"example#attribute1","data":str(i%2),**document})
+        index = Index("example",["attribute1"])
+        query = Query({"attribute1":"1"},index)
+        result = self.repository.find(query)
+        self.assertIsNotNone(result)
+        self.assertEqual(len(result.data),5)

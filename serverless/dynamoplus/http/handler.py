@@ -1,7 +1,8 @@
 from dynamoplus.utils.decimalencoder import DecimalEncoder
 from dynamoplus.repository.Repository import Repository
-from dynamoplus.service.IndexService import IndexService
+from dynamoplus.service.indexes import IndexService
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
+from dynamoplus.models.indexes.indexes import Index
 from decimal import Decimal
 from datetime import datetime
 import typing
@@ -14,13 +15,15 @@ import json
 logging.basicConfig(level=logging.INFO)
 
 class HttpHandler(object):
-    def __init__(self, documentConfiguration,dynamoTable,dynamoDB=None):
-        self.documentConfigurations = documentConfiguration.split(",")
-        self.dynamoTable = dynamoTable
-        self.dynamoDB = dynamoDB
+    def __init__(self):
+        pass
     def get(self, pathParameters, queryStringParameters=[], body=None, headers=None):
         id = pathParameters['id']
-        targetEntity = self.getTargetEntity(pathParameters)
+        documentType = self.getDocumentTypeFromPathParameters(pathParameters)
+        index = Index("document-type",["name"],None)
+        indexService = IndexService(index)
+        indexService.findDocument({"name": documentType})
+        targetEntity = self.getDocumentTypeFromPathParameters(pathParameters)
         targetConfiguration = self.getDocumentTypeConfiguration(targetEntity)
         if not targetConfiguration:
             return {
@@ -37,7 +40,7 @@ class HttpHandler(object):
             return {"statusCode": 404}
 
     def create(self, pathParameters, queryStringParameters=[], body=None, headers=None):
-        targetEntity = self.getTargetEntity(pathParameters)
+        targetEntity = self.getDocumentTypeFromPathParameters(pathParameters)
         targetConfiguration = self.getDocumentTypeConfiguration(targetEntity)
         if not targetConfiguration:
             return {
@@ -61,7 +64,7 @@ class HttpHandler(object):
             return {"statusCode": 500, "body": self.formatJson({"msg": "Error in create entity {}".format(targetEntity)})}
     
     def update(self, pathParameters, queryStringParameters=[], body=None, headers=None):
-        targetEntity = self.getTargetEntity(pathParameters)
+        targetEntity = self.getDocumentTypeFromPathParameters(pathParameters)
         targetConfiguration = self.getDocumentTypeConfiguration(targetEntity)
         if not targetConfiguration:
             return {
@@ -85,7 +88,7 @@ class HttpHandler(object):
     
     def delete(self, pathParameters, queryStringParameters=[], body=None, headers=None):
         id = pathParameters['id']
-        targetEntity = self.getTargetEntity(pathParameters)
+        targetEntity = self.getDocumentTypeFromPathParameters(pathParameters)
         targetConfiguration = self.getDocumentTypeConfiguration(targetEntity)
         if not targetConfiguration:
             return {
@@ -103,7 +106,7 @@ class HttpHandler(object):
             return {"statusCode": 500, "body": self.formatJson({"msg": "Error in delete entity {}".format(targetEntity)})}
 
     def query(self, pathParameters, queryStringParameters={}, body=None, headers=None):
-        targetEntity = self.getTargetEntity(pathParameters)
+        targetEntity = self.getDocumentTypeFromPathParameters(pathParameters)
         targetConfiguration = self.getDocumentTypeConfiguration(targetEntity)
         if not targetConfiguration:
             return {
@@ -145,8 +148,8 @@ class HttpHandler(object):
                     return result["data"][0]
             return None
 
-    def getTargetEntity(self, pathParameters):
-        targetEntity = pathParameters['entity']
+    def getDocumentTypeFromPathParameters(self, pathParameters):
+        targetEntity = pathParameters['document_type']
         return targetEntity
 
     def getRepositoryFromTargetEntityConfiguration(self, targetConfiguration):

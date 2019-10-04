@@ -1,26 +1,20 @@
 from typing import *
 from dynamoplus.models.indexes.indexes import Index
+from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.service.IndexService import IndexUtils
+from dynamoplus.repository.repositories import Repository
+from dynamoplus.models.indexes.indexes import Query, Index
+from dynamoplus.repository.models import QueryResult, Model
 
 
 class IndexService(object):
-    def __init__(self, index:Index):
+    def __init__(self, documentTypeConfiguration:DocumentTypeConfiguration, index:Index):
         self.index = index
-            
-        # TODO: from index, build orderBy (if present, otherwise uses the entity orderingKey), and conditions
-        # self.orderBy
-        # self.conditions
-        # TODO IndexRepository(documentTypeConfiguration, indexConfiguration)
-        #self.repository = IndexRepository(index.entityName,index.indexName,self.orderBy,self.conditions)
-
-    # def findByExample(self, entity:str, limit:int=None, startFrom:str=None):
-    #     query={
-    #         "entity": entity
-    #     }
-    #     if limit:
-    #         query["limit"]=limit
-    #     if self.orderBy is not None:
-    #         query["orderBy"]=self.orderBy
-    #     if startFrom:
-    #         query["startFrom"] = startFrom
-    #     return  self.repository.find(query)
+        self.documentTypeConfiguration=documentTypeConfiguration
+        
+    
+    def findDocument(self,document:dict,startFrom:str=None, limit:int=None):
+        repository = Repository(DocumentTypeConfiguration)
+        query = Query(document,self.index,startFrom,limit)
+        queryResult = repository.find(query=query)
+        return list(map(lambda r: r.fromDynamoDbItem(), queryResult.data)), queryResult.lastEvaluatedKey
