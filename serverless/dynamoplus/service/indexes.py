@@ -14,7 +14,7 @@ class IndexService(object):
         
     
     def findDocument(self,document:dict,startFrom:str=None, limit:int=None):
-        repository = Repository(DocumentTypeConfiguration)
+        repository = Repository(self.documentTypeConfiguration)
         query = Query(document,self.index,startFrom,limit)
         queryResult = repository.find(query=query)
         return list(map(lambda r: r.fromDynamoDbItem(), queryResult.data)), queryResult.lastEvaluatedKey
