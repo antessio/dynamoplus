@@ -6,7 +6,7 @@ from dynamoplus.http.handler import HttpHandler
 from dynamoplus.repository.Repository import Repository
 from dynamoplus.service.IndexService import IndexUtils
 
-class TestHttpHandler():
+class TestHttpHandler(unittest.TestCase):
 
     @patch.object(Repository, "getEntityDTO")
     @patch.object(Repository, "get")
