@@ -4,7 +4,7 @@ python:
   - "3.7"
 
 env:
-  - AWS_SECRET_ACCESS_KEY=fake_key AWS_ACCESS_KEY_ID=fake_id region=eu-west-1
+  - AWS_SECRET_ACCESS_KEY=fake_key AWS_ACCESS_KEY_ID=fake_id AWS_DEFAULT_REGION=eu-west-1
 
 
 install:
