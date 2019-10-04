@@ -1,5 +1,4 @@
 from dynamoplus.utils.decimalencoder import DecimalEncoder
-from dynamoplus.repository.Repository import Repository
 from dynamoplus.service.indexes import IndexService
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.models.indexes.indexes import Index
