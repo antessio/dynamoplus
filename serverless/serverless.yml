@@ -21,7 +21,7 @@ provider:
   memorySize: 256
 
   environment:
-    DYNAMODB_TABLE_NAME: ${self:service}-v0-${opt:stage, self:provider.stage}
+    DYNAMODB_TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE: { Ref: DomainDynamoDbTable }
     INDEXES: ${self:custom.system_indexes}
     ENTITIES: ${self:custom.system_document_types}
