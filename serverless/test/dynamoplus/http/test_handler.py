@@ -47,7 +47,7 @@ class TestHttpHandler(unittest.TestCase):
         expectedResult = {"id": "1", "title":"data_1","ordering":"1"}
         result = self.httpHandler.get({"document_type":"example", "id":"1"})
         self.assertEqual(result["statusCode"],200)
-        self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expectedResult)
+        self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expectedResult,["even"])
     
     def test_create(self):
         self.fill_data(self.table)
@@ -74,15 +74,27 @@ class TestHttpHandler(unittest.TestCase):
         expectedResult = {"id": "1", "title":"test_1","ordering":"21"}
         result = self.httpHandler.delete({"document_type":"example","id":"1"})
         self.assertEqual(result["statusCode"],200)
+        
+    def test_query(self):
+        self.fill_data(self.table)
+        result = self.httpHandler.query({"document_type": "example", "queryId": "even"}, body="{\"even\": \"1\"}",headers=[])
+        self.assertEqual(result["statusCode"],200)
+        body=json.loads(result["body"])
+        self.assertEqual(len(body["data"]),10)
+    # def test_query_not_handled(self):
+    #     self.fill_data(self.table)
+    #     result = self.httpHandler.query({"document_type": "example", "queryId": "whatever"}, body="{\"title\": \"data_1\"}",headers=[])
+    #     self.assertEqual(result["statusCode"],400)
     def fill_data(self,table):
         timestamp = datetime.utcnow()
         document = {"name": "example", "idKey":"id", "orderingKey": "ordering", "creation_date_time": timestamp.isoformat()}
         table.put_item(Item={"pk":"document_type#1","sk":"document_type","data":"1", **document})
         table.put_item(Item={"pk":"document_type#1","sk":"document_type#name","data":"example", **document})
         for i in range(1,21):
-            document = {"id": str(i), "title": "data_"+str(i), "ordering":str(i)}
+            document = {"id": str(i), "title": "data_"+str(i), "even":str(i%2), "ordering":str(i)}
             table.put_item(Item={"pk":"example#"+str(i),"sk":"example","data":str(i), **document})
             table.put_item(Item={"pk":"example#"+str(i),"sk":"example#title","data":"data_"+str(i), **document})
+            table.put_item(Item={"pk":"example#"+str(i),"sk":"example#even","data":str(i%2), **document})
     def getMockTable(self):
         table = self.dynamodb.create_table(TableName="example_1",
             KeySchema=[
