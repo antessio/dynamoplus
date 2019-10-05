@@ -36,8 +36,9 @@ class DynamoPlusService(object):
         
         
     def getIndexServiceByIndex(self, documentType:str, indexName:str):
-        documentTypeConfiguration = self.getSystemDocumentTypeConfigurationFromDocumentType(documentType)
-        parts1 = indexName.split("__ORDER_BY__")
-        conditions=parts1[0].split("__")
-        index = Index(documentType,conditions,orderingKey=parts1[1] if len(parts1)>1 else None)
-        return IndexService(documentTypeConfiguration,index)
+        documentTypeConfiguration = self.getDocumentTypeConfigurationFromDocumentType(documentType)
+        if documentTypeConfiguration:
+            parts1 = indexName.split("__ORDER_BY__")
+            conditions=parts1[0].split("__")
+            index = Index(documentType,conditions,orderingKey=parts1[1] if len(parts1)>1 else None)
+            return IndexService(documentTypeConfiguration,index)

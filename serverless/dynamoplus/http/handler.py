@@ -2,6 +2,7 @@ from dynamoplus.utils.decimalencoder import DecimalEncoder
 from dynamoplus.service.indexes import IndexService
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.models.indexes.indexes import Index
+from dynamoplus.service.indexes import IndexService
 from dynamoplus.service.dynamoplus import DynamoPlusService
 from dynamoplus.repository.repositories import Repository
 from decimal import Decimal
@@ -102,30 +103,36 @@ class HttpHandler(object):
             return {"statusCode": 500, "body": self.formatJson({"msg": "Error in delete entity {}".format(documentType)})}
 
     def query(self, pathParameters, queryStringParameters={}, body=None, headers=None):
-        targetEntity = self.getDocumentTypeFromPathParameters(pathParameters)
-        targetConfiguration = self.getDocumentTypeConfiguration(targetEntity)
-        if not targetConfiguration:
+        documentType = self.getDocumentTypeFromPathParameters(pathParameters)
+        documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
+        if not documentTypeConfiguration:
             return {
                 "statusCode": 400,
-                "body": self.formatJson({"msg": "entity {} not handled".format(targetEntity)})
+                "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
+        repository = Repository(documentTypeConfiguration)
         queryId = pathParameters['queryId']
-        queryIndex = targetEntity+"#"+queryId
-        logging.info("Received {} as index".format(queryIndex))
-        
-        entityName = targetConfiguration["name"]
-        indexService = IndexService(self.dynamoTable, entityName, queryIndex,self.dynamoDB)
-        entity=json.loads(body,parse_float=Decimal)
+        logging.info("Received {} as index".format(queryId))
+        indexService = self.dynamoService.getIndexServiceByIndex(documentType, queryId)
+        if not indexService:
+            return {
+                "statusCode": 400,
+                "body": self.formatJson({"msg": "query {} not handled".format(queryId)})
+            }
+        document=json.loads(body,parse_float=Decimal)
         limit = None
         startFrom = None
         if queryStringParameters is not None and "limit" in queryStringParameters:
             limit=queryStringParameters["limit"]
         if "startFrom" in headers:
             startFrom = headers["startFrom"]
-        result = indexService.findByExample(entity,limit,startFrom)
+        data, lastEvaluatedKey = indexService.findDocuments(document,startFrom,limit)
         return {
             "statusCode": 200,
-            "body": self.formatJson(result)
+            "body": self.formatJson({
+                "data": data,
+                "lastKey": lastEvaluatedKey
+            })
         }
 
     def formatJson(self, obj):
