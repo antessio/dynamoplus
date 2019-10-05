@@ -7,7 +7,9 @@ from dynamoplus.utils.utils import convertToString, findValue, sanitize
 from boto3.dynamodb.conditions import Key, Attr
 import boto3
 import os
-logging.basicConfig(level=logging.INFO)
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 logging.getLogger("botocore").setLevel(logging.WARNING)
 logging.getLogger("boto3").setLevel(logging.WARNING)
 
@@ -24,7 +26,7 @@ class Repository(object):
         model = self.getModelFromDocument(document)
         dynamoDbItem = model.toDynamoDbItem()
         response = self.table.put_item(Item=sanitize(dynamoDbItem))
-        logging.info("Response from put item operation is "+response.__str__())
+        logger.info("Response from put item operation is "+response.__str__())
         return self.getModelFromDocument(dynamoDbItem)
     def get(self, id:str):
         # TODO: copy from query -> if the indexKeys is empty then get by primary key, otherwise get by global secondary index
@@ -41,7 +43,7 @@ class Repository(object):
         dynamoDbItem = model.toDynamoDbItem()
         if dynamoDbItem.keys():
             # only updates attributes in the idKey or pk or sk
-            logging.info("updating {} ".format(dynamoDbItem))
+            logger.info("updating {} ".format(dynamoDbItem))
             updateExpression = "SET "+", ".join(map(lambda k: k+"= :"+k, filter(lambda k: k != self.documentTypeConfiguration.idKey and k!="pk" and k!="sk" and k!="data", dynamoDbItem.keys())))
             expressionValue = dict(
                 map(lambda kv: (":"+kv[0],kv[1]), 
@@ -55,11 +57,11 @@ class Repository(object):
                 ExpressionAttributeValues=expressionValue,
                 ReturnValues="UPDATED_NEW"
             )
-            logging.info("Response from update operation is "+response.__str__())
+            logger.info("Response from update operation is "+response.__str__())
             if response['ResponseMetadata']['HTTPStatusCode']==200:
                 return self.getModelFromDocument(dynamoDbItem)
             else:
-                logging.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
+                logger.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
                 return None
         else:
             raise Exception("dynamo db item empty ")
@@ -71,21 +73,22 @@ class Repository(object):
             'sk': model.sk()
             })
         if response['ResponseMetadata']['HTTPStatusCode']!=200:
-            logging.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
+            logger.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
             raise Exception("Error code {}".format(response['ResponseMetadata']['HTTPStatusCode']))
     def find(self, query: Query):
-        logging.info(" Received query={}".format(query.__str__()))
+        logger.info(" Received query={}".format(query.__str__()))
         document = query.document
         indexModel = IndexModel(self.documentTypeConfiguration,document,query.index)
-        orderValue = indexModel.orderValue()
+        orderingKey = query.index.orderingKey
+        logger.info("order by is {} ".format(orderingKey))
         limit = query.limit
         startFrom = query.startFrom
-        if orderValue is None:
+        if orderingKey is None:
             key=Key('sk').eq(indexModel.sk()) & Key('data').eq(indexModel.data())
-            logging.info("The key that will be used is sk={} data={}".format(indexModel.sk(), indexModel.data()))
+            logger.info("The key that will be used is sk={} is equal data={}".format(indexModel.sk(), indexModel.data()))
         else:
             key=Key('sk').eq(indexModel.sk()) & Key('data').begins_with(indexModel.data())
-            logging.info("The key that will be used is sk={} data={}".format(indexModel.sk(), indexModel.data()))
+            logger.info("The key that will be used is sk={} begins with data={}".format(indexModel.sk(), indexModel.data()))
             
         
         dynamoQuery=dict(
@@ -97,7 +100,7 @@ class Repository(object):
         response = self.table.query(
                 **{k: v for k, v in dynamoQuery.items() if v is not None}
             )
-        logging.info("Response from dynamo db {}".format(str(response)))
+        logger.info("Response from dynamo db {}".format(str(response)))
         lastKey=None
     
         if 'LastEvaluatedKey' in response:
