@@ -54,7 +54,26 @@ class TestHttpHandler(unittest.TestCase):
         expectedResult = {"id": "1000", "title":"test_1","ordering":"21"}
         result = self.httpHandler.create({"document_type":"example"},body="{\"id\":\"1000\", \"title\": \"test_1\",\"ordering\": \"21\"}")
         self.assertEqual(result["statusCode"],201)
-        self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expectedResult,["creation_date_time"])
+        self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expectedResult,["id","creation_date_time"])
+
+    
+    def test_update_adding_new_field(self):
+        self.fill_data(self.table)
+        expectedResult = {"id": "1", "title":"test_1","ordering":"21", "new_attribute": "001"}
+        result = self.httpHandler.update({"document_type":"example"},body="{\"id\":\"1\", \"title\": \"test_1\", \"new_attribute\": \"001\", \"ordering\": \"21\"}")
+        self.assertEqual(result["statusCode"],200)
+        self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expectedResult,["creation_date_time","update_date_time"])
+    def test_update_edit_existing_field(self):
+        self.fill_data(self.table)
+        expectedResult = {"id": "1", "title":"test_1","ordering":"21"}
+        result = self.httpHandler.update({"document_type":"example"},body="{\"id\":\"1\", \"title\": \"test_1\", \"ordering\": \"21\"}")
+        self.assertEqual(result["statusCode"],200)
+        self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expectedResult,["creation_date_time","update_date_time"])
+    def test_delete(self):
+        self.fill_data(self.table)
+        expectedResult = {"id": "1", "title":"test_1","ordering":"21"}
+        result = self.httpHandler.delete({"document_type":"example","id":"1"})
+        self.assertEqual(result["statusCode"],200)
     def fill_data(self,table):
         timestamp = datetime.utcnow()
         document = {"name": "example", "idKey":"id", "orderingKey": "ordering", "creation_date_time": timestamp.isoformat()}
@@ -89,7 +108,7 @@ class TestHttpHandler(unittest.TestCase):
 
     def assertDictEqualsIgnoringFields(self, d1:dict, d2:dict, fields:List[str]=[]):
         d1={k: v for k, v in d1.items() if k not in fields}
-        d2={k: v for k, v in d1.items() if k not in fields}
+        d2={k: v for k, v in d2.items() if k not in fields}
         self.assertDictEqual(d1,d2)
     # @patch.object(Repository, "getEntityDTO")
     # @patch.object(Repository, "get")
