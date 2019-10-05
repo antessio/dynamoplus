@@ -45,6 +45,7 @@ class HttpHandler(object):
                 "statusCode": 400,
                 "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
+        logging.info("Creating {} ".format(documentType))
         repository = Repository(documentTypeConfiguration)
         data = json.loads(body,parse_float=Decimal)
         timestamp = datetime.utcnow()
@@ -69,6 +70,7 @@ class HttpHandler(object):
                 "statusCode": 400,
                 "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
+        logging.info("updating {} ".format(documentType))
         repository = Repository(documentTypeConfiguration)
         data = json.loads(body,parse_float=Decimal)
         timestamp = datetime.utcnow()

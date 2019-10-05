@@ -3,7 +3,6 @@ import logging
 import os
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
-from dynamoplus.service.IndexService import IndexUtils,IndexService
 from dynamoplus.service.dynamoplus import DynamoPlusService
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.repository.models import IndexModel
@@ -28,8 +27,8 @@ def deserialize(data):
 
 def dynamoStreamHandler(event, context):
     tableName = os.environ['DYNAMODB_TABLE']
-    indexes = os.environ['INDEXES'].split(",")
-    entities = os.environ['ENTITIES'].split(",")
+    indexes = os.environ['INDEXES']
+    entities = os.environ['ENTITIES']
     logger.info("Events on dynamo {} ".format(str(event)))
 
     dynamoPlusService = DynamoPlusService(entities,indexes)
@@ -38,9 +37,8 @@ def dynamoStreamHandler(event, context):
         
         pk = keys['pk']['S']
         sk = keys['sk']['S']
-        indexUtils = IndexUtils()
         if "#" not in sk:
-            documentTypeConfiguration = dynamoPlusService.getSystemDocumentTypeConfigurationFromDocumentType(sk)
+            documentTypeConfiguration = dynamoPlusService.getDocumentTypeConfigurationFromDocumentType(sk)
             if documentTypeConfiguration:
                 if record.get('eventName') == 'INSERT':
                     newRecord = deserialize(record['dynamodb']['NewImage'])
@@ -57,7 +55,7 @@ def dynamoStreamHandler(event, context):
                 elif record.get('eventName') == 'REMOVE':
                     oldRecord = deserialize(record['dynamodb']['OldImage'])
                     logger.info('removing index on record  {}'.format(pk))
-                    indexing(lambda r: r.delete(newRecord[documentTypeConfiguration.idKey]), dynamoPlusService, sk, documentTypeConfiguration, newRecord)
+                    indexing(lambda r: r.delete(oldRecord[documentTypeConfiguration.idKey]), dynamoPlusService, sk, documentTypeConfiguration, oldRecord)
             else:
                 logger.debug('Skipping indexing on record {} - {}: entity not found'.format(pk,sk))    
         else:

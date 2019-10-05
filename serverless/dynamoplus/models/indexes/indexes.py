@@ -22,4 +22,5 @@ class Query(object):
         self.index = index
         self.startFrom = startFrom
         self.limit = limit
-        
+    def __str__(self):
+        return "index={}, startFrom={}, limit={}, document={}".format(self.index, self.startFrom,self.limit, self.document )
