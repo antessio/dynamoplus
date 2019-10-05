@@ -43,24 +43,24 @@ class TestDynamoPlusService(unittest.TestCase):
         #print("Table status tear down:", self.table.table_status)
         del os.environ["DYNAMODB_TABLE"]
     @mock_dynamodb2
-    def test_getRepositoryByDocumentType_inSystem(self):
+    def test_getDocumentTypeConfigurationFromDocumentType_inSystem(self):
         dynamoPlusService = DynamoPlusService("document_type#id#ordering","document_type#name")
-        result = dynamoPlusService.getRepositoryByDocumentType("document_type")
-        self.assertEqual(result.documentTypeConfiguration.entityName, "document_type")
-        self.assertEqual(result.documentTypeConfiguration.idKey, "id")
-        self.assertEqual(result.documentTypeConfiguration.orderingKey, "ordering")
+        result = dynamoPlusService.getDocumentTypeConfigurationFromDocumentType("document_type")
+        self.assertEqual(result.entityName, "document_type")
+        self.assertEqual(result.idKey, "id")
+        self.assertEqual(result.orderingKey, "ordering")
     @mock_dynamodb2
-    def test_getRepositoryByDocumentType_inDB(self):
+    def test_getDocumentTypeConfigurationFromDocumentType_inDB(self):
         document = {"id": "1", "name": "example", "creation_date_time":"1234114","idKey":"id","orderingKey":"ordering"}
         self.table = self.getMockTable()
         # self.table = self.dynamodb.Table('example_1')
         self.table.put_item(Item={"pk":"document_type#1","sk":"document_type","data":"1", **document})
         self.table.put_item(Item={"pk":"document_type#1","sk":"document_type#name","data":"example", **document})        
         dynamoPlusService = DynamoPlusService("document_type#id#ordering","document_type#name")
-        result = dynamoPlusService.getRepositoryByDocumentType("example")
-        self.assertEqual(result.documentTypeConfiguration.entityName, "example")
-        self.assertEqual(result.documentTypeConfiguration.idKey, "id")
-        self.assertEqual(result.documentTypeConfiguration.orderingKey, "ordering")
+        result = dynamoPlusService.getDocumentTypeConfigurationFromDocumentType("example")
+        self.assertEqual(result.entityName, "example")
+        self.assertEqual(result.idKey, "id")
+        self.assertEqual(result.orderingKey, "ordering")
 
     def getMockTable(self):
         table = self.dynamodb.create_table(TableName="example_1",

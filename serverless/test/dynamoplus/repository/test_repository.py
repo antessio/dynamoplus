@@ -44,19 +44,19 @@ class TestRepository(unittest.TestCase):
         document = {"id": "randomUid","ordering":"1"}
         result = self.repository.create(document)
         self.assertIsNotNone(result)
-        self.assertIn("pk",result)
-        self.assertIn("sk",result)
-        self.assertIn("data",result)
+        self.assertIn("pk",result.toDynamoDbItem())
+        self.assertIn("sk",result.toDynamoDbItem())
+        self.assertIn("data",result.toDynamoDbItem())
     def test_update(self):
         document = {"id": "1234", "attribute1":"value1"}
         self.table.put_item(Item={"pk":"example#1234","sk":"example","data":"1234",**document})
         document["attribute1"]="value2"
         result = self.repository.update(document)
         self.assertIsNotNone(result)
-        self.assertIn("pk",result)
-        self.assertIn("sk",result)
-        self.assertIn("data",result)
-        self.assertEqual(result["attribute1"],"value2")
+        self.assertIn("pk",result.toDynamoDbItem())
+        self.assertIn("sk",result.toDynamoDbItem())
+        self.assertIn("data",result.toDynamoDbItem())
+        self.assertEqual(result.toDynamoDbItem()["attribute1"],"value2")
     def test_delete(self):
         document = {"id": "1234", "attribute1":"value1"}
         self.table.put_item(Item={"pk":"example#1234","sk":"example","data":"1234",**document})
@@ -66,12 +66,12 @@ class TestRepository(unittest.TestCase):
         self.table.put_item(Item={"pk":"example#1234","sk":"example","data":"1234",**document})
         result = self.repository.get("1234")
         self.assertIsNotNone(result)
-        self.assertIn("pk",result)
-        self.assertIn("sk",result)
-        self.assertIn("data",result)
-        self.assertEqual(result["pk"],"example#1234")
-        self.assertEqual(result["sk"],"example")
-        self.assertEqual(result["data"],"1234")
+        self.assertIn("pk",result.toDynamoDbItem())
+        self.assertIn("sk",result.toDynamoDbItem())
+        self.assertIn("data",result.toDynamoDbItem())
+        self.assertEqual(result.toDynamoDbItem()["pk"],"example#1234")
+        self.assertEqual(result.toDynamoDbItem()["sk"],"example")
+        self.assertEqual(result.toDynamoDbItem()["data"],"1234")
     def test_query(self):
         for i in range(1,10):
             document = {"id": str(i), "attribute1": str(i%2), "attribute2":"value_"+str(i)}

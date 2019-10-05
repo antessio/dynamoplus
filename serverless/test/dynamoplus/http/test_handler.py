@@ -1,32 +1,96 @@
+from typing import *
 import unittest
 import os
 import sys
-from unittest.mock import patch
+from dynamoplus.repository.repositories import Repository
+from dynamoplus.repository.models import Model
+from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.http.handler import HttpHandler
 
-class TestHttpHandler(unittest.TestCase):
-    def setUp(self):
-        self.httpHandler = HttpHandler()
-    # def test_getTargetEntity(self):
-    #     path_parameters={"document_type":"example","query": "name"}
-    #     result=self.httpHandler.getDocumentTypeFromPathParameters(path_parameters)
-    #     self.assertEqual(result,"example")
-        
+from datetime import datetime
 
-    # @patch.object(Repository, "getEntityDTO")
-    # @patch.object(Repository, "get")
-    # def test_getFound(self, mock_get,mock_getEntityDTO):
-    #     expectedRow = {"id": "1", "sk": "sk","pk":"pk", "data":"data"}
-    #     expectedResult = {"id":"randomUid","attr1":"value1"}
-    #     mock_get.return_value=expectedRow
-    #     mock_getEntityDTO.return_value=expectedResult
-    #     handler = HttpHandler("host#id#creation_date_time,category#id#order","host")
-    #     result = handler.get({"entity":"host", "id":"randomUid"})
-    #     self.assertEqual(result["statusCode"],200)
-    #     self.assertEqual(result["body"], handler._formatJson(expectedResult))
-    #     mock_get.assert_called_with("randomUid")
-    #     mock_getEntityDTO.assert_called_with(expectedRow)
+from moto import mock_dynamodb2
+import boto3
+import os
+import json
+
+@mock_dynamodb2
+class TestHttpHandler(unittest.TestCase):
+
+    def setUp(self):
+        os.environ["DYNAMODB_TABLE"]="example_1"
+        os.environ["ENTITIES"]="document_type#id#creation_date_time,index#id#creation_date_time"
+        os.environ["INDEXES"]="document_type#name,index#name,index#document_type.name"
+        self.dynamodb = boto3.resource("dynamodb")
+        self.httpHandler = HttpHandler()
+        self.table = self.getMockTable()
+    def tearDown(self):
+        self.table.delete()
+    def test_getTargetEntity(self):
+        path_parameters={"document_type":"example","query": "name"}
+        result=self.httpHandler.getDocumentTypeFromPathParameters(path_parameters)
+        self.assertEqual(result,"example")
+        
+    def test_get_entityNotHandled(self):
+        self.fill_data(self.table)
+        docTypeConfig = DocumentTypeConfiguration("example", "id", "ordering")
+        expectedModel = Model(docTypeConfig,{"id": "1", "sk": "example","pk":"example#1", "data":"1", "ordering":"1", "attribute1": "value1"})
+        expectedResult = {"id": "1", "attribute1":"value1","ordering":"1"}
+        result = self.httpHandler.get({"entity":"example", "id":"1"})
+        self.assertEqual(result["statusCode"],400)
+        #self.assertEqual(result["body"], self.httpHandler.formatJson(expectedResult))
+
+    def test_get_found(self):
+        self.fill_data(self.table)
+        docTypeConfig = DocumentTypeConfiguration("example", "id", "ordering")
+        expectedModel = Model(docTypeConfig,{"id": "1", "sk": "example","pk":"example#1", "data":"1", "ordering":"1", "attribute1": "value1"})
+        expectedResult = {"id": "1", "title":"data_1","ordering":"1"}
+        result = self.httpHandler.get({"document_type":"example", "id":"1"})
+        self.assertEqual(result["statusCode"],200)
+        self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expectedResult)
     
+    def test_create(self):
+        self.fill_data(self.table)
+        expectedResult = {"id": "1000", "title":"test_1","ordering":"21"}
+        result = self.httpHandler.create({"document_type":"example"},body="{\"id\":\"1000\", \"title\": \"test_1\",\"ordering\": \"21\"}")
+        self.assertEqual(result["statusCode"],201)
+        self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expectedResult,["creation_date_time"])
+    def fill_data(self,table):
+        timestamp = datetime.utcnow()
+        document = {"name": "example", "idKey":"id", "orderingKey": "ordering", "creation_date_time": timestamp.isoformat()}
+        table.put_item(Item={"pk":"document_type#1","sk":"document_type","data":"1", **document})
+        table.put_item(Item={"pk":"document_type#1","sk":"document_type#name","data":"example", **document})
+        for i in range(1,21):
+            document = {"id": str(i), "title": "data_"+str(i), "ordering":str(i)}
+            table.put_item(Item={"pk":"example#"+str(i),"sk":"example","data":str(i), **document})
+            table.put_item(Item={"pk":"example#"+str(i),"sk":"example#title","data":"data_"+str(i), **document})
+    def getMockTable(self):
+        table = self.dynamodb.create_table(TableName="example_1",
+            KeySchema=[
+                {'AttributeName': 'pk','KeyType': 'HASH'},
+                {'AttributeName': 'sk','KeyType': 'RANGE'}
+            ],
+            AttributeDefinitions=[
+                    {'AttributeName':'pk','AttributeType':'S'},
+                    {'AttributeName':'sk','AttributeType':'S'},
+                    {'AttributeName':'data','AttributeType':'S'}
+            ],
+            GlobalSecondaryIndexes=[
+                {
+                    'IndexName': 'sk-data-index',
+                    'KeySchema': [{'AttributeName': 'sk','KeyType': 'HASH'},{'AttributeName': 'data','KeyType': 'RANGE'}],
+                    "Projection":{"ProjectionType": "ALL"}
+                }
+            ]
+        )
+        print("Table status:", table.table_status)
+        return table
+
+
+    def assertDictEqualsIgnoringFields(self, d1:dict, d2:dict, fields:List[str]=[]):
+        d1={k: v for k, v in d1.items() if k not in fields}
+        d2={k: v for k, v in d1.items() if k not in fields}
+        self.assertDictEqual(d1,d2)
     # @patch.object(Repository, "getEntityDTO")
     # @patch.object(Repository, "get")
     # def test_getNotFound(self, mock_get,mock_getEntityDTO):

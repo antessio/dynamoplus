@@ -12,7 +12,7 @@ class IndexService(object):
         self.documentTypeConfiguration=documentTypeConfiguration
         
     
-    def findDocument(self,document:dict,startFrom:str=None, limit:int=None):
+    def findDocuments(self,document:dict,startFrom:str=None, limit:int=None):
         repository = Repository(self.documentTypeConfiguration)
         query = Query(document,self.index,startFrom,limit)
         queryResult = repository.find(query=query)

@@ -18,13 +18,13 @@ class Repository(object):
         self.tableName = os.environ['DYNAMODB_TABLE']
         self.dynamoDB = boto3.resource('dynamodb')
         self.table = self.dynamoDB.Table(self.tableName)
-
+        
     def create(self, document:dict):
         model = Model(self.documentTypeConfiguration,document)
         dynamoDbItem = model.toDynamoDbItem()
         response = self.table.put_item(Item=sanitize(dynamoDbItem))
         logging.info("Response from put item operation is "+response.__str__())
-        return dynamoDbItem
+        return Model(self.documentTypeConfiguration,dynamoDbItem)
     def get(self, id:str):
         # TODO: copy from query -> if the indexKeys is empty then get by primary key, otherwise get by global secondary index
         # it means if needed first get from index, then by primary key or, in case of index it throws a non supported operation exception
@@ -34,7 +34,7 @@ class Repository(object):
             'pk': model.pk(),
             'sk': model.sk()
         })
-        return result[u'Item'] if 'Item' in result else None
+        return Model(self.documentTypeConfiguration, result[u'Item']) if 'Item' in result else None
     def update(self, document:dict):
         model = Model(self.documentTypeConfiguration,document)
         dynamoDbItem = model.toDynamoDbItem()
@@ -56,7 +56,7 @@ class Repository(object):
             )
             logging.info("Response from update operation is "+response.__str__())
             if response['ResponseMetadata']['HTTPStatusCode']==200:
-                return dynamoDbItem
+                return Model(self.documentTypeConfiguration,dynamoDbItem)
             else:
                 logging.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
                 return None
