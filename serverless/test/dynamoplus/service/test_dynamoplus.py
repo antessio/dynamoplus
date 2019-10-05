@@ -62,6 +62,39 @@ class TestDynamoPlusService(unittest.TestCase):
         self.assertEqual(result.idKey, "id")
         self.assertEqual(result.orderingKey, "ordering")
 
+    def test_getSystemIndexConfigurationsFromDocumentType(self):
+        dynamoPlusService = DynamoPlusService("document_type#id#creation_date_time,index#id#creation_date_time","document_type#name,index#name,index#document_type.name")
+        result = dynamoPlusService.getIndexConfigurationsByDocumentType("document_type")
+        self.assertIsNotNone(len(result),1)
+        index=result[0]
+        self.assertEqual(index.documentType,"document_type")
+        self.assertEqual(index.conditions,["name"])
+        result = dynamoPlusService.getIndexConfigurationsByDocumentType("index")
+        self.assertIsNotNone(len(result),2)
+        index=result[0]
+        self.assertEqual(index.documentType,"index")
+        self.assertEqual(index.conditions,["name"])
+        index=result[1]
+        self.assertEqual(index.documentType,"index")
+        self.assertEqual(index.conditions,["document_type.name"])
+
+    def test_getCustomIndexConfigurationsFromDocumentType(self):
+        document = {"id": "1", "name": "example", "creation_date_time":"1234114","idKey":"id","orderingKey":"ordering"}
+        self.table = self.getMockTable()
+        # self.table = self.dynamodb.Table('example_1')
+        self.table.put_item(Item={"pk":"document_type#1","sk":"document_type","data":"1", **document})
+        self.table.put_item(Item={"pk":"document_type#1","sk":"document_type#name","data":"example", **document})        
+        self.table.put_item(Item={"pk":"index#1","sk":"index","data":"1", "name": "name__ORDER_BY__ordering", "document_type":{"name":"example"}})
+        self.table.put_item(Item={"pk":"index#1","sk":"index#name","data":"name__ORDER_BY__ordering", "name": "name__ORDER_BY__ordering", "document_type":{"name":"example"}})
+        self.table.put_item(Item={"pk":"index#1","sk":"index#document_type.name","data":"example","name": "name__ORDER_BY__ordering", "document_type":{"name":"example"}})
+        dynamoPlusService = DynamoPlusService("document_type#id#creation_date_time,index#id#creation_date_time","document_type#name,index#name,index#document_type.name")
+        result = dynamoPlusService.getIndexConfigurationsByDocumentType("example")
+        self.assertIsNotNone(len(result),1)
+        index=result[0]
+        self.assertEqual(index.documentType,"example")
+        self.assertEqual(index.conditions,["name"])
+        self.assertEqual(index.orderingKey,"ordering")
+    
     def getMockTable(self):
         table = self.dynamodb.create_table(TableName="example_1",
             KeySchema=[

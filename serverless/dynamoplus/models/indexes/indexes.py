@@ -3,7 +3,7 @@ from typing import *
 
 class Index(object):
     def __init__(self,documentType:str, conditions:List[str], orderingKey:str=None):
-        self.entityName = documentType
+        self.documentType = documentType
         self.conditions = conditions
         self.orderingKey = orderingKey
     
@@ -11,7 +11,7 @@ class Index(object):
         return self.conditions
     
     def documentType(self):
-        return self.entityName
+        return self.documentType
     
     def indexName(self):
         return "__".join(self.conditions)+"__ORDER_BY__"+self.orderingKey
