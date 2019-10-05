@@ -51,7 +51,7 @@ class IndexModel(Model):
         return self.entityName+"#"+"#".join(map(lambda x:x,self.index.conditions)) if self.index.conditions else self.entityName
     def data(self):
         logging.info("orderKey {}".format(self.orderKey))
-        orderValue = self.orderValue()
+        orderValue = self.document[self.index.orderingKey] if self.index.orderingKey is not None and self.index.orderingKey in self.document else None
         logging.debug("orderingPart {}".format(orderValue))
         logging.info("Entity {}".format(str(self.document)))
         if self.index.conditions:

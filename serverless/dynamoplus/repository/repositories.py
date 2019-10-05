@@ -74,6 +74,7 @@ class Repository(object):
             logging.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
             raise Exception("Error code {}".format(response['ResponseMetadata']['HTTPStatusCode']))
     def find(self, query: Query):
+        logging.info(" Received query={}".format(query.__str__()))
         document = query.document
         indexModel = IndexModel(self.documentTypeConfiguration,document,query.index)
         orderValue = indexModel.orderValue()
