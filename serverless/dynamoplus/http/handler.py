@@ -14,7 +14,9 @@ import json
 import os
 import json
 
-logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 
 class HttpHandler(object):
     def __init__(self):
@@ -29,7 +31,7 @@ class HttpHandler(object):
                 "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
         repository = Repository(documentTypeConfiguration)
-        logging.info("get {} by id {}".format(documentType,id))
+        logger.info("get {} by id {}".format(documentType,id))
         result = repository.get(id)
         if result:
             dto = result.fromDynamoDbItem()
@@ -45,21 +47,21 @@ class HttpHandler(object):
                 "statusCode": 400,
                 "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
-        logging.info("Creating {} ".format(documentType))
+        logger.info("Creating {} ".format(documentType))
         repository = Repository(documentTypeConfiguration)
         data = json.loads(body,parse_float=Decimal)
         timestamp = datetime.utcnow()
         uid=str(uuid.uuid1())
         data[documentTypeConfiguration.idKey]=uid
         data["creation_date_time"]=timestamp.isoformat()
-        logging.info("Creating "+data.__str__())
+        logger.info("Creating "+data.__str__())
         try:
             data = repository.create(data)
             dto = data.fromDynamoDbItem()
             return {"statusCode": 201, "body": self.formatJson(dto)}
         except Exception as e:
-            logging.error("Unable to create entity {} for body {}".format(documentType,body))
-            logging.exception(str(e))
+            logger.error("Unable to create entity {} for body {}".format(documentType,body))
+            logger.exception(str(e))
             return {"statusCode": 500, "body": self.formatJson({"msg": "Error in create entity {}".format(documentType)})}
     
     def update(self, pathParameters, queryStringParameters=[], body=None, headers=None):
@@ -70,19 +72,19 @@ class HttpHandler(object):
                 "statusCode": 400,
                 "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
-        logging.info("updating {} ".format(documentType))
+        logger.info("updating {} ".format(documentType))
         repository = Repository(documentTypeConfiguration)
         data = json.loads(body,parse_float=Decimal)
         timestamp = datetime.utcnow()
         data["update_date_time"]=timestamp.isoformat()
-        logging.info("Updating  "+data.__str__())
+        logger.info("Updating  "+data.__str__())
         try:
             data = repository.update(data)
             dto = dto = data.fromDynamoDbItem()
             return {"statusCode": 200, "body": self.formatJson(dto)}
         except Exception as e:
-            logging.error("Unable to update entity {} for body {}".format(documentType,body))
-            logging.exception(str(e))
+            logger.error("Unable to update entity {} for body {}".format(documentType,body))
+            logger.exception(str(e))
             return {"statusCode": 500, "body": self.formatJson({"msg": "Error in update entity {}".format(documentType)})}
     
     def delete(self, pathParameters, queryStringParameters=[], body=None, headers=None):
@@ -95,13 +97,13 @@ class HttpHandler(object):
                 "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
         repository = Repository(documentTypeConfiguration)
-        logging.info("delete {} by id {}".format(documentType,id))
+        logger.info("delete {} by id {}".format(documentType,id))
         try:
             repository.delete(id)
             return {"statusCode": 200}
         except Exception as e:
-            logging.error("Unable to delete entity {} for body {}".format(documentType,body))
-            logging.exception(str(e))
+            logger.error("Unable to delete entity {} for body {}".format(documentType,body))
+            logger.exception(str(e))
             return {"statusCode": 500, "body": self.formatJson({"msg": "Error in delete entity {}".format(documentType)})}
 
     def query(self, pathParameters, queryStringParameters={}, body=None, headers=None):
@@ -114,7 +116,7 @@ class HttpHandler(object):
             }
         repository = Repository(documentTypeConfiguration)
         queryId = pathParameters['queryId']
-        logging.info("Received {} as index".format(queryId))
+        logger.info("Received {} as index".format(queryId))
         indexService = self.dynamoService.getIndexServiceByIndex(documentType, queryId)
         if not indexService:
             return {
@@ -142,7 +144,7 @@ class HttpHandler(object):
     def getTargetEntityConfiguration(self, targetEntity):
         targetConfiguration = next(filter(lambda tc: tc.split("#")[0]==targetEntity, self.documentConfigurations),None)
         if targetConfiguration:
-            logging.info("Accessing to system entity {}".format(targetConfiguration))
+            logger.info("Accessing to system entity {}".format(targetConfiguration))
             targetConfigurationArray=targetConfiguration.split("#")
             return {"name": targetConfigurationArray[0], "idKey": targetConfigurationArray[1], "orderingKey": targetConfigurationArray[2]}
         else:
@@ -174,7 +176,7 @@ class HttpHandler(object):
             '''
             systemDocumentTypesIndexService = IndexService(self.dynamoTable, "document_type", "document_type#name",self.dynamoDB)
             documentTypesResult = systemDocumentTypesIndexService.findByExample({"name": targetEntity})
-            logging.info("Response is {}".format(str(documentTypesResult)))
+            logger.info("Response is {}".format(str(documentTypesResult)))
             if "data" in documentTypesResult:
                 if len(documentTypesResult["data"])>0:
                     targetConfiguration = documentTypesResult["data"][0]

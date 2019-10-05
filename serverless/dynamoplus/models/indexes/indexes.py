@@ -12,10 +12,12 @@ class Index(object):
     
     def documentType(self):
         return self.documentType
-    
     def indexName(self):
         return "__".join(self.conditions)+"__ORDER_BY__"+self.orderingKey
-
+    
+    def __str__(self):
+        return "documentType={} conditions={} orderingKey={}".format(self.documentType, self.conditions, self.orderingKey)
+    
 class Query(object):
     def __init__(self, document:dict,index:Index, startFrom:str=None, limit:int=50):
         self.document = document
