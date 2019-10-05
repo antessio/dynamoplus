@@ -1,149 +1,183 @@
 from dynamoplus.utils.decimalencoder import DecimalEncoder
-from dynamoplus.repository.Repository import Repository
-from dynamoplus.service.IndexService import IndexService
+from dynamoplus.service.indexes import IndexService
+from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
+from dynamoplus.models.indexes.indexes import Index
+from dynamoplus.service.indexes import IndexService
+from dynamoplus.service.dynamoplus import DynamoPlusService
+from dynamoplus.repository.repositories import Repository
 from decimal import Decimal
 from datetime import datetime
+import typing
 import uuid
 import logging
 import json
 import os
 import json
 
-logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 
 class HttpHandler(object):
-    def __init__(self, entityConfiguration,dynamoTable,dynamoDB=None):
-        self.entityConfigurations = entityConfiguration.split(",")
-        self.dynamoTable = dynamoTable
-        self.dynamoDB = dynamoDB
+    def __init__(self):
+        self.dynamoService = DynamoPlusService(os.environ["ENTITIES"],os.environ["INDEXES"])
     def get(self, pathParameters, queryStringParameters=[], body=None, headers=None):
         id = pathParameters['id']
-        targetEntity = self._getTargetEntity(pathParameters)
-        targetConfiguration = self._getTargetEntityConfiguration(targetEntity)
-        if not targetConfiguration:
+        documentType = self.getDocumentTypeFromPathParameters(pathParameters)
+        documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
+        if not documentTypeConfiguration:
             return {
                 "statusCode": 400,
-                "body": self._formatJson({"msg": "entity {} not handled".format(targetEntity)})
+                "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
-        targetConfigurationArray = targetConfiguration.split("#")
-        repository = self._getRepositoryFromTargetEntityConfiguration(targetConfigurationArray)
-        logging.info("get {} by id {}".format(targetEntity,id))
+        repository = Repository(documentTypeConfiguration)
+        logger.info("get {} by id {}".format(documentType,id))
         result = repository.get(id)
         if result:
-            dto = repository.getEntityDTO(result)
-            return {"statusCode": 200, "body": self._formatJson(dto)}
+            dto = result.fromDynamoDbItem()
+            return {"statusCode": 200, "body": self.formatJson(dto)}
         else:
             return {"statusCode": 404}
 
     def create(self, pathParameters, queryStringParameters=[], body=None, headers=None):
-        targetEntity = self._getTargetEntity(pathParameters)
-        targetConfiguration = self._getTargetEntityConfiguration(targetEntity)
-        if not targetConfiguration:
+        documentType = self.getDocumentTypeFromPathParameters(pathParameters)
+        documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
+        if not documentTypeConfiguration:
             return {
                 "statusCode": 400,
-                "body": self._formatJson({"msg": "entity {} not handled".format(targetEntity)})
+                "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
-        targetConfigurationArray = targetConfiguration.split("#")
-        repository = self._getRepositoryFromTargetEntityConfiguration(targetConfigurationArray)
-        data = json.loads(body.replace("'", '"'),parse_float=Decimal)
+        logger.info("Creating {} ".format(documentType))
+        repository = Repository(documentTypeConfiguration)
+        data = json.loads(body,parse_float=Decimal)
         timestamp = datetime.utcnow()
         uid=str(uuid.uuid1())
-        data[targetConfigurationArray[1]]=uid
+        data[documentTypeConfiguration.idKey]=uid
         data["creation_date_time"]=timestamp.isoformat()
-        logging.info("Creating "+data.__str__())
+        logger.info("Creating "+data.__str__())
         try:
             data = repository.create(data)
-            dto = repository.getEntityDTO(data)
-            return {"statusCode": 201, "body": self._formatJson(dto)}
+            dto = data.fromDynamoDbItem()
+            return {"statusCode": 201, "body": self.formatJson(dto)}
         except Exception as e:
-            logging.error("Unable to create entity {} for body {}".format(targetEntity,body))
-            logging.exception(str(e))
-            return {"statusCode": 500, "body": self._formatJson({"msg": "Error in create entity {}".format(targetEntity)})}
+            logger.error("Unable to create entity {} for body {}".format(documentType,body))
+            logger.exception(str(e))
+            return {"statusCode": 500, "body": self.formatJson({"msg": "Error in create entity {}".format(documentType)})}
     
     def update(self, pathParameters, queryStringParameters=[], body=None, headers=None):
-        targetEntity = self._getTargetEntity(pathParameters)
-        targetConfiguration = self._getTargetEntityConfiguration(targetEntity)
-        if not targetConfiguration:
+        documentType = self.getDocumentTypeFromPathParameters(pathParameters)
+        documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
+        if not documentTypeConfiguration:
             return {
                 "statusCode": 400,
-                "body": self._formatJson({"msg": "entity {} not handled".format(targetEntity)})
+                "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
-        targetConfigurationArray = targetConfiguration.split("#")
-        repository = self._getRepositoryFromTargetEntityConfiguration(targetConfigurationArray)
-        data = json.loads(body.replace("'", '"'),parse_float=Decimal)
+        logger.info("updating {} ".format(documentType))
+        repository = Repository(documentTypeConfiguration)
+        data = json.loads(body,parse_float=Decimal)
         timestamp = datetime.utcnow()
         data["update_date_time"]=timestamp.isoformat()
-        logging.info("Updating  "+data.__str__())
+        logger.info("Updating  "+data.__str__())
         try:
             data = repository.update(data)
-            dto = repository.getEntityDTO(data)
-            return {"statusCode": 200, "body": self._formatJson(dto)}
+            dto = dto = data.fromDynamoDbItem()
+            return {"statusCode": 200, "body": self.formatJson(dto)}
         except Exception as e:
-            logging.error("Unable to update entity {} for body {}".format(targetEntity,body))
-            logging.exception(str(e))
-            return {"statusCode": 500, "body": self._formatJson({"msg": "Error in update entity {}".format(targetEntity)})}
+            logger.error("Unable to update entity {} for body {}".format(documentType,body))
+            logger.exception(str(e))
+            return {"statusCode": 500, "body": self.formatJson({"msg": "Error in update entity {}".format(documentType)})}
     
     def delete(self, pathParameters, queryStringParameters=[], body=None, headers=None):
         id = pathParameters['id']
-        targetEntity = self._getTargetEntity(pathParameters)
-        targetConfiguration = self._getTargetEntityConfiguration(targetEntity)
-        if not targetConfiguration:
+        documentType = self.getDocumentTypeFromPathParameters(pathParameters)
+        documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
+        if not documentTypeConfiguration:
             return {
                 "statusCode": 400,
-                "body": self._formatJson({"msg": "entity {} not handled".format(targetEntity)})
+                "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
-        targetConfigurationArray = targetConfiguration.split("#")
-        repository = self._getRepositoryFromTargetEntityConfiguration(targetConfigurationArray)
-        logging.info("delete {} by id {}".format(targetEntity,id))
+        repository = Repository(documentTypeConfiguration)
+        logger.info("delete {} by id {}".format(documentType,id))
         try:
             repository.delete(id)
             return {"statusCode": 200}
         except Exception as e:
-            logging.error("Unable to delete entity {} for body {}".format(targetEntity,body))
-            logging.exception(str(e))
-            return {"statusCode": 500, "body": self._formatJson({"msg": "Error in delete entity {}".format(targetEntity)})}
+            logger.error("Unable to delete entity {} for body {}".format(documentType,body))
+            logger.exception(str(e))
+            return {"statusCode": 500, "body": self.formatJson({"msg": "Error in delete entity {}".format(documentType)})}
 
     def query(self, pathParameters, queryStringParameters={}, body=None, headers=None):
-        targetEntity = self._getTargetEntity(pathParameters)
-        targetConfiguration = self._getTargetEntityConfiguration(targetEntity)
-        if not targetConfiguration:
+        documentType = self.getDocumentTypeFromPathParameters(pathParameters)
+        documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
+        if not documentTypeConfiguration:
             return {
                 "statusCode": 400,
-                "body": self._formatJson({"msg": "entity {} not handled".format(targetEntity)})
+                "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
+        repository = Repository(documentTypeConfiguration)
         queryId = pathParameters['queryId']
-        queryIndex = targetEntity+"#"+queryId
-        logging.info("Received {} as index".format(queryIndex))
-        targetConfigurationArray = targetConfiguration.split("#")
-        entityName = targetConfigurationArray[0]
-        indexService = IndexService(self.dynamoTable, entityName, queryIndex,self.dynamoDB)
-        entity=json.loads(body.replace("'", '"'),parse_float=Decimal)
+        logger.info("Received {} as index".format(queryId))
+        indexService = self.dynamoService.getIndexServiceByIndex(documentType, queryId)
+        if not indexService:
+            return {
+                "statusCode": 400,
+                "body": self.formatJson({"msg": "query {} not handled".format(queryId)})
+            }
+        document=json.loads(body,parse_float=Decimal)
         limit = None
         startFrom = None
         if queryStringParameters is not None and "limit" in queryStringParameters:
             limit=queryStringParameters["limit"]
         if "startFrom" in headers:
             startFrom = headers["startFrom"]
-        result = indexService.findByExample(entity,limit,startFrom)
+        data, lastEvaluatedKey = indexService.findDocuments(document,startFrom,limit)
         return {
             "statusCode": 200,
-            "body": self._formatJson(result)
+            "body": self.formatJson({
+                "data": data,
+                "lastKey": lastEvaluatedKey
+            })
         }
 
-    def _formatJson(self, obj):
+    def formatJson(self, obj):
         return json.dumps(obj, cls=DecimalEncoder)
-    def _getTargetEntityConfiguration(self, targetEntity):
-        targetConfiguration = next(filter(lambda tc: tc.split("#")[0]==targetEntity, self.entityConfigurations),None)
-        return targetConfiguration
+    def getTargetEntityConfiguration(self, targetEntity):
+        targetConfiguration = next(filter(lambda tc: tc.split("#")[0]==targetEntity, self.documentConfigurations),None)
+        if targetConfiguration:
+            logger.info("Accessing to system entity {}".format(targetConfiguration))
+            targetConfigurationArray=targetConfiguration.split("#")
+            return {"name": targetConfigurationArray[0], "idKey": targetConfigurationArray[1], "orderingKey": targetConfigurationArray[2]}
+        else:
+            indexService = IndexService(self.dynamoTable, "entity", "entity#name",self.dynamoDB)
+            result = indexService.findByExample({"name": targetEntity})
+            if "data" in result:
+                if len(result["data"])>0:
+                    return result["data"][0]
+            return None
 
-    def _getTargetEntity(self, pathParameters):
-        targetEntity = pathParameters['entity']
-        return targetEntity
+    def getDocumentTypeFromPathParameters(self, pathParameters):
+        if "document_type" in pathParameters:
+            targetEntity = pathParameters['document_type']
+            return targetEntity
 
-    def _getRepositoryFromTargetEntityConfiguration(self, targetConfiguration):
-        entity=targetConfiguration[0]
-        idKey = targetConfiguration[1]
-        orderingKey = targetConfiguration[2]
-        return self._getRepository(entity, idKey,orderingKey)
-    def _getRepository(self, entity, idKey, orderingKey):
+    def getRepositoryFromTargetEntityConfiguration(self, targetConfiguration):
+        entity=targetConfiguration["name"]
+        idKey = targetConfiguration["idKey"]
+        orderingKey = targetConfiguration["orderingKey"]
+        return self.getRepository(entity, idKey,orderingKey)
+    def getRepository(self, entity, idKey, orderingKey):
         return Repository(self.dynamoTable,entity, idKey,orderingKey,dynamoDB=self.dynamoDB)
+
+    def getDocumentTypeConfiguration(self, targetEntity):
+        targetConfiguration = self.getTargetEntityConfiguration(targetEntity)
+        if not targetConfiguration:
+            '''
+                find the entity 
+            '''
+            systemDocumentTypesIndexService = IndexService(self.dynamoTable, "document_type", "document_type#name",self.dynamoDB)
+            documentTypesResult = systemDocumentTypesIndexService.findByExample({"name": targetEntity})
+            logger.info("Response is {}".format(str(documentTypesResult)))
+            if "data" in documentTypesResult:
+                if len(documentTypesResult["data"])>0:
+                    targetConfiguration = documentTypesResult["data"][0]
+        return targetConfiguration
