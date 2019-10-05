@@ -34,6 +34,37 @@ class DynamoPlusService(object):
         else:
             return self.getCustomDocumentTypeConfigurationFromDocumentType(documentType)
         
+    def getIndexConfigurationsByDocumentType(self, documentType: str):
+        documentTypeConfiguration = self.getSystemDocumentTypeConfigurationFromDocumentType(documentType)
+        if documentTypeConfiguration:
+            # should read the indexes from the environment variables
+            indexesStrArray = self.systemIndexesStr.split(",")
+            return list(filter(lambda i: i.documentType==documentType, map(lambda x:  DynamoPlusService.buildIndex(x),indexesStrArray)))
+        else:
+            indexByDocType=next(filter(lambda i: "document_type.name" in i.conditions, self.getIndexConfigurationsByDocumentType("index")))
+            print("Index for doc type")
+            print(indexByDocType.documentType)
+            indexService = IndexService(self.getSystemDocumentTypeConfigurationFromDocumentType("index"), indexByDocType)
+            data, lastKey = indexService.findDocuments({"document_type":{"name":documentType}})
+            print("Indexes by doc type")
+            return list(map(lambda d: DynamoPlusService.buildIndex(documentType+"#"+d["name"]), data))
+            # for d in data:
+            #     indexFound = 
+            #     print(indexFound.conditions)
+                # indexService = IndexService(self.getSystemDocumentTypeConfigurationFromDocumentType("index"),indexConfiguration)
+                # data, lastKey = indexService.findDocuments({"document_type":{"name":documentType}})
+        
+                # if len(data)>0:
+                #     print(data)
+                
+    @staticmethod
+    def buildIndex(indexStr:str):
+        indexStrArray = indexStr.split("#")
+        documentType = indexStrArray[0]
+        indexName = indexStrArray[1]
+        parts1 = indexName.split("__ORDER_BY__")
+        conditions=parts1[0].split("__")
+        return Index(documentType,conditions,orderingKey=parts1[1] if len(parts1)>1 else None)
         
     def getIndexServiceByIndex(self, documentType:str, indexName:str):
         documentTypeConfiguration = self.getDocumentTypeConfigurationFromDocumentType(documentType)

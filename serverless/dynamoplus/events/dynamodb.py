@@ -1,9 +1,12 @@
+from typing import *
 import logging
 import os
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
 from dynamoplus.service.IndexService import IndexUtils,IndexService
 from dynamoplus.repository.Repository import IndexRepository
+from dynamoplus.service.dynamoplus import DynamoPlusService
+from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -26,6 +29,10 @@ def dynamoStreamHandler(event, context):
     indexes = os.environ['INDEXES'].split(",")
     entities = os.environ['ENTITIES'].split(",")
     logger.info("Events on dynamo {} ".format(str(event)))
+
+    dynamoPlusService = DynamoPlusService(entities,indexes)
+    
+
     systemDocumentTypesIndexService = IndexService(tableName, "document_type", "document_type#name",dynamodb)
     systemIndexesIndexService = IndexService(tableName, "index", "index#document_type.name",dynamodb)
     for record in event.get('Records'):
@@ -35,38 +42,36 @@ def dynamoStreamHandler(event, context):
         sk = keys['sk']['S']
         indexUtils = IndexUtils()
         if "#" not in sk:
-            documentConfiguration = None
-            documentConfigurationString = next(filter(lambda tc: tc.split("#")[0]==sk, entities),None)
-            logger.info("Find documentType by name {}".format(sk))
-            if not documentConfigurationString:
-                documentTypesResult = systemDocumentTypesIndexService.findByExample({"name": sk})
-                logger.info("Response is {}".format(str(documentTypesResult)))
-                if "data" in documentTypesResult:
-                    if len(documentTypesResult["data"])>0:
-                        documentConfiguration = documentTypesResult["data"][0]
+            ### query indexes from document_type
+            ## for eache index, create an IndexModel and a Repository
+            ## repository.create/update/delete
+            documentTypeConfiguration = dynamoPlusService.getSystemDocumentTypeConfigurationFromDocumentType(sk)
+            isSystemDocumentType = documentTypeConfiguration is not None
+
+            if documentTypeConfiguration:
+                if record.get('eventName') == 'INSERT':
+                    newRecord = deserialize(record['dynamodb']['NewImage'])
+                    document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], newRecord.items()))
+                    logger.info("creating index for {}".format(str(document)))
+                    handleIndexes(lambda repository,idKey: repository.create(document), documentConfiguration, systemIndexesIndexService, indexUtils, newRecord, sk, tableName, indexes)
+                    
+                elif record.get('eventName') == 'MODIFY':
+                    newRecord = deserialize(record['dynamodb']['NewImage'])
+                    document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], newRecord.items()))
+                    logger.info("updating index for {}".format(str(document)))
+                    handleIndexes(lambda repository,idKey: repository.update(document),documentConfiguration, systemIndexesIndexService, indexUtils, newRecord, sk, tableName,indexes)
+                    
+                elif record.get('eventName') == 'REMOVE':
+                    oldRecord = deserialize(record['dynamodb']['OldImage'])
+                    document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], oldRecord.items()))
+                    logger.info('removing index on record  {}'.format(pk))
+                    handleIndexes(lambda repository,idKey : repository.delete(oldRecord[idKey]),documentConfiguration, systemIndexesIndexService, indexUtils, oldRecord, sk, tableName,indexes)
             else:
-                documentConfigurationArray = documentConfigurationString.split("#")
-                documentConfiguration={"name": documentConfigurationArray[0], "idKey": documentConfigurationArray[1], "orderingKey": documentConfigurationArray[2]}
-                
-            if record.get('eventName') == 'INSERT':
-                newRecord = deserialize(record['dynamodb']['NewImage'])
-                document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], newRecord.items()))
-                logger.info("creating index for {}".format(str(document)))
-                handleIndexes(lambda repository,idKey: repository.create(document), documentConfiguration, systemIndexesIndexService, indexUtils, newRecord, sk, tableName, indexes)
-                
-            elif record.get('eventName') == 'MODIFY':
-                newRecord = deserialize(record['dynamodb']['NewImage'])
-                document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], newRecord.items()))
-                logger.info("updating index for {}".format(str(document)))
-                handleIndexes(lambda repository,idKey: repository.update(document),documentConfiguration, systemIndexesIndexService, indexUtils, newRecord, sk, tableName,indexes)
-                
-            elif record.get('eventName') == 'REMOVE':
-                oldRecord = deserialize(record['dynamodb']['OldImage'])
-                document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], oldRecord.items()))
-                logger.info('removing index on record  {}'.format(pk))
-                handleIndexes(lambda repository,idKey : repository.delete(oldRecord[idKey]),documentConfiguration, systemIndexesIndexService, indexUtils, oldRecord, sk, tableName,indexes)
+                logger.debug('Skipping indexing on record {} - {}: entity not found'.format(pk,sk))    
         else:
             logger.debug('Skipping indexing on record {} - {}'.format(pk,sk))
+
+
 
 def handleIndexes(repositoryLambda, documentConfiguration, systemIndexesIndexService, indexUtils, newRecord, sk, tableName, indexes):
     if documentConfiguration:
