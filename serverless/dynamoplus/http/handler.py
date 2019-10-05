@@ -61,46 +61,45 @@ class HttpHandler(object):
             return {"statusCode": 500, "body": self.formatJson({"msg": "Error in create entity {}".format(documentType)})}
     
     def update(self, pathParameters, queryStringParameters=[], body=None, headers=None):
-        targetEntity = self.getDocumentTypeFromPathParameters(pathParameters)
-        targetConfiguration = self.getDocumentTypeConfiguration(targetEntity)
-        if not targetConfiguration:
+        documentType = self.getDocumentTypeFromPathParameters(pathParameters)
+        documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
+        if not documentTypeConfiguration:
             return {
                 "statusCode": 400,
-                "body": self.formatJson({"msg": "entity {} not handled".format(targetEntity)})
+                "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
-        
-        repository = self.getRepositoryFromTargetEntityConfiguration(targetConfiguration)
+        repository = Repository(documentTypeConfiguration)
         data = json.loads(body,parse_float=Decimal)
         timestamp = datetime.utcnow()
         data["update_date_time"]=timestamp.isoformat()
         logging.info("Updating  "+data.__str__())
         try:
             data = repository.update(data)
-            dto = repository.getEntityDTO(data)
+            dto = dto = data.fromDynamoDbItem()
             return {"statusCode": 200, "body": self.formatJson(dto)}
         except Exception as e:
-            logging.error("Unable to update entity {} for body {}".format(targetEntity,body))
+            logging.error("Unable to update entity {} for body {}".format(documentType,body))
             logging.exception(str(e))
-            return {"statusCode": 500, "body": self.formatJson({"msg": "Error in update entity {}".format(targetEntity)})}
+            return {"statusCode": 500, "body": self.formatJson({"msg": "Error in update entity {}".format(documentType)})}
     
     def delete(self, pathParameters, queryStringParameters=[], body=None, headers=None):
         id = pathParameters['id']
-        targetEntity = self.getDocumentTypeFromPathParameters(pathParameters)
-        targetConfiguration = self.getDocumentTypeConfiguration(targetEntity)
-        if not targetConfiguration:
+        documentType = self.getDocumentTypeFromPathParameters(pathParameters)
+        documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
+        if not documentTypeConfiguration:
             return {
                 "statusCode": 400,
-                "body": self.formatJson({"msg": "entity {} not handled".format(targetEntity)})
+                "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
-        repository = self.getRepositoryFromTargetEntityConfiguration(targetConfiguration)
-        logging.info("delete {} by id {}".format(targetEntity,id))
+        repository = Repository(documentTypeConfiguration)
+        logging.info("delete {} by id {}".format(documentType,id))
         try:
             repository.delete(id)
             return {"statusCode": 200}
         except Exception as e:
-            logging.error("Unable to delete entity {} for body {}".format(targetEntity,body))
+            logging.error("Unable to delete entity {} for body {}".format(documentType,body))
             logging.exception(str(e))
-            return {"statusCode": 500, "body": self.formatJson({"msg": "Error in delete entity {}".format(targetEntity)})}
+            return {"statusCode": 500, "body": self.formatJson({"msg": "Error in delete entity {}".format(documentType)})}
 
     def query(self, pathParameters, queryStringParameters={}, body=None, headers=None):
         targetEntity = self.getDocumentTypeFromPathParameters(pathParameters)
