@@ -4,7 +4,5 @@ logging.basicConfig(level=logging.INFO)
 from dynamoplus.http.handler import HttpHandler
 
 def get(event, context):
-    entities = os.environ['ENTITIES']
-    dynamodbTable = os.environ['DYNAMODB_TABLE']
-    handler = HttpHandler(entities,dynamodbTable)
+    handler = HttpHandler()
     return handler.get(event['pathParameters'])

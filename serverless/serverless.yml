@@ -21,7 +21,7 @@ provider:
   memorySize: 256
 
   environment:
-    DYNAMODB_TABLE_NAME: ${self:service}-domain-${opt:stage, self:provider.stage}
+    DYNAMODB_TABLE_NAME: ${self:service}-v0-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE: { Ref: DomainDynamoDbTable }
     INDEXES: ${self:custom.system_indexes}
     ENTITIES: ${self:custom.system_document_types}
@@ -61,7 +61,7 @@ functions:
     handler: dynamoplus/http/create.create
     events:
       - http:
-          path: dynamoplus/{entity}
+          path: dynamoplus/{document_type}
           method: post
           cors: true
           authorizer: 
@@ -72,7 +72,7 @@ functions:
     handler: dynamoplus/http/query.query
     events:
       - http:
-          path: dynamoplus/{entity}/query/{queryId}
+          path: dynamoplus/{document_type}/query/{queryId}
           method: post
           cors: true
           authorizer: 
@@ -83,7 +83,7 @@ functions:
     handler: dynamoplus/http/get.get
     events:
       - http:
-          path: dynamoplus/{entity}/{id}
+          path: dynamoplus/{document_type}/{id}
           method: get
           cors: true
           authorizer: 
@@ -94,7 +94,7 @@ functions:
     handler: dynamoplus/http/update.update
     events:
       - http:
-          path: dynamoplus/{entity}/{id}
+          path: dynamoplus/{document_type}/{id}
           method: put
           cors: true
           authorizer: 
@@ -105,7 +105,7 @@ functions:
     handler: dynamoplus/http/delete.delete
     events:
       - http:
-          path: dynamoplus/{entity}/{id}
+          path: dynamoplus/{document_type}/{id}
           method: delete
           cors: true
           authorizer: 

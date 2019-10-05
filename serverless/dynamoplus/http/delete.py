@@ -8,5 +8,5 @@ logging.basicConfig(level=logging.INFO)
 def delete(event, context):
     entities = os.environ['ENTITIES']
     dynamodbTable = os.environ['DYNAMODB_TABLE']
-    handler = HttpHandler(entities,dynamodbTable)
+    handler = HttpHandler()
     return handler.delete(event["pathParameters"])
