@@ -18,8 +18,7 @@ class Model(object):
         self.idKey = documentTypeConfiguration.idKey
         self.orderKey = documentTypeConfiguration.orderingKey
         self.entityName = documentTypeConfiguration.entityName
-        self.document = document
-    
+        self.document = document        
     def pk(self):
         return self.document["pk"] if "pk" in self.document else  self.entityName+"#"+self.document[self.idKey]
     

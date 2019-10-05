@@ -28,7 +28,7 @@ class TestIndexService(unittest.TestCase):
         mock_repository.return_value=None
         mock_find.return_value=QueryResult(data)
         self.indexService = IndexService(documentTypeConfiguration,index)
-        result,lastKey = self.indexService.findDocument({"attribute1":"value1"})
+        result,lastKey = self.indexService.findDocuments({"attribute1":"value1"})
         self.assertEqual(len(result),3)
         self.assertIsNone(lastKey)
     # def test_getValuesRecursively(self):

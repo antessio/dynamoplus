@@ -2,6 +2,8 @@ from dynamoplus.utils.decimalencoder import DecimalEncoder
 from dynamoplus.service.indexes import IndexService
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.models.indexes.indexes import Index
+from dynamoplus.service.dynamoplus import DynamoPlusService
+from dynamoplus.repository.repositories import Repository
 from decimal import Decimal
 from datetime import datetime
 import typing
@@ -15,52 +17,48 @@ logging.basicConfig(level=logging.INFO)
 
 class HttpHandler(object):
     def __init__(self):
-        pass
+        self.dynamoService = DynamoPlusService(os.environ["ENTITIES"],os.environ["INDEXES"])
     def get(self, pathParameters, queryStringParameters=[], body=None, headers=None):
         id = pathParameters['id']
         documentType = self.getDocumentTypeFromPathParameters(pathParameters)
-        index = Index("document-type",["name"],None)
-        indexService = IndexService(index)
-        indexService.findDocument({"name": documentType})
-        targetEntity = self.getDocumentTypeFromPathParameters(pathParameters)
-        targetConfiguration = self.getDocumentTypeConfiguration(targetEntity)
-        if not targetConfiguration:
+        documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
+        if not documentTypeConfiguration:
             return {
                 "statusCode": 400,
-                "body": self.formatJson({"msg": "entity {} not handled".format(targetEntity)})
+                "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
-        repository = self.getRepositoryFromTargetEntityConfiguration(targetConfiguration)
-        logging.info("get {} by id {}".format(targetEntity,id))
+        repository = Repository(documentTypeConfiguration)
+        logging.info("get {} by id {}".format(documentType,id))
         result = repository.get(id)
         if result:
-            dto = repository.getEntityDTO(result)
+            dto = result.fromDynamoDbItem()
             return {"statusCode": 200, "body": self.formatJson(dto)}
         else:
             return {"statusCode": 404}
 
     def create(self, pathParameters, queryStringParameters=[], body=None, headers=None):
-        targetEntity = self.getDocumentTypeFromPathParameters(pathParameters)
-        targetConfiguration = self.getDocumentTypeConfiguration(targetEntity)
-        if not targetConfiguration:
+        documentType = self.getDocumentTypeFromPathParameters(pathParameters)
+        documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
+        if not documentTypeConfiguration:
             return {
                 "statusCode": 400,
-                "body": self.formatJson({"msg": "entity {} not handled".format(targetEntity)})
+                "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
             }
-        repository = self.getRepositoryFromTargetEntityConfiguration(targetConfiguration)
+        repository = Repository(documentTypeConfiguration)
         data = json.loads(body,parse_float=Decimal)
         timestamp = datetime.utcnow()
         uid=str(uuid.uuid1())
-        data[targetConfiguration["idKey"]]=uid
+        data[documentTypeConfiguration.idKey]=uid
         data["creation_date_time"]=timestamp.isoformat()
         logging.info("Creating "+data.__str__())
         try:
             data = repository.create(data)
-            dto = repository.getEntityDTO(data)
+            dto = data.fromDynamoDbItem()
             return {"statusCode": 201, "body": self.formatJson(dto)}
         except Exception as e:
-            logging.error("Unable to create entity {} for body {}".format(targetEntity,body))
+            logging.error("Unable to create entity {} for body {}".format(documentType,body))
             logging.exception(str(e))
-            return {"statusCode": 500, "body": self.formatJson({"msg": "Error in create entity {}".format(targetEntity)})}
+            return {"statusCode": 500, "body": self.formatJson({"msg": "Error in create entity {}".format(documentType)})}
     
     def update(self, pathParameters, queryStringParameters=[], body=None, headers=None):
         targetEntity = self.getDocumentTypeFromPathParameters(pathParameters)
@@ -148,8 +146,9 @@ class HttpHandler(object):
             return None
 
     def getDocumentTypeFromPathParameters(self, pathParameters):
-        targetEntity = pathParameters['document_type']
-        return targetEntity
+        if "document_type" in pathParameters:
+            targetEntity = pathParameters['document_type']
+            return targetEntity
 
     def getRepositoryFromTargetEntityConfiguration(self, targetConfiguration):
         entity=targetConfiguration["name"]
