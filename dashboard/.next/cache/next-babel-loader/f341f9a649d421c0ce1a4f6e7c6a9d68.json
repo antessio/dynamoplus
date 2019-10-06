@@ -1,0 +1,1 @@
+{"ast":null,"code":"var __jsx = React.createElement;\n// layouts/default.js\nimport React from 'react';\nimport Meta from '../components/meta';\nimport Navbar from '../components/navbar';\nexport default (({\n  children,\n  meta\n}) => __jsx(\"div\", null, __jsx(Meta, {\n  props: meta\n}), __jsx(Navbar, null), children));","map":null,"metadata":{},"sourceType":"module"}

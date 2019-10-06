@@ -1,0 +1,37 @@
+service: dashboard
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: ${self:custom.secrets.NODE_ENV}
+  region: eu-west-1
+  environment: 
+    NODE_ENV: ${self:custom.secrets.NODE_ENV}
+
+
+functions:
+  server:
+    handler: index.server
+    events:
+      - http: ANY /
+      - http: ANY /{proxy+}
+
+plugins:
+  - serverless-apigw-binary
+  - serverless-domain-manager
+
+custom:
+  secrets: ${file(secrets.json)}
+  apigwBinary:
+    types:
+      - '*/*'
+  customDomain:
+    domainName: ${self:custom.secrets.DOMAIN}
+    basePath: ''
+    stage: ${self:custom.secrets.NODE_ENV}
+    createRoute53Record: false
+package:
+  individually: true
+  excludeDevDependencies: false
+  exclude:
+   - node_modules/**
