@@ -3,7 +3,6 @@ import React from 'react'
 import Meta from '../components/meta'
 import Navbar from '../components/navbar'
 import {Layout, Menu, Breadcrumb, Icon} from 'antd'
-import 'antd/dist/antd.css'; // or 'antd/dist/antd.less'
 const { SubMenu } = Menu;
 const { Header, Content, Sider } = Layout;
 export default ({ children, meta }) => (
