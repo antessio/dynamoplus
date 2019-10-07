@@ -2,6 +2,7 @@ service: dashboard
 provider:
   name: aws
   runtime: nodejs8.10
+  region: eu-west-1
   stage: ${self:custom.secrets.NODE_ENV}
   environment: 
     NODE_ENV: ${self:custom.secrets.NODE_ENV}
