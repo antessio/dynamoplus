@@ -11,12 +11,11 @@ class IndexPage extends React.Component {
         }
     }
   render () {
-    return (<h1>ciao</h1>
-	    /*<Default meta={meta}>
+    return (<Default meta={meta}>
         <div>
           <h1>Dynamoplus dashboard</h1>
         </div>
-      </Default>*/
+      </Default>
     )
   }
 }
