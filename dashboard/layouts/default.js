@@ -1,6 +1,5 @@
 // layouts/default.js
 import React from 'react'
-import 'antd/dist/antd.css';
 import Meta from '../components/meta'
 import Navbar from '../components/navbar'
 const { Layout, Menu, Breadcrumb, Icon } = antd;

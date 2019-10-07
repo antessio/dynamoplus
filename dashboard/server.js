@@ -12,11 +12,11 @@ const server = express()
 const route = pathMatch()
 server.use('/_next', express.static(path.join(__dirname, '.next')))
 server.get('/', (req, res) => app.render(req, res, '/'))
-server.get('/dogs', (req, res) => app.render(req, res, '/dogs'))
-server.get('/dogs/:breed', (req, res) => {
-  const params = route('/dogs/:breed')(parse(req.url).pathname)
-  return app.render(req, res, '/dogs/_breed', params)
-})
+//server.get('/dogs', (req, res) => app.render(req, res, '/dogs'))
+//server.get('/dogs/:breed', (req, res) => {
+//  const params = route('/dogs/:breed')(parse(req.url).pathname)
+//  return app.render(req, res, '/dogs/_breed', params)
+//})
 server.get('*', (req, res) => handle(req, res))
 
 module.exports = server
