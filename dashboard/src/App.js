@@ -6,8 +6,9 @@ import NavBar from "./components/NavBar";
 // New - import the React Router components, and the Profile page component
 import { BrowserRouter, Route, Switch } from "react-router-dom";
 import Profile from "./views/Profile";
-import Documents from "./views/Documents";
+import Documents from "./views/documents/Documents";
 import Layout from './components/layout/Layout';
+import Indexes from "./views/indexes/Indexes";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/" exact />
           <Route path="/profile" component={Profile} />
           <Route path="/documents" component={Documents} />
+          <Route path="/indexes/:documentType" component={Indexes} />
         </Switch>
 
       </Layout>

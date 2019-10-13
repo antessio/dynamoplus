@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
-import {useGetDocuments} from '../hooks/documents';
+import React from "react";
+import {useGetDocuments} from '../../hooks/documents';
 import {List } from 'antd'
-import Document from '../components/documents/Document'
+import Document from '../../components/documents/Document'
 import './Documents.css'
-import Loading from '../components/loading/Loading'
+import Loading from '../../components/loading/Loading'
 
 const Documents = () => {
   const [documents,isLoading] = useGetDocuments([]);

@@ -2,56 +2,62 @@ import {useState, useEffect} from 'react'
 
 import { useAuth0 } from '../react-auth0-wrapper'
 
-export const useCreateDocument = (d)=>{
+export const useCreateIndex = (i)=>{
     const { getTokenSilently } = useAuth0();
-    const [document, setDocument] = useState(null)
+    const [index, setIndex] = useState(null)
     const [isLoading, setLoading] = useState(false)
-    const createDocument = async (d) => {
+    const createIndex = async (i) => {
       setLoading(false)
       try {
         const token = await getTokenSilently()
-        const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/document_type", {
+        const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/index", {
           headers: {
             Authorization: `Bearer ${token}`
           },
           method: 'POST',
-          body: JSON.stringify(d)
+          body: JSON.stringify(i)
   
         });
   
         const responseData = await response.json();
         console.log(responseData)
-        setDocument(responseData)
+        setIndex(responseData)
         setLoading(false)
       } catch (error) {
         setLoading(false)
       }
     }; 
-    return [document, createDocument, isLoading]
+    return [index, createIndex, isLoading]
 }
 
-export const useGetDocuments = (dependencies)=>{
+export const useGetIndexes = (dependencies, documentType)=>{
     const { getTokenSilently } = useAuth0();
-    const [documents, setDocuments] = useState([])
+    const [indexes, setIndexes] = useState([])
     const [isLoading, setLoading] = useState(false)
-    const getDocuments = async () => {
+    const getIndexes = async (documentType) => {
         setLoading(false)
         try {
           const token = await getTokenSilently()
-          const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/document_type/query/active", {
+          const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/index/query/document_type.name", {
             headers: {
               Authorization: `Bearer ${token}`
             },
             method: 'POST',
-            body: JSON.stringify({active: "true"})
+            body: JSON.stringify(
+              {
+                document_type:{
+                  name: documentType
+                }
+              }
+            )
     
           });
     
           const responseData = await response.json();
           
-          const documents = responseData.data
-          console.log(documents)
-          setDocuments(documents)
+          const indexes = responseData.data
+          console.log(indexes)
+          setIndexes(indexes)
           setLoading(false)
         } catch (error) {
           setLoading(false)
@@ -59,9 +65,9 @@ export const useGetDocuments = (dependencies)=>{
       };
     useEffect(() => {
         //setLoading(true)
-        getDocuments()
+        getIndexes(documentType)
       }, dependencies);
-    return [documents,isLoading]
+    return [indexes,isLoading]
 
 
 }
