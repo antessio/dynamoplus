@@ -2,7 +2,7 @@ import {useState, useEffect} from 'react'
 
 import { useAuth0 } from '../react-auth0-wrapper'
 
-export const useCreateDocument = (d)=>{
+export const useCreateDocument = ()=>{
     const { getTokenSilently } = useAuth0();
     const [document, setDocument] = useState(null)
     const [isLoading, setLoading] = useState(false)
@@ -35,7 +35,7 @@ export const useGetDocuments = (dependencies)=>{
     const [documents, setDocuments] = useState([])
     const [isLoading, setLoading] = useState(false)
     const getDocuments = async () => {
-        setLoading(false)
+        setLoading(true)
         try {
           const token = await getTokenSilently()
           const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/document_type/query/active", {

@@ -1,19 +1,44 @@
-import React from "react";
+import React,{useState} from "react";
 import {useGetDocuments} from '../../hooks/documents';
-import {List } from 'antd'
+import {List,Button,Modal } from 'antd'
+import CreateDocumentForm from './create/CreateForm'
+
 import Document from '../../components/documents/Document'
 import './Documents.css'
 import Loading from '../../components/loading/Loading'
+import {useCreateDocument} from '../../hooks/documents'
 
 const Documents = () => {
-  const [documents,isLoading] = useGetDocuments([]);
+  const [showModal,setShowModal]=useState(false)
+  const [documents,isLoadingGet] = useGetDocuments([]);
+  const [createdDocument, createDocument,isLoadingCreate]=useCreateDocument()
+  const isLoading = isLoadingCreate || isLoadingGet
   if (isLoading && !documents) {
       return <Loading />
     }
     return (
     <div>
       <h1>Documents</h1>
-        
+      <Button type="primary" icon="plus"
+      onClick={()=>{setShowModal(true)}}>
+        Create
+      </Button>
+        {showModal && 
+          <CreateDocumentForm 
+          show={showModal} 
+          onCancel={()=>{setShowModal(false)}} 
+          onSubmit={(values)=>{
+            console.log(values)
+            createDocument({
+              name: values.documentName,
+              idKey: values.idKey,
+              orderingKey: values.orderingKey,
+		          active: true
+            })
+            setShowModal(false)
+          }}
+          onError={(e)=>console.error(e)}
+          />}
         {!isLoading && documents &&  <List
            grid={{
             gutter: 16,
