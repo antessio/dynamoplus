@@ -2,7 +2,6 @@ import React from 'react'
 import { Card, Icon,Avatar, Badge, Collapse, Row, Col,Descriptions } from 'antd';
 import { Link } from "react-router-dom";
 const { Panel } = Collapse;
-const { Meta } = Card;
 export default (props)=>{
     const document = props.document
     const isActive=Object.keys(document).filter(k=>k==='active').map(k=>document[k]).join(",")
