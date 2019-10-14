@@ -18,6 +18,7 @@ import json
 class TestHttpHandler(unittest.TestCase):
 
     def setUp(self):
+        os.environ["ALLOWED_ORIGINS"]="http://localhost"
         os.environ["DYNAMODB_TABLE"]="example_1"
         os.environ["ENTITIES"]="document_type#id#creation_date_time,index#id#creation_date_time"
         os.environ["INDEXES"]="document_type#name,index#name,index#document_type.name"
