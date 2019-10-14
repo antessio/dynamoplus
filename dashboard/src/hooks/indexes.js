@@ -2,7 +2,7 @@ import {useState, useEffect} from 'react'
 
 import { useAuth0 } from '../react-auth0-wrapper'
 
-export const useCreateIndex = (i)=>{
+export const useCreateIndex = ()=>{
     const { getTokenSilently } = useAuth0();
     const [index, setIndex] = useState(null)
     const [isLoading, setLoading] = useState(false)
