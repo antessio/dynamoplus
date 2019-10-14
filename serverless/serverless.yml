@@ -12,6 +12,7 @@ custom:
       migrate: true
   system_indexes: "document_type#name,index#name,index#document_type.name,document_type#active"
   system_document_types: "document_type#id#creation_date_time,index#id#creation_date_time"
+  allowed_origins: "http://localhost:3000" ## to change in production
 frameworkVersion: ">=1.1.0 <2.0.0"
 
 provider:
@@ -21,6 +22,7 @@ provider:
   memorySize: 256
 
   environment:
+    ALLOWED_ORIGINS: ${self:custom.allowed_origins}
     DYNAMODB_TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE: { Ref: DomainDynamoDbTable }
     INDEXES: ${self:custom.system_indexes}

@@ -24,27 +24,27 @@ resources:
         BucketName: ${self:custom.siteName}
         WebsiteConfiguration:
           IndexDocument: index.html
-  StaticSiteS3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket:
-        Ref: StaticSite
-      PolicyDocument:
-        Statement:
-          - Sid: PublicReadGetObject
-            Effect: Allow
-            Principal: "*"
-            Action:
-            - s3:GetObject
-            Resource:
-              Fn::Join: [
-                "", [
-                  "arn:aws:s3:::",
-                  {
-                    "Ref": "StaticSite"
-                  },
-                  "/*"
+    StaticSiteS3BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket:
+          Ref: StaticSite
+        PolicyDocument:
+          Statement:
+            - Sid: PublicReadGetObject
+              Effect: Allow
+              Principal: "*"
+              Action:
+              - s3:GetObject
+              Resource:
+                Fn::Join: [
+                  "", [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "StaticSite"
+                    },
+                    "/*"
+                  ]
                 ]
-              ]
 plugins:
   - serverless-s3-sync
