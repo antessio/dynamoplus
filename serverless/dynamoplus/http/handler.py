@@ -35,7 +35,8 @@ class HttpHandler(object):
         result = repository.get(id)
         if result:
             dto = result.fromDynamoDbItem()
-            return {"statusCode": 200, "body": self.formatJson(dto)}
+#            return {"statusCode": 200, "body": self.formatJson(dto)}
+            return {"statusCode": 200, "body": self.formatJson(dto),"headers": {"Access-Control-Allow-Origin": "http://localhost:3000"}}
         else:
             return {"statusCode": 404}
 
@@ -58,7 +59,10 @@ class HttpHandler(object):
         try:
             data = repository.create(data)
             dto = data.fromDynamoDbItem()
-            return {"statusCode": 201, "body": self.formatJson(dto)}
+            #return {"statusCode": 201, "body": self.formatJson(dto)}
+            return {"statusCode": 201, 
+                    "headers": {"Access-Control-Allow-Origin": "http://localhost:3000"},
+                    "body": self.formatJson(dto)}
         except Exception as e:
             logger.error("Unable to create entity {} for body {}".format(documentType,body))
             logger.exception(str(e))
@@ -81,7 +85,8 @@ class HttpHandler(object):
         try:
             data = repository.update(data)
             dto = dto = data.fromDynamoDbItem()
-            return {"statusCode": 200, "body": self.formatJson(dto)}
+            return {"statusCode": 200, "body": self.formatJson(dto), "headers": {"Access-Control-Allow-Origin": "http://localhost:3000"}}
+            #return {"statusCode": 200, "body": self.formatJson(dto)}
         except Exception as e:
             logger.error("Unable to update entity {} for body {}".format(documentType,body))
             logger.exception(str(e))
@@ -100,7 +105,8 @@ class HttpHandler(object):
         logger.info("delete {} by id {}".format(documentType,id))
         try:
             repository.delete(id)
-            return {"statusCode": 200}
+            return {"statusCode": 200, "headers": {"Access-Control-Allow-Origin": "http://localhost:3000"}}
+            #return {"statusCode": 200}
         except Exception as e:
             logger.error("Unable to delete entity {} for body {}".format(documentType,body))
             logger.exception(str(e))
@@ -133,6 +139,9 @@ class HttpHandler(object):
         data, lastEvaluatedKey = indexService.findDocuments(document,startFrom,limit)
         return {
             "statusCode": 200,
+            "headers": {
+            "Access-Control-Allow-Origin": "http://localhost:3000"
+            },
             "body": self.formatJson({
                 "data": data,
                 "lastKey": lastEvaluatedKey
