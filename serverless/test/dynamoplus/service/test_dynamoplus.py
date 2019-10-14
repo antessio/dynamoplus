@@ -16,6 +16,7 @@ class TestDynamoPlusService(unittest.TestCase):
 
     @mock_dynamodb2
     def setUp(self):
+        os.environ["TEST_FLAG"]="true"
         os.environ["DYNAMODB_TABLE"]="example_1"
         self.dynamodb = boto3.resource("dynamodb")
         # self.table=self.dynamodb.create_table(TableName="example_1",
