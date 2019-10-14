@@ -64,7 +64,10 @@ def dynamoStreamHandler(event, context):
 def indexing(repositoryAction, dynamoPlusService, sk, documentTypeConfiguration, newRecord):
     for index in dynamoPlusService.getIndexConfigurationsByDocumentType(sk):
         repository = IndexRepository(documentTypeConfiguration,index)
-        repositoryAction(repository)
+        indexModel = IndexModel(documentTypeConfiguration,newRecord,index)
+        if indexModel.data():
+            ## if new record doesn't contain the key should skip repositoryAction
+            repositoryAction(repository)
 
 
 
