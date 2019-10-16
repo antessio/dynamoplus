@@ -100,7 +100,7 @@ class HttpHandler(object):
         if not documentTypeConfiguration:
             return self.getHttpResponse(statusCode=400,body=self.formatJson({"msg": "entity {} not handled".format(documentType)}))
         repository = Repository(documentTypeConfiguration)
-        queryId = pathParameters['queryId']
+        queryId = pathParameters['queryId'] if 'queryId' in pathParameters  else None
         logger.info("Received {} as index".format(queryId))
         indexService = self.dynamoService.getIndexServiceByIndex(documentType, queryId)
         if not indexService:

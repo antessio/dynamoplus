@@ -85,16 +85,21 @@ class Repository(object):
         logger.info(" Received query={}".format(query.__str__()))
         document = query.document
         indexModel = IndexModel(self.documentTypeConfiguration,document,query.index)
-        orderingKey = query.index.orderingKey
+        orderingKey = query.index.orderingKey if query.index else None
         logger.info("order by is {} ".format(orderingKey))
         limit = query.limit
         startFrom = query.startFrom
-        if orderingKey is None:
-            key=Key('sk').eq(indexModel.sk()) & Key('data').eq(indexModel.data())
-            logger.info("The key that will be used is sk={} is equal data={}".format(indexModel.sk(), indexModel.data()))
+        if indexModel.data() is not None:
+            if orderingKey is None:
+                key=Key('sk').eq(indexModel.sk()) & Key('data').eq(indexModel.data())
+                logger.info("The key that will be used is sk={} is equal data={}".format(indexModel.sk(), indexModel.data()))
+            else:
+                key=Key('sk').eq(indexModel.sk()) & Key('data').begins_with(indexModel.data())
+                logger.info("The key that will be used is sk={} begins with data={}".format(indexModel.sk(), indexModel.data()))
         else:
-            key=Key('sk').eq(indexModel.sk()) & Key('data').begins_with(indexModel.data())
-            logger.info("The key that will be used is sk={} begins with data={}".format(indexModel.sk(), indexModel.data()))
+            key=Key('sk').eq(indexModel.sk())
+            logger.info("The key that will be used is sk={} with no data".format(indexModel.sk()))
+
             
         
         dynamoQuery=dict(
