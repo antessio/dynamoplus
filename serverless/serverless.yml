@@ -10,8 +10,9 @@ custom:
   dynamodb:
     start:
       migrate: true
-  system_indexes: "document_type#name,index#name,index#document_type.name"
-  system_document_types: "document_type#id#creation_date_time,index#id#creation_date_time"
+  system_indexes: "collection#name,index#name,index#collection.name"
+  system_collections: "collection#id#creation_date_time,index#id#creation_date_time"
+  allowed_origins: "http://localhost:3000" ## to change in production
 frameworkVersion: ">=1.1.0 <2.0.0"
 
 provider:
@@ -21,10 +22,11 @@ provider:
   memorySize: 256
 
   environment:
+    ALLOWED_ORIGINS: ${self:custom.allowed_origins}
     DYNAMODB_TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}
     DYNAMODB_TABLE: { Ref: DomainDynamoDbTable }
     INDEXES: ${self:custom.system_indexes}
-    ENTITIES: ${self:custom.system_document_types}
+    ENTITIES: ${self:custom.system_collections}
     AUTH0_CLIENT_ID: ${file(./secrets.json):AUTH0_CLIENT_ID}
     AUTH0_CLIENT_PUBLIC_KEY: ${file(./public_key)}
     AUDIENCE: ${file(./secrets.json):AUDIENCE}
@@ -61,7 +63,7 @@ functions:
     handler: dynamoplus/http/create.create
     events:
       - http:
-          path: dynamoplus/{document_type}
+          path: dynamoplus/{collection}
           method: post
           cors: true
           authorizer: 
@@ -72,7 +74,7 @@ functions:
     handler: dynamoplus/http/query.query
     events:
       - http:
-          path: dynamoplus/{document_type}/query/{queryId}
+          path: dynamoplus/{collection}/query/{queryId}
           method: post
           cors: true
           authorizer: 
@@ -83,7 +85,7 @@ functions:
     handler: dynamoplus/http/get.get
     events:
       - http:
-          path: dynamoplus/{document_type}/{id}
+          path: dynamoplus/{collection}/{id}
           method: get
           cors: true
           authorizer: 
@@ -94,7 +96,7 @@ functions:
     handler: dynamoplus/http/update.update
     events:
       - http:
-          path: dynamoplus/{document_type}/{id}
+          path: dynamoplus/{collection}/{id}
           method: put
           cors: true
           authorizer: 
@@ -105,7 +107,7 @@ functions:
     handler: dynamoplus/http/delete.delete
     events:
       - http:
-          path: dynamoplus/{document_type}/{id}
+          path: dynamoplus/{collection}/{id}
           method: delete
           cors: true
           authorizer: 

@@ -64,54 +64,7 @@ def dynamoStreamHandler(event, context):
 def indexing(repositoryAction, dynamoPlusService, sk, documentTypeConfiguration, newRecord):
     for index in dynamoPlusService.getIndexConfigurationsByDocumentType(sk):
         repository = IndexRepository(documentTypeConfiguration,index)
-        repositoryAction(repository)
-
-
-
-# def handleIndexes(repositoryLambda, documentConfiguration, systemIndexesIndexService, indexUtils, newRecord, sk, tableName, indexes):
-#     if documentConfiguration:
-#         documentTypeName=documentConfiguration["name"]
-#         idKey = documentConfiguration["idKey"]
-#         customIndexes =  None
-#         logger.info("Search custom indexes for document {}".format(documentTypeName))
-#         customIndexesResult = systemIndexesIndexService.findByExample({"document_type":{"name": documentTypeName}})
-#         if customIndexesResult:
-#             if "data" in customIndexesResult:
-#                 logger.info("Found {} for document {}".format(len(customIndexesResult["data"]),documentTypeName))
-#                 if len(customIndexesResult["data"])>0:
-#                     customIndexes= list(map(lambda i: i["document_type"]["name"]+"#"+i["name"], customIndexesResult["data"]))
-#         if customIndexes:
-#             logger.info("Custom indexes string {}".format(customIndexes))
-#             customMatchingIndexes = indexUtils.findIndexFromEntity(customIndexes,newRecord,sk)
-#             for i in customMatchingIndexes.keys():
-#                 try:
-#                     logger.info("index found {}".format(i))
-#                     index = customMatchingIndexes[i]
-#                     logger.info("index tablePrefix {} and conditions {}".format(index["tablePrefix"], index["conditions"]))
-#                     indexKeys = index["conditions"]
-#                     logger.info("Index keys {}".format(indexKeys))
-#                     orderingKey = index["orderBy"] if "orderBy" in index else None
-#                     logger.info("Document {} idKey {} orderingKey {}".format(documentTypeName,idKey, orderingKey))
-#                     repository =  IndexRepository(tableName,index["tablePrefix"],idKey,orderingKey,indexKeys,dynamoDB=dynamodb)
-#                     repositoryLambda(repository,idKey)
-#                 except Exception as e:
-#                     logger.warning("Unable to create the index {}".format(i),exc_info=e)
-
-#         logger.info("System indexes string {}".format(indexes))
-#         systemMatchingIndexes = indexUtils.findIndexFromEntity(indexes,newRecord,sk)
-#         logger.info("Found {} indexes matching the record for system indexes".format(len(systemMatchingIndexes)))
-#         for i in systemMatchingIndexes.keys():
-#             try:
-#                 logger.info("index found {}".format(i))
-#                 index = systemMatchingIndexes[i]
-#                 logger.info("index tablePrefix {} and conditions {}".format(index["tablePrefix"], index["conditions"]))
-#                 indexKeys = index["conditions"]
-#                 logger.info("Index keys {}".format(indexKeys))
-#                 orderingKey = index["orderBy"] if "orderBy" in index else None
-#                 logger.info("Entity {} idKey {} orderingKey {}".format(documentTypeName,idKey, orderingKey))
-#                 repository =  IndexRepository(tableName,index["tablePrefix"],idKey,orderingKey,indexKeys,dynamoDB=dynamodb)
-#                 repositoryLambda(repository,idKey)
-#             except Exception as e:
-#                 logger.warning("Unable to create the index {}".format(i),exc_info=e)
-#     else:
-#         logger.info("Unable to retrieve the document_type {} ".format(sk))
+        indexModel = IndexModel(documentTypeConfiguration,newRecord,index)
+        if indexModel.data():
+            ## if new record doesn't contain the key should skip repositoryAction
+            repositoryAction(repository)
