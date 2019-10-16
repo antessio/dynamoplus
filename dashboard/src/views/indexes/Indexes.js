@@ -8,8 +8,8 @@ import {useCreateIndex} from '../../hooks/indexes'
 import Index from '../../components/indexes/Index'
 import CreateIndexForm from './create/CreateIndexForm'
 const Indexes = (props)=>{
-    const documentType = props.match.params.documentType
-    const [indexes,isLoading] = useGetIndexes([],documentType);
+    const collection = props.match.params.collection
+    const [indexes,isLoading] = useGetIndexes([],collection);
     const [indexCreated,createIndex, isLoadingCreateIndex]=useCreateIndex()
     const [showModal,setShowModal]=useState(false)
     if (isLoading && !indexes) {
@@ -17,7 +17,7 @@ const Indexes = (props)=>{
       }
     return(<div>
         <h2>Indexes</h2>
-        <p>{documentType}</p>
+        <p>{collection}</p>
         <Button type="primary" icon="plus"
           onClick={()=>{setShowModal(true)}}>
           Create
@@ -32,8 +32,8 @@ const Indexes = (props)=>{
               indexName=indexName+"__ORDER_BY__"+values.orderBy
             }
             createIndex({
-              document_type:{
-                name: documentType
+              collection:{
+                name: collection
               },
               name: indexName
             })

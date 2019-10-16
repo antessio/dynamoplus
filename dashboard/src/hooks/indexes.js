@@ -30,23 +30,23 @@ export const useCreateIndex = ()=>{
     return [index, createIndex, isLoading]
 }
 
-export const useGetIndexes = (dependencies, documentType)=>{
+export const useGetIndexes = (dependencies, collection)=>{
     const { getTokenSilently } = useAuth0();
     const [indexes, setIndexes] = useState([])
     const [isLoading, setLoading] = useState(false)
-    const getIndexes = async (documentType) => {
+    const getIndexes = async (collection) => {
         setLoading(false)
         try {
           const token = await getTokenSilently()
-          const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/index/query/document_type.name", {
+          const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/index/query/collection.name", {
             headers: {
               Authorization: `Bearer ${token}`
             },
             method: 'POST',
             body: JSON.stringify(
               {
-                document_type:{
-                  name: documentType
+                collection:{
+                  name: collection
                 }
               }
             )
@@ -65,7 +65,7 @@ export const useGetIndexes = (dependencies, documentType)=>{
       };
     useEffect(() => {
         //setLoading(true)
-        getIndexes(documentType)
+        getIndexes(collection)
       }, dependencies);
     return [indexes,isLoading]
 

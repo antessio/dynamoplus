@@ -4,7 +4,7 @@ import { useAuth0 } from '../react-auth0-wrapper'
 
 
 
-export const useCreateDocument = (documentType)=>{
+export const useCreateDocument = (collection)=>{
     const { getTokenSilently } = useAuth0();
     const [document, setDocument] = useState(null)
     const [isLoading, setLoading] = useState(false)
@@ -12,7 +12,7 @@ export const useCreateDocument = (documentType)=>{
       setLoading(false)
       try {
         const token = await getTokenSilently()
-        const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/"+documentType, {
+        const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/"+collection, {
           headers: {
             Authorization: `Bearer ${token}`
           },
@@ -40,7 +40,7 @@ export const useGetDocuments = (documentType,dependencies)=>{
         setLoading(true)
         try {
           const token = await getTokenSilently()
-          const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/document_type/query/active", {
+          const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/collection/query/active", {
             headers: {
               Authorization: `Bearer ${token}`
             },

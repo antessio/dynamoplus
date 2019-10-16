@@ -44,7 +44,8 @@ export const useGetCollections = (dependencies)=>{
             headers: {
               Authorization: `Bearer ${token}`
             },
-            method: 'POST'
+            method: 'POST',
+            body: JSON.stringify({})
     
           });
     
