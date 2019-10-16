@@ -20,7 +20,8 @@ class Model(object):
         self.entityName = documentTypeConfiguration.entityName
         self.document = document        
     def pk(self):
-        return self.document["pk"] if "pk" in self.document else  self.entityName+"#"+self.document[self.idKey]
+        
+        return self.document["pk"] if "pk" in self.document else  (self.entityName+"#"+self.document[self.idKey] if self.idKey in self.document else None)
     
     def sk(self):        
         return self.document["sk"] if "sk" in self.document else self.entityName
@@ -47,9 +48,13 @@ class IndexModel(Model):
     def __init__(self, documentTypeConfiguration, document, index:Index):
         super().__init__(documentTypeConfiguration, document)
         self.index = index
-    def sk(self):        
+    def sk(self):
+        if self.index is None:
+            return self.entityName
         return self.entityName+"#"+"#".join(map(lambda x:x,self.index.conditions)) if self.index.conditions else self.entityName
     def data(self):
+        if self.index is None:
+            return None
         logging.info("orderKey {}".format(self.orderKey))
         orderValue = self.document[self.index.orderingKey] if self.index.orderingKey is not None and self.index.orderingKey in self.document else None
         logging.debug("orderingPart {}".format(orderValue))
