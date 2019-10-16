@@ -14,6 +14,7 @@ from boto3.dynamodb.conditions import Key, Attr
 class TestRepository(unittest.TestCase):
     @mock_dynamodb2
     def setUp(self):
+        os.environ["TEST_FLAG"]="true"
         os.environ["DYNAMODB_TABLE"]="example"
         self.dynamodb = boto3.resource("dynamodb")
         self.dynamodb.create_table(TableName="example",
