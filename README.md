@@ -31,7 +31,7 @@ A serverless back-end to create REST endpoint in python
 
 There are two special entities:
 
-- `document_type`
+- `collection`
     ```
     //example
     {
@@ -44,31 +44,31 @@ There are two special entities:
     ```
     //example
     {
-        "document_type": {
+        "collection": {
             "name": "example
         },
         "name": "address.country__address.region__address.province__address.city__ORDER_BY__creation_date_time"
     }
     ```
 
-To create a new document_type: 
+To create a new collection: 
 
 ```
-POST /dynamoplus/document_type
+POST /dynamoplus/collection
 {
-    "name": "my-document_type",
+    "name": "my-collection",
     "idKey": "objectId",
     "orderingKey": "custom_attribute"
 }
 ```
 
-Note: `custom_attribute` will be mandatory when creating a new row for `my-document_type`
+Note: `custom_attribute` will be mandatory when creating a new row for `my-collection`
 
 To create a new index:
 ```
 POST /dynamoplus/index
 {
-    "document_type": {
+    "collection": {
         "name": "example
         },
     "name": "address.country__address.region__address.province__address.city__ORDER_BY__creation_date_time"
@@ -76,7 +76,7 @@ POST /dynamoplus/index
 ```
 
 Once created some new endpoints will be available:
-- `POST /dynamoplus/<document_type-name>` to create a new document
+- `POST /dynamoplus/<collection-name>` to create a new document
 
 ## Examples
 
@@ -85,7 +85,7 @@ Once created some new endpoints will be available:
 - Create a book category document type
 
     ```
-    POST /dynamoplus/document_type
+    POST /dynamoplus/collection
     {
         "name": "category",
         "idKey": "id",
@@ -96,7 +96,7 @@ Once created some new endpoints will be available:
 - Create a book document type
 
     ```
-    POST /dynamoplus/document_type
+    POST /dynamoplus/collection
     {
         "name": "book",
         "idKey": "id",
@@ -108,7 +108,7 @@ Once created some new endpoints will be available:
     ```
     POST /dynamoplus/index (book by title)
     {
-        "document_type": {
+        "collection": {
             "name": "book"
         },
         "name": "title"
@@ -117,7 +117,7 @@ Once created some new endpoints will be available:
     ```
     POST /dynamoplus/index (book by isbn)
     {
-        "document_type": {
+        "collection": {
             "name": "book"
         },
         "name": "isbn"
@@ -126,7 +126,7 @@ Once created some new endpoints will be available:
     ```
     POST /dynamoplus/index (book by category name)
     {
-        "document_type": {
+        "collection": {
             "name": "book"
         },
         "name": "category.name"
@@ -135,7 +135,7 @@ Once created some new endpoints will be available:
     ```
     POST /dynamoplus/index (book by author)
     {
-        "document_type": {
+        "collection": {
             "name": "book"
         },
         "name": "author"
@@ -143,9 +143,9 @@ Once created some new endpoints will be available:
     ```
 - Query the indexes just created
     ```
-    POST /dynamoplus/index/query/document_type.name
+    POST /dynamoplus/index/query/collection.name
     {
-	    "document_type":{
+	    "collection":{
 		    "name": "book"
 	    }
     }
@@ -156,7 +156,7 @@ Once created some new endpoints will be available:
         "data": [
             {
             "creation_date_time": "2019-10-02T13:51:14.953604",
-            "document_type": {
+            "collection": {
                 "name": "book"
             },
             "id": "b37a7ea8-e51b-11e9-ac9d-12cf86817cbb",
@@ -164,7 +164,7 @@ Once created some new endpoints will be available:
             },
             {
             "creation_date_time": "2019-10-02T13:51:25.956478",
-            "document_type": {
+            "collection": {
                 "name": "book"
             },
             "id": "ba0962f2-e51b-11e9-ac9d-12cf86817cbb",
@@ -172,7 +172,7 @@ Once created some new endpoints will be available:
             },
             {
             "creation_date_time": "2019-10-02T13:52:07.315643",
-            "document_type": {
+            "collection": {
                 "name": "book"
             },
             "id": "d2b04b86-e51b-11e9-ac9d-12cf86817cbb",
@@ -180,7 +180,7 @@ Once created some new endpoints will be available:
             },
             {
             "creation_date_time": "2019-10-02T13:51:20.053744",
-            "document_type": {
+            "collection": {
                 "name": "book"
             },
             "id": "b684b424-e51b-11e9-ac9d-12cf86817cbb",

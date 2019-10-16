@@ -19,7 +19,7 @@ class DynamoPlusService(object):
             return DocumentTypeConfiguration(documentType,systemDocumentTypeStrArray[1],systemDocumentTypeStrArray[2] if len(systemDocumentTypeStrArray)>1 else None)
     
     def getCustomDocumentTypeConfigurationFromDocumentType(self, documentType:str):
-        documentTypeConfiguration = self.getSystemDocumentTypeConfigurationFromDocumentType("document_type")
+        documentTypeConfiguration = self.getSystemDocumentTypeConfigurationFromDocumentType("collection")
         index = Index(documentType,["name"])
         query = Query({"name": documentType},index)
         data, lastKey=IndexService(documentTypeConfiguration,index).findDocuments({"name": documentType})
@@ -41,18 +41,18 @@ class DynamoPlusService(object):
             indexesStrArray = self.systemIndexesStr.split(",")
             return list(filter(lambda i: i.documentType==documentType, map(lambda x:  DynamoPlusService.buildIndex(x),indexesStrArray)))
         else:
-            indexByDocType=next(filter(lambda i: "document_type.name" in i.conditions, self.getIndexConfigurationsByDocumentType("index")))
+            indexByDocType=next(filter(lambda i: "collection.name" in i.conditions, self.getIndexConfigurationsByDocumentType("index")))
             print("Index for doc type")
             print(indexByDocType.documentType)
             indexService = IndexService(self.getSystemDocumentTypeConfigurationFromDocumentType("index"), indexByDocType)
-            data, lastKey = indexService.findDocuments({"document_type":{"name":documentType}})
+            data, lastKey = indexService.findDocuments({"collection":{"name":documentType}})
             print("Indexes by doc type")
             return list(map(lambda d: DynamoPlusService.buildIndex(documentType+"#"+d["name"]), data))
             # for d in data:
             #     indexFound = 
             #     print(indexFound.conditions)
                 # indexService = IndexService(self.getSystemDocumentTypeConfigurationFromDocumentType("index"),indexConfiguration)
-                # data, lastKey = indexService.findDocuments({"document_type":{"name":documentType}})
+                # data, lastKey = indexService.findDocuments({"collection":{"name":documentType}})
         
                 # if len(data)>0:
                 #     print(data)
