@@ -27,18 +27,12 @@ class HttpHandler(object):
         documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
         if not documentTypeConfiguration:
             return self.getHttpResponse(statusCode=400,body=self.formatJson({"msg": "entity {} not handled".format(documentType)}))
-            # {
-            #     "statusCode": 400,
-            #     "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
-            # }
         repository = Repository(documentTypeConfiguration)
         logger.info("get {} by id {}".format(documentType,id))
         result = repository.get(id)
         if result:
             dto = result.fromDynamoDbItem()
             return self.getHttpResponse(statusCode=200,body=self.formatJson(dto))
-#            return {"statusCode": 200, "body": self.formatJson(dto)}
-            #return {"statusCode": 200, "body": self.formatJson(dto),"headers": {"Access-Control-Allow-Origin": "http://localhost:3000"}}
         else:
             return self.getHttpResponse(statusCode=404)
 
@@ -47,10 +41,6 @@ class HttpHandler(object):
         documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
         if not documentTypeConfiguration:
             return self.getHttpResponse(statusCode=400,body=self.formatJson({"msg": "entity {} not handled".format(documentType)}))
-            # {
-            #     "statusCode": 400,
-            #     "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
-            # }
         logger.info("Creating {} ".format(documentType))
         repository = Repository(documentTypeConfiguration)
         data = json.loads(body,parse_float=Decimal)
@@ -62,26 +52,17 @@ class HttpHandler(object):
         try:
             data = repository.create(data)
             dto = data.fromDynamoDbItem()
-            #return {"statusCode": 201, "body": self.formatJson(dto)}
             return self.getHttpResponse(statusCode=201,body=self.formatJson(dto))
-            # {"statusCode": 201, 
-            #         "headers": {"Access-Control-Allow-Origin": "http://localhost:3000"},
-            #         "body": self.formatJson(dto)}
         except Exception as e:
             logger.error("Unable to create entity {} for body {}".format(documentType,body))
             logger.exception(str(e))
             return self.getHttpResponse(statusCode=500,body=self.formatJson({"msg": "Error in create entity {}".format(documentType)}))
-            #{"statusCode": 500, "body": self.formatJson({"msg": "Error in create entity {}".format(documentType)})}
     
     def update(self, pathParameters, queryStringParameters=[], body=None, headers=None):
         documentType = self.getDocumentTypeFromPathParameters(pathParameters)
         documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
         if not documentTypeConfiguration:
             return self.getHttpResponse(statusCode=400,body=self.formatJson({"msg": "entity {} not handled".format(documentType)}))
-            # {
-            #     "statusCode": 400,
-            #     "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
-            # }
         logger.info("updating {} ".format(documentType))
         repository = Repository(documentTypeConfiguration)
         data = json.loads(body,parse_float=Decimal)
@@ -92,13 +73,10 @@ class HttpHandler(object):
             data = repository.update(data)
             dto = dto = data.fromDynamoDbItem()
             return self.getHttpResponse(statusCode=200,body=self.formatJson(dto))
-            #{"statusCode": 200, "body": self.formatJson(dto), "headers": {"Access-Control-Allow-Origin": "http://localhost:3000"}}
-            #return {"statusCode": 200, "body": self.formatJson(dto)}
         except Exception as e:
             logger.error("Unable to update entity {} for body {}".format(documentType,body))
             logger.exception(str(e))
             return self.getHttpResponse(statusCode=500,body=self.formatJson({"msg": "Error in update entity {}".format(documentType)}))
-            #return {"statusCode": 500, "body": self.formatJson({"msg": "Error in update entity {}".format(documentType)})}
     
     def delete(self, pathParameters, queryStringParameters=[], body=None, headers=None):
         id = pathParameters['id']
@@ -106,42 +84,28 @@ class HttpHandler(object):
         documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
         if not documentTypeConfiguration:
             return self.getHttpResponse(statusCode=400,body=self.formatJson({"msg": "entity {} not handled".format(documentType)}))
-            # return {
-            #     "statusCode": 400,
-            #     "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
-            # }
         repository = Repository(documentTypeConfiguration)
         logger.info("delete {} by id {}".format(documentType,id))
         try:
             repository.delete(id)
             return self.getHttpResponse(statusCode=200)
-            #return {"statusCode": 200, "headers": {"Access-Control-Allow-Origin": "http://localhost:3000"}}
-            #return {"statusCode": 200}
         except Exception as e:
             logger.error("Unable to delete entity {} for body {}".format(documentType,body))
             logger.exception(str(e))
             return self.getHttpResponse(statusCode=500,body=self.formatJson({"msg": "Error in delete entity {}".format(documentType)}))
-            #return {"statusCode": 500, "body": self.formatJson({"msg": "Error in delete entity {}".format(documentType)})}
 
     def query(self, pathParameters, queryStringParameters={}, body=None, headers=None):
         documentType = self.getDocumentTypeFromPathParameters(pathParameters)
         documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
         if not documentTypeConfiguration:
             return self.getHttpResponse(statusCode=400,body=self.formatJson({"msg": "entity {} not handled".format(documentType)}))
-            # return {
-            #     "statusCode": 400,
-            #     "body": self.formatJson({"msg": "entity {} not handled".format(documentType)})
-            # }
         repository = Repository(documentTypeConfiguration)
         queryId = pathParameters['queryId']
         logger.info("Received {} as index".format(queryId))
         indexService = self.dynamoService.getIndexServiceByIndex(documentType, queryId)
         if not indexService:
             return self.getHttpResponse(statusCode=400,body=self.formatJson({"msg": "query {} not handled".format(queryId)}))
-            # return {
-            #     "statusCode": 400,
-            #     "body": self.formatJson({"msg": "query {} not handled".format(queryId)})
-            # }
+
         document=json.loads(body,parse_float=Decimal)
         limit = None
         startFrom = None
@@ -151,13 +115,7 @@ class HttpHandler(object):
             startFrom = headers["startFrom"]
         data, lastEvaluatedKey = indexService.findDocuments(document,startFrom,limit)
         return self.getHttpResponse(statusCode=200,body=self.formatJson({"data": data,"lastKey": lastEvaluatedKey}))
-        # return {
-        #     "statusCode": 200,
-        #     "headers": {
-        #     "Access-Control-Allow-Origin": "http://localhost:3000"
-        #     },
-        #     "body": self.formatJson({"data": data,"lastKey": lastEvaluatedKey})
-        # }
+
     def getHttpResponse(self,**kwargs):
         return {
             **kwargs,
