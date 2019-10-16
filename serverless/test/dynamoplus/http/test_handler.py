@@ -83,6 +83,13 @@ class TestHttpHandler(unittest.TestCase):
         self.assertEqual(result["statusCode"],200)
         body=json.loads(result["body"])
         self.assertEqual(len(body["data"]),10)
+    def test_query_all(self):
+        self.fill_data(self.table)
+        result = self.httpHandler.query({"collection": "example"}, body="{}",headers=[])
+        self.assertEqual(result["statusCode"],200)
+        body=json.loads(result["body"])
+        self.assertEqual(len(body["data"]),20)
+        
     # def test_query_not_handled(self):
     #     self.fill_data(self.table)
     #     result = self.httpHandler.query({"collection": "example", "queryId": "whatever"}, body="{\"title\": \"data_1\"}",headers=[])
