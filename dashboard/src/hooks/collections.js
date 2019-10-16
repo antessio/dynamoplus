@@ -4,15 +4,15 @@ import { useAuth0 } from '../react-auth0-wrapper'
 
 
 
-export const useCreateDocument = (documentType)=>{
+export const useCreateCollection = ()=>{
     const { getTokenSilently } = useAuth0();
-    const [document, setDocument] = useState(null)
+    const [collection, setCollection] = useState(null)
     const [isLoading, setLoading] = useState(false)
-    const createDocument = async (d) => {
+    const createCollection = async (d) => {
       setLoading(false)
       try {
         const token = await getTokenSilently()
-        const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/"+documentType, {
+        const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/document_type", {
           headers: {
             Authorization: `Bearer ${token}`
           },
@@ -23,20 +23,20 @@ export const useCreateDocument = (documentType)=>{
   
         const responseData = await response.json();
         console.log(responseData)
-        setDocument(responseData)
+        setCollection(responseData)
         setLoading(false)
       } catch (error) {
         setLoading(false)
       }
     }; 
-    return [document, createDocument, isLoading]
+    return [collection, createCollection, isLoading]
 }
 
-export const useGetDocuments = (documentType,dependencies)=>{
+export const useGetCollections = (dependencies)=>{
     const { getTokenSilently } = useAuth0();
-    const [documents, setDocuments] = useState([])
+    const [collections, setCollections] = useState([])
     const [isLoading, setLoading] = useState(false)
-    const getDocuments = async () => {
+    const getCollections = async () => {
         setLoading(true)
         try {
           const token = await getTokenSilently()
@@ -51,9 +51,9 @@ export const useGetDocuments = (documentType,dependencies)=>{
     
           const responseData = await response.json();
           
-          const documents = responseData.data
-          console.log(documents)
-          setDocuments(documents)
+          const collections = responseData.data
+          console.log(collections)
+          setCollections(collections)
           setLoading(false)
         } catch (error) {
           setLoading(false)
@@ -61,9 +61,9 @@ export const useGetDocuments = (documentType,dependencies)=>{
       };
     useEffect(() => {
         //setLoading(true)
-        getDocuments()
+        getCollections()
       }, dependencies);
-    return [documents,isLoading]
+    return [collections,isLoading]
 
 
 }

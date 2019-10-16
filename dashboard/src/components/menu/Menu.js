@@ -29,9 +29,9 @@ export default () =>{
             }
         </Menu.Item>
         <Menu.Item key="2">
-            <Link to="/documents">
+            <Link to="/collections">
                 <Icon type="database" />
-                <span >Documents</span>
+                <span >Collections</span>
                 </Link>
         </Menu.Item>
         <Menu.Item key="3">
