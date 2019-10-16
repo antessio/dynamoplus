@@ -12,12 +12,18 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logging.getLogger("botocore").setLevel(logging.WARNING)
 logging.getLogger("boto3").setLevel(logging.WARNING)
+connection = None
+try:
+    if not os.environ["TEST_FLAG"]:
+        connection=boto3.resource('dynamodb')
+except:
+    logger.info("Unable to instantiate")
 
 class Repository(object):
     def __init__(self, documentTypeConfiguration: DocumentTypeConfiguration):
         self.documentTypeConfiguration = documentTypeConfiguration
         self.tableName = os.environ['DYNAMODB_TABLE']
-        self.dynamoDB = boto3.resource('dynamodb')
+        self.dynamoDB = connection if connection is not None else boto3.resource('dynamodb')
         self.table = self.dynamoDB.Table(self.tableName)
     
     def getModelFromDocument(self, document:dict):

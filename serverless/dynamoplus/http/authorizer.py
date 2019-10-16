@@ -18,8 +18,8 @@ def authorize(event, context):
 
     print('Client token: ' + whole_auth_token)
     print('Method ARN: ' + event['methodArn'])
-    document_type = event["pathParameters"]["document_type"]
-    print("document_type {}".format(document_type))
+    collection = event["pathParameters"]["collection"]
+    print("collection {}".format(collection))
     token_parts = whole_auth_token.split(' ')
     auth_token = token_parts[1]
     token_method = token_parts[0]

@@ -18,17 +18,18 @@ import json
 class TestHttpHandler(unittest.TestCase):
 
     def setUp(self):
+        os.environ["TEST_FLAG"]="true"
         os.environ["ALLOWED_ORIGINS"]="http://localhost"
         os.environ["DYNAMODB_TABLE"]="example_1"
-        os.environ["ENTITIES"]="document_type#id#creation_date_time,index#id#creation_date_time"
-        os.environ["INDEXES"]="document_type#name,index#name,index#document_type.name"
+        os.environ["ENTITIES"]="collection#id#creation_date_time,index#id#creation_date_time"
+        os.environ["INDEXES"]="collection#name,index#name,index#collection.name"
         self.dynamodb = boto3.resource("dynamodb")
         self.httpHandler = HttpHandler()
         self.table = self.getMockTable()
     def tearDown(self):
         self.table.delete()
     def test_getTargetEntity(self):
-        path_parameters={"document_type":"example","query": "name"}
+        path_parameters={"collection":"example","query": "name"}
         result=self.httpHandler.getDocumentTypeFromPathParameters(path_parameters)
         self.assertEqual(result,"example")
         
@@ -46,14 +47,14 @@ class TestHttpHandler(unittest.TestCase):
         docTypeConfig = DocumentTypeConfiguration("example", "id", "ordering")
         expectedModel = Model(docTypeConfig,{"id": "1", "sk": "example","pk":"example#1", "data":"1", "ordering":"1", "attribute1": "value1"})
         expectedResult = {"id": "1", "title":"data_1","ordering":"1"}
-        result = self.httpHandler.get({"document_type":"example", "id":"1"})
+        result = self.httpHandler.get({"collection":"example", "id":"1"})
         self.assertEqual(result["statusCode"],200)
         self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expectedResult,["even"])
     
     def test_create(self):
         self.fill_data(self.table)
         expectedResult = {"id": "1000", "title":"test_1","ordering":"21"}
-        result = self.httpHandler.create({"document_type":"example"},body="{\"id\":\"1000\", \"title\": \"test_1\",\"ordering\": \"21\"}")
+        result = self.httpHandler.create({"collection":"example"},body="{\"id\":\"1000\", \"title\": \"test_1\",\"ordering\": \"21\"}")
         self.assertEqual(result["statusCode"],201)
         self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expectedResult,["id","creation_date_time"])
 
@@ -61,36 +62,36 @@ class TestHttpHandler(unittest.TestCase):
     def test_update_adding_new_field(self):
         self.fill_data(self.table)
         expectedResult = {"id": "1", "title":"test_1","ordering":"21", "new_attribute": "001"}
-        result = self.httpHandler.update({"document_type":"example"},body="{\"id\":\"1\", \"title\": \"test_1\", \"new_attribute\": \"001\", \"ordering\": \"21\"}")
+        result = self.httpHandler.update({"collection":"example"},body="{\"id\":\"1\", \"title\": \"test_1\", \"new_attribute\": \"001\", \"ordering\": \"21\"}")
         self.assertEqual(result["statusCode"],200)
         self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expectedResult,["creation_date_time","update_date_time"])
     def test_update_edit_existing_field(self):
         self.fill_data(self.table)
         expectedResult = {"id": "1", "title":"test_1","ordering":"21"}
-        result = self.httpHandler.update({"document_type":"example"},body="{\"id\":\"1\", \"title\": \"test_1\", \"ordering\": \"21\"}")
+        result = self.httpHandler.update({"collection":"example"},body="{\"id\":\"1\", \"title\": \"test_1\", \"ordering\": \"21\"}")
         self.assertEqual(result["statusCode"],200)
         self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expectedResult,["creation_date_time","update_date_time"])
     def test_delete(self):
         self.fill_data(self.table)
         expectedResult = {"id": "1", "title":"test_1","ordering":"21"}
-        result = self.httpHandler.delete({"document_type":"example","id":"1"})
+        result = self.httpHandler.delete({"collection":"example","id":"1"})
         self.assertEqual(result["statusCode"],200)
         
     def test_query(self):
         self.fill_data(self.table)
-        result = self.httpHandler.query({"document_type": "example", "queryId": "even"}, body="{\"even\": \"1\"}",headers=[])
+        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, body="{\"even\": \"1\"}",headers=[])
         self.assertEqual(result["statusCode"],200)
         body=json.loads(result["body"])
         self.assertEqual(len(body["data"]),10)
     # def test_query_not_handled(self):
     #     self.fill_data(self.table)
-    #     result = self.httpHandler.query({"document_type": "example", "queryId": "whatever"}, body="{\"title\": \"data_1\"}",headers=[])
+    #     result = self.httpHandler.query({"collection": "example", "queryId": "whatever"}, body="{\"title\": \"data_1\"}",headers=[])
     #     self.assertEqual(result["statusCode"],400)
     def fill_data(self,table):
         timestamp = datetime.utcnow()
         document = {"name": "example", "idKey":"id", "orderingKey": "ordering", "creation_date_time": timestamp.isoformat()}
-        table.put_item(Item={"pk":"document_type#1","sk":"document_type","data":"1", **document})
-        table.put_item(Item={"pk":"document_type#1","sk":"document_type#name","data":"example", **document})
+        table.put_item(Item={"pk":"collection#1","sk":"collection","data":"1", **document})
+        table.put_item(Item={"pk":"collection#1","sk":"collection#name","data":"example", **document})
         for i in range(1,21):
             document = {"id": str(i), "title": "data_"+str(i), "even":str(i%2), "ordering":str(i)}
             table.put_item(Item={"pk":"example#"+str(i),"sk":"example","data":str(i), **document})

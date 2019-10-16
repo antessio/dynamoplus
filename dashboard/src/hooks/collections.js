@@ -12,7 +12,7 @@ export const useCreateCollection = ()=>{
       setLoading(false)
       try {
         const token = await getTokenSilently()
-        const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/document_type", {
+        const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/collection", {
           headers: {
             Authorization: `Bearer ${token}`
           },
@@ -40,12 +40,11 @@ export const useGetCollections = (dependencies)=>{
         setLoading(true)
         try {
           const token = await getTokenSilently()
-          const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/document_type/query/active", {
+          const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/collection/query", {
             headers: {
               Authorization: `Bearer ${token}`
             },
-            method: 'POST',
-            body: JSON.stringify({active: "true"})
+            method: 'POST'
     
           });
     
