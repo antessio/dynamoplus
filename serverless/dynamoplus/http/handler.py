@@ -182,8 +182,8 @@ class HttpHandler(object):
             return None
     
     def getDocumentTypeFromPathParameters(self, pathParameters):
-        if "document_type" in pathParameters:
-            targetEntity = pathParameters['document_type']
+        if "collection" in pathParameters:
+            targetEntity = pathParameters['collection']
             return targetEntity
 
     def getRepositoryFromTargetEntityConfiguration(self, targetConfiguration):
@@ -200,7 +200,7 @@ class HttpHandler(object):
             '''
                 find the entity 
             '''
-            systemDocumentTypesIndexService = IndexService(self.dynamoTable, "document_type", "document_type#name",self.dynamoDB)
+            systemDocumentTypesIndexService = IndexService(self.dynamoTable, "collection", "collection#name",self.dynamoDB)
             documentTypesResult = systemDocumentTypesIndexService.findByExample({"name": targetEntity})
             logger.info("Response is {}".format(str(documentTypesResult)))
             if "data" in documentTypesResult:
