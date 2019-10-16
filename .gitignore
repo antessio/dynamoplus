@@ -1,3 +1,4 @@
+.firebase/
 .serverless
 secrets.json
 public_key
