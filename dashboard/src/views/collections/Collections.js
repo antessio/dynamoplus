@@ -1,24 +1,24 @@
 import React,{useState} from "react";
-import {useGetDocuments} from '../../hooks/documents';
+import {useGetCollections} from '../../hooks/collections';
 import {List,Button,Modal } from 'antd'
 import CreateDocumentForm from './create/CreateForm'
 
 import Document from '../../components/documents/Document'
-import './Documents.css'
+import './Collections.css'
 import Loading from '../../components/loading/Loading'
-import {useCreateDocument} from '../../hooks/documents'
+import {useCreateCollection} from '../../hooks/collections'
 
-const Documents = () => {
+const Collections = () => {
   const [showModal,setShowModal]=useState(false)
-  const [documents,isLoadingGet] = useGetDocuments([]);
-  const [createdDocument, createDocument,isLoadingCreate]=useCreateDocument()
+  const [documents,isLoadingGet] = useGetCollections([]);
+  const [createdDocument, createDocument,isLoadingCreate]=useCreateCollection()
   const isLoading = isLoadingCreate || isLoadingGet
   if (isLoading && !documents) {
       return <Loading />
     }
     return (
     <div>
-      <h1>Documents</h1>
+      <h1>Collections</h1>
       <Button type="primary" icon="plus"
       onClick={()=>{setShowModal(true)}}>
         Create
@@ -63,4 +63,4 @@ const document = (document)=>{
   )
 }
 
-export default React.memo(Documents);
+export default React.memo(Collections);

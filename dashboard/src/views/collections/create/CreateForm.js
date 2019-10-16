@@ -1,10 +1,18 @@
 import React, {useState} from 'react'
-import { Form, Input, Icon, Button,Modal } from 'antd';
+import { Form, Input, Icon, Button,Modal,Checkbox } from 'antd';
 
 const CreateDocumentForm = (props)=>{
     const [showModal,setShowModal]=useState(props.show)
+    const { getFieldDecorator, getFieldValue } = props.form;
     //const [docmentDefinition, setDocumentDefinition]=useState([])
-    
+    const formItemLayout = {
+      labelCol: { span: 4 },
+      wrapperCol: { span: 8 },
+    };
+    const formTailLayout = {
+      labelCol: { span: 4 },
+      wrapperCol: { span: 8, offset: 4 },
+    };
     const handleSubmit=(e)=>{
         e.preventDefault();
         props.form.validateFields((err, values) => {
@@ -64,6 +72,15 @@ const CreateDocumentForm = (props)=>{
                   },
                 ],
               })(<Input />)}
+        </Form.Item>
+        <Form.Item {...formTailLayout}>
+        {getFieldDecorator('active', {
+            initialValue: ['active'],
+          })(
+          <Checkbox >
+            Active
+          </Checkbox>
+          )}
         </Form.Item>
         </Modal>
         </Form>
