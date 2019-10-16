@@ -80,6 +80,16 @@ functions:
           authorizer: 
             name: auth
             type: request
+  queryAll:
+    handler: dynamoplus/http/query.query
+    events:
+      - http:
+          path: dynamoplus/{collection}/query
+          method: post
+          cors: true
+          authorizer: 
+            name: auth
+            type: request
 
   get:
     handler: dynamoplus/http/get.get
