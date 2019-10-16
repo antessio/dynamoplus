@@ -7,7 +7,6 @@ import { Descriptions } from 'antd';
 export default (props)=>{
     const index = props.index
     const indexName = index.name;
-    const documentType = index.document_type.name;
     const indexNameSplit1 = indexName.split("__ORDER_BY__")
     const fields = indexNameSplit1[0].split("__")
     const orderingKey = indexNameSplit1.length >1?indexNameSplit1[1]:null;

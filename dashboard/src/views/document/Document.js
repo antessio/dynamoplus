@@ -9,14 +9,14 @@ import {useCreateCollection} from '../../hooks/collections'
 
 const Document = (props) => {
     const [showModal,setShowModal]=useState(false)
-    const documentType = props.match.params.documentType
+    const collection = props.match.params.collection
 
 //   if (isLoading && !documents) {
 //       return <Loading />
 //     }
     return (
     <div>
-      <h1>{documentType}</h1>
+      <h1>{collection}</h1>
       {/* <Button type="primary" icon="plus"
       onClick={()=>{setShowModal(true)}}>
         Create
