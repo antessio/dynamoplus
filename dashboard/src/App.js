@@ -9,7 +9,7 @@ import Profile from "./views/Profile";
 import Collections from "./views/collections/Collections";
 import Layout from './components/layout/Layout';
 import Indexes from "./views/indexes/Indexes";
-import Document from "./views/document/Document";
+import Documents from "./views/documents/Documents";
 
 function App() {
   return (
@@ -25,8 +25,8 @@ function App() {
           <Route path="/" exact />
           <Route path="/profile" component={Profile} />
           <Route path="/collections" component={Collections} />
-          <Route path="/indexes/:documentType" component={Indexes} />
-          <Route path="/document/:documentType" component={Document} />
+          <Route path="/indexes/:collection" component={Indexes} />
+          <Route path="/documents/:collection" component={Documents} />
         </Switch>
 
       </Layout>

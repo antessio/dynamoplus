@@ -1,5 +1,8 @@
 import React from 'react'
 import { Card, Icon,Avatar, Badge, Collapse, Row, Col,Descriptions } from 'antd';
+
+
+
 import { Link } from "react-router-dom";
 const { Panel } = Collapse;
 export default (props)=>{
@@ -9,7 +12,7 @@ export default (props)=>{
     return (    
     <Card 
     actions={[
-        <Icon type="read" key="read" />,
+        <Link to={"/documents/"+document.name}><Icon type="read" key="read" /></Link>,
         <Icon type="edit" key="edit" />,
         <Icon type="search" key="query" />,
       ]}

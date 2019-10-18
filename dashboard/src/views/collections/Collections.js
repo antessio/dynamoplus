@@ -1,19 +1,19 @@
 import React,{useState} from "react";
 import {useGetCollections} from '../../hooks/collections';
 import {List,Button,Modal } from 'antd'
-import CreateDocumentForm from './create/CreateForm'
+import CreateCollectionForm from './create/CreateForm'
 
-import Document from '../../components/documents/Document'
+import Collection from '../../components/collection/Collection'
 import './Collections.css'
 import Loading from '../../components/loading/Loading'
 import {useCreateCollection} from '../../hooks/collections'
 
 const Collections = () => {
   const [showModal,setShowModal]=useState(false)
-  const [documents,isLoadingGet] = useGetCollections([]);
-  const [createdDocument, createDocument,isLoadingCreate]=useCreateCollection()
+  const [collections,isLoadingGet] = useGetCollections([]);
+  const [createdCollection, createCollection,isLoadingCreate]=useCreateCollection()
   const isLoading = isLoadingCreate || isLoadingGet
-  if (isLoading && !documents) {
+  if (isLoading && !collections) {
       return <Loading />
     }
     return (
@@ -24,12 +24,12 @@ const Collections = () => {
         Create
       </Button>
         {showModal && 
-          <CreateDocumentForm 
+          <CreateCollectionForm 
           show={showModal} 
           onCancel={()=>{setShowModal(false)}} 
           onSubmit={(values)=>{
             console.log(values)
-            createDocument({
+            createCollection({
               name: values.documentName,
               idKey: values.idKey,
               orderingKey: values.orderingKey,
@@ -39,7 +39,7 @@ const Collections = () => {
           }}
           onError={(e)=>console.error(e)}
           />}
-        {!isLoading && documents &&  <List
+        {!isLoading && collections &&  <List
            grid={{
             gutter: 16,
             xs: 1,
@@ -49,7 +49,7 @@ const Collections = () => {
             xl: 1,
             xxl: 1,
           }}
-          dataSource={documents}
+          dataSource={collections}
           renderItem={item=>document(item)} /> }
 
   
@@ -57,9 +57,9 @@ const Collections = () => {
   );
 };
 
-const document = (document)=>{
+const document = (collection)=>{
   return (
-              <List.Item key={document.id}><Document  document={document} /></List.Item>
+              <List.Item key={document.id}><Collection  collection={collection} /></List.Item>
   )
 }
 

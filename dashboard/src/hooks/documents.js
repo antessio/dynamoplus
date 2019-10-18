@@ -32,7 +32,7 @@ export const useCreateDocument = (collection)=>{
     return [document, createDocument, isLoading]
 }
 
-export const useGetDocuments = (documentType,dependencies)=>{
+export const useGetDocuments = (collectionName,dependencies)=>{
     const { getTokenSilently } = useAuth0();
     const [documents, setDocuments] = useState([])
     const [isLoading, setLoading] = useState(false)
@@ -40,12 +40,12 @@ export const useGetDocuments = (documentType,dependencies)=>{
         setLoading(true)
         try {
           const token = await getTokenSilently()
-          const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/collection/query/active", {
+          const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/"+collectionName+"/query", {
             headers: {
               Authorization: `Bearer ${token}`
             },
             method: 'POST',
-            body: JSON.stringify({active: "true"})
+            body: JSON.stringify({})
     
           });
     
