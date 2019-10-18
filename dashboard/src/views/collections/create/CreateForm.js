@@ -1,10 +1,9 @@
 import React, {useState} from 'react'
 import { Form, Input, Icon, Button,Modal,Checkbox } from 'antd';
 
-const CreateDocumentForm = (props)=>{
+const CreateCollectionForm = (props)=>{
     const [showModal,setShowModal]=useState(props.show)
     const { getFieldDecorator, getFieldValue } = props.form;
-    //const [docmentDefinition, setDocumentDefinition]=useState([])
     const formItemLayout = {
       labelCol: { span: 4 },
       wrapperCol: { span: 8 },
@@ -31,7 +30,7 @@ const CreateDocumentForm = (props)=>{
         <Form onSubmit={handleSubmit}>
         <Modal
           visible={showModal}
-          title="Create new document"
+          title="Create new collection"
           onOk={handleSubmit}
           onCancel={handleCancel}
           footer={[
@@ -87,4 +86,4 @@ const CreateDocumentForm = (props)=>{
         
     )
 }
-export default Form.create({ name: 'create_document' })(CreateDocumentForm);
+export default Form.create({ name: 'create_collection' })(CreateCollectionForm);

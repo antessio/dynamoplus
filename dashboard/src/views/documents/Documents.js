@@ -1,22 +1,23 @@
 import React,{useState} from "react";
-import {useGetCollections} from '../../hooks/collections';
 import {List,Button,Modal } from 'antd'
 
 
-import './Document.css'
+import './Documents.css'
 import Loading from '../../components/loading/Loading'
-import {useCreateCollection} from '../../hooks/collections'
+import Document from '../../components/document/Document'
+import {useCreateDocument, useGetDocuments} from '../../hooks/documents'
 
-const Document = (props) => {
+const Documents = (props) => {
     const [showModal,setShowModal]=useState(false)
-    const collection = props.match.params.collection
-
-//   if (isLoading && !documents) {
-//       return <Loading />
-//     }
+    const collectionName = props.match.params.collection
+    const [documents,isLoadingGetDocuments] = useGetDocuments([]);
+    //const [createdCollection, createCollection,isLoadingCreate]=useCreateCollection()
+  if (isLoadingGetDocuments && !documents) {
+      return <Loading />
+    }
     return (
     <div>
-      <h1>{collection}</h1>
+      <h1>{collectionName}</h1>
       {/* <Button type="primary" icon="plus"
       onClick={()=>{setShowModal(true)}}>
         Create
@@ -37,7 +38,8 @@ const Document = (props) => {
           }}
           onError={(e)=>console.error(e)}
           />}
-        {!isLoading && documents &&  <List
+         */}
+    {!isLoadingGetDocuments && documents &&  <List
            grid={{
             gutter: 16,
             xs: 1,
@@ -48,8 +50,7 @@ const Document = (props) => {
             xxl: 1,
           }}
           dataSource={documents}
-          renderItem={item=>document(item)} /> } */}
-
+          renderItem={item=>document(item)} /> }
   
     </div>
   );
@@ -61,4 +62,4 @@ const document = (document)=>{
   )
 }
 
-export default React.memo(Document);
+export default React.memo(Documents);
