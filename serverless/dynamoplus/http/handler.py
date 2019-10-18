@@ -95,6 +95,7 @@ class HttpHandler(object):
             return self.getHttpResponse(headers=self.getResponseHeaders(headers),statusCode=500,body=self.formatJson({"msg": "Error in delete entity {}".format(documentType)}))
 
     def query(self, pathParameters, queryStringParameters={}, body=None, headers=None):
+        logger.info("Headers received {}".format(str(headers)))
         documentType = self.getDocumentTypeFromPathParameters(pathParameters)
         documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
         if not documentTypeConfiguration:
@@ -121,10 +122,11 @@ class HttpHandler(object):
         return origin in allowedOrigins
     def getResponseHeaders(self, requestHeaders):
         responseHeaders = {}
-        if requestHeaders and "Origin" in requestHeaders:
-            origin = requestHeaders["Origin"]
+        if requestHeaders and "origin" in requestHeaders:
+            origin = requestHeaders["origin"]
             if self.checkAllowedOrigin(origin):
                 responseHeaders["Access-Control-Allow-Origin"]=origin
+                responseHeaders["Access-Control-Allow-Credentials"]=True
         return responseHeaders
     def getHttpResponse(self,**kwargs):
         return {

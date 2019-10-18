@@ -12,7 +12,7 @@ custom:
       migrate: true
   system_indexes: "collection#name,index#name,index#collection.name,collection#active"
   system_collections: "collection#id#creation_date_time,index#id#creation_date_time"
-  allowed_origins: "http://localhost:3000" ## to change in production
+  allowed_origins: "http://localhost:3000,https://dynamoplus-dashboard.firebaseapp.com" ## to change in production
 frameworkVersion: ">=1.1.0 <2.0.0"
 
 provider:
