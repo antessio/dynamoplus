@@ -80,7 +80,7 @@ class TestHttpHandler(unittest.TestCase):
     def test_query(self):
         self.fill_data(self.table)
         origin="http://localhost"
-        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, body="{\"even\": \"1\"}",headers={"Origin": origin})
+        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, body="{\"even\": \"1\"}",headers={"origin": origin})
         self.assertEqual(result["statusCode"],200)
         body=json.loads(result["body"])
         self.assertEqual(len(body["data"]),10)
@@ -90,7 +90,7 @@ class TestHttpHandler(unittest.TestCase):
     def test_access_control_allow_origin(self):
         self.fill_data(self.table)
         origin="http://localhost"
-        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, body="{\"even\": \"1\"}",headers={"Origin": origin})
+        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, body="{\"even\": \"1\"}",headers={"origin": origin})
         self.assertEqual(result["statusCode"],200)
         body=json.loads(result["body"])
         self.assertEqual(len(body["data"]),10)
@@ -100,7 +100,7 @@ class TestHttpHandler(unittest.TestCase):
     def test_access_control_not_allow_origin(self):
         self.fill_data(self.table)
         origin="http://localhost:3000"
-        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, body="{\"even\": \"1\"}",headers={"Origin": origin})
+        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, body="{\"even\": \"1\"}",headers={"origin": origin})
         self.assertEqual(result["statusCode"],200)
         body=json.loads(result["body"])
         self.assertEqual(len(body["data"]),10)
