@@ -1,7 +1,7 @@
 import unittest
 from typing import *
 from dynamoplus.repository.models import Model,IndexModel
-from dynamoplus.models.indexes.indexes import Query,Index
+from dynamoplus.models.indexes.indexes import Query,Index, RangeQuery
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.repository.repositories import Repository
 from moto import mock_dynamodb2
@@ -80,6 +80,26 @@ class TestRepository(unittest.TestCase):
             self.table.put_item(Item={"pk":"example#"+str(i),"sk":"example#attribute1","data":str(i%2),**document})
         index = Index("example",["attribute1"])
         query = Query({"attribute1":"1"},index)
+        result = self.repository.find(query)
+        self.assertIsNotNone(result)
+        self.assertEqual(len(result.data),5)
+    def test_queryAll(self):
+        for i in range(1,10):
+            document = {"id": str(i), "attribute1": str(i%2), "attribute2":"value_"+str(i)}
+            self.table.put_item(Item={"pk":"example#"+str(i),"sk":"example","data":str(i),**document})
+            self.table.put_item(Item={"pk":"example#"+str(i),"sk":"example#attribute1","data":str(i%2),**document})
+        index = Index("example",[])
+        query = Query({},index)
+        result = self.repository.find(query)
+        self.assertIsNotNone(result)
+        self.assertEqual(len(result.data),9)
+    def test_queryByRange(self):
+        for i in range(1,10):
+            document = {"id": str(i), "attribute1": str(i%2), "attribute2":"value_"+str(i)}
+            self.table.put_item(Item={"pk":"example#"+str(i),"sk":"example","data":str(i),**document})
+            self.table.put_item(Item={"pk":"example#"+str(i),"sk":"example#attribute1","data":str(i%2),**document})
+        index = Index("example",["attribute1"])
+        query = RangeQuery("3","6",index)
         result = self.repository.find(query)
         self.assertIsNotNone(result)
         self.assertEqual(len(result.data),5)

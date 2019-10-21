@@ -84,6 +84,8 @@ class Repository(object):
     def find(self, query: Query):
         logger.info(" Received query={}".format(query.__str__()))
         document = query.document
+        ## TODO: use query IndexModelFactory.indexModelFromQuery
+        ## if the index is a range index then data will be an array
         indexModel = IndexModel(self.documentTypeConfiguration,document,query.index)
         orderingKey = query.index.orderingKey if query.index else None
         logger.info("order by is {} ".format(orderingKey))

@@ -1,8 +1,8 @@
 import unittest
 from typing import *
-from dynamoplus.repository.models import Model, IndexModel
+from dynamoplus.repository.models import Model, IndexModel, IndexModelFactory,IndexModelRange
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
-from dynamoplus.models.indexes.indexes import Index
+from dynamoplus.models.indexes.indexes import Index, Query, AbstractQuery, RangeQuery
 
 class TestModels(unittest.TestCase):
     def test_modelWithOrdering(self):
@@ -48,3 +48,14 @@ class TestModels(unittest.TestCase):
         self.assertEqual(model.sk(), "example")
         self.assertEqual(model.data(), None)
         self.assertEqual(model.orderValue(),None)
+
+    def test_indexFactory(self):
+        documentConfiguration = DocumentTypeConfiguration("example","id","ordering")
+        document = {"id": "randomId", "ordering": "1","attr1": "value2", "nested":{"condition":{"1": "value1"}}}
+        index = Index("example",["nested.condition.1","attr1"],None)
+        query = Query(document,index)
+        indexModel=IndexModelFactory.indexModelFromQuery(documentConfiguration,query)
+        self.assertTrue(type(indexModel) is IndexModel)
+        rangeQuery = RangeQuery("1","10",index)
+        indexModel=IndexModelFactory.indexModelFromQuery(documentConfiguration,rangeQuery)
+        self.assertTrue(type(indexModel) is IndexModelRange)
