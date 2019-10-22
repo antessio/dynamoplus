@@ -21,6 +21,11 @@ class TestModels(unittest.TestCase):
         self.assertEqual(model.sk(), "example")
         self.assertEqual(model.data(), "randomId")
         self.assertIsNone(model.orderValue())
+    def test_model_toDynamoDB(self):
+        documentConfiguration = DocumentTypeConfiguration("example","id",None)
+        document = {"id": "randomId"}
+        model = Model(documentConfiguration,document)
+        self.assertDictEqual(model.toDynamoDbItem(), {"pk": "example#randomId","sk":"example", "data": "randomId", "document":{"id": "randomId"}})
     def test_indexModel(self):
         documentConfiguration = DocumentTypeConfiguration("example","id",None)
         document = {"id": "randomId", "attr1": "value2", "nested":{"condition":{"1": "value1"}}}

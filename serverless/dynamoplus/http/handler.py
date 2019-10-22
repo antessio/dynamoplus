@@ -71,7 +71,7 @@ class HttpHandler(object):
         logger.info("Updating  "+data.__str__())
         try:
             data = repository.update(data)
-            dto = dto = data.fromDynamoDbItem()
+            dto = data.fromDynamoDbItem()
             return self.getHttpResponse(headers=self.getResponseHeaders(headers),statusCode=200,body=self.formatJson(dto))
         except Exception as e:
             logger.error("Unable to update entity {} for body {}".format(documentType,body))

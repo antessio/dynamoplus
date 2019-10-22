@@ -50,14 +50,15 @@ class TestRepository(unittest.TestCase):
         self.assertIn("data",result.toDynamoDbItem())
     def test_update(self):
         document = {"id": "1234", "attribute1":"value1"}
-        self.table.put_item(Item={"pk":"example#1234","sk":"example","data":"1234",**document})
+        self.table.put_item(Item={"pk":"example#1234","sk":"example","data":"1234", "document": {**document}})
         document["attribute1"]="value2"
         result = self.repository.update(document)
         self.assertIsNotNone(result)
         self.assertIn("pk",result.toDynamoDbItem())
         self.assertIn("sk",result.toDynamoDbItem())
         self.assertIn("data",result.toDynamoDbItem())
-        self.assertEqual(result.toDynamoDbItem()["attribute1"],"value2")
+        self.assertIn("document",result.toDynamoDbItem())
+        self.assertEqual(result.toDynamoDbItem()["document"]["attribute1"],"value2")
     def test_delete(self):
         document = {"id": "1234", "attribute1":"value1"}
         self.table.put_item(Item={"pk":"example#1234","sk":"example","data":"1234",**document})

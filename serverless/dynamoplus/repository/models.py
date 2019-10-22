@@ -19,10 +19,8 @@ class Model(object):
         self.orderKey = documentTypeConfiguration.orderingKey
         self.entityName = documentTypeConfiguration.entityName
         self.document = document        
-    def pk(self):
-        
+    def pk(self):  
         return self.document["pk"] if "pk" in self.document else  (self.entityName+"#"+self.document[self.idKey] if self.idKey in self.document else None)
-    
     def sk(self):        
         return self.document["sk"] if "sk" in self.document else self.entityName
     
@@ -39,10 +37,14 @@ class Model(object):
         if self.orderKey:
             return findValue(self.document, self.orderKey.split("."))
     def toDynamoDbItem(self):
-        return {**self.document, "pk": self.pk(), "sk": self.sk(), "data": self.data()}
+        if "document" in self.document:
+            return {"document": self.document["document"], "pk": self.pk(), "sk": self.sk(), "data": self.data()}
+        else:
+            return {"document": {**self.document}, "pk": self.pk(), "sk": self.sk(), "data": self.data()}
 
     def fromDynamoDbItem(self):
-        return {k: v for k, v in self.document.items() if k not in ["pk","sk","data"]}
+        return self.document["document"]
+        #return {k: v for k, v in self.document.items() if k not in ["pk","sk","data"]}
 
 class IndexModel(Model):
     def __init__(self, documentTypeConfiguration, document, index:Index):
