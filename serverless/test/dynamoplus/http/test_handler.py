@@ -21,7 +21,7 @@ class TestHttpHandler(unittest.TestCase):
         os.environ["TEST_FLAG"]="true"
         os.environ["ALLOWED_ORIGINS"]="http://localhost"
         os.environ["DYNAMODB_TABLE"]="example_1"
-        os.environ["ENTITIES"]="collection#id#creation_date_time,index#id#creation_date_time"
+        os.environ["ENTITIES"]="collection#name#creation_date_time,index#name#creation_date_time"
         os.environ["INDEXES"]="collection#name,index#name,index#collection.name"
         self.dynamodb = boto3.resource("dynamodb")
         self.httpHandler = HttpHandler()
@@ -113,6 +113,14 @@ class TestHttpHandler(unittest.TestCase):
         body=json.loads(result["body"])
         self.assertEqual(len(body["data"]),20)
 
+    def test_create_duplicate(self):
+        self.fill_data(self.table)
+        expectedResult = {"name": "example","idKey":"id","orderingKey":"creation_date_time"}
+        result = self.httpHandler.create({"collection":"collection"},body="{\"name\": \"example\",\"idKey\": \"id\",\"orderingKey\": \"creation_date_time\"}")
+        self.assertEqual(result["statusCode"],201)
+        self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expectedResult,["creation_date_time"])
+        result = self.httpHandler.create({"collection":"collection"},body="{\"name\": \"example\",\"idKey\": \"id\",\"orderingKey\": \"creation_date_time\"}")
+        self.assertNotEqual(result["statusCode"],201)
 
     # def test_query_not_handled(self):
     #     self.fill_data(self.table)
