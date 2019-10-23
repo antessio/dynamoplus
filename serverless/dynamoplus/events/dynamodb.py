@@ -55,7 +55,9 @@ def dynamoStreamHandler(event, context):
                 elif record.get('eventName') == 'REMOVE':
                     oldRecord = deserialize(record['dynamodb']['OldImage'])
                     logger.info('removing index on record  {}'.format(pk))
-                    indexing(lambda r: r.delete(oldRecord[documentTypeConfiguration.idKey]), dynamoPlusService, sk, documentTypeConfiguration, oldRecord)
+                    if documentTypeConfiguration.idKey in oldRecord:
+                        id=oldRecord[documentTypeConfiguration.idKey]
+                        indexing(lambda r: r.delete(id), dynamoPlusService, sk, documentTypeConfiguration, oldRecord)
             else:
                 logger.debug('Skipping indexing on record {} - {}: entity not found'.format(pk,sk))    
         else:
@@ -64,7 +66,7 @@ def dynamoStreamHandler(event, context):
 def indexing(repositoryAction, dynamoPlusService, sk, documentTypeConfiguration, newRecord):
     for index in dynamoPlusService.getIndexConfigurationsByDocumentType(sk):
         repository = IndexRepository(documentTypeConfiguration,index)
-        indexModel = IndexModel(documentTypeConfiguration,newRecord,index)
+        indexModel = IndexModel(documentTypeConfiguration,newRecord["document"],index)
         if indexModel.data():
             ## if new record doesn't contain the key should skip repositoryAction
             repositoryAction(repository)

@@ -44,11 +44,12 @@ class HttpHandler(object):
         logger.info("Creating {} ".format(documentType))
         repository = Repository(documentTypeConfiguration)
         data = json.loads(body,parse_float=Decimal)
-        existingRecord = repository.get(data[documentTypeConfiguration.idKey])
-        if existingRecord:
-            return self.getHttpResponse(headers=self.getResponseHeaders(headers),statusCode=400, body=self.formatJson({"msg": "entity {} duplicated".format(documentType)}))
         timestamp = datetime.utcnow()
-        if documentTypeConfiguration.idKey not in data:
+        if documentTypeConfiguration.idKey in data:
+            existingRecord = repository.get(data[documentTypeConfiguration.idKey])
+            if existingRecord:
+                return self.getHttpResponse(headers=self.getResponseHeaders(headers),statusCode=400, body=self.formatJson({"msg": "entity {} duplicated".format(documentType)}))
+        else:
             uid=str(uuid.uuid1())
             data[documentTypeConfiguration.idKey]=uid
         data["creation_date_time"]=timestamp.isoformat()

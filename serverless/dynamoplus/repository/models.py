@@ -61,12 +61,12 @@ class IndexModel(Model):
         orderValue = self.document[self.index.orderingKey] if self.index.orderingKey is not None and self.index.orderingKey in self.document else None
         logging.debug("orderingPart {}".format(orderValue))
         logging.info("Entity {}".format(str(self.document)))
-        if self.index.conditions:
+        if self.index.conditions and 'document' in self.document:
             logging.info("Index keys {}".format(self.index.conditions))
             '''
                 attr1#attr2#attr3#attr4#orderValue
             '''
-            values = getValuesByKeyRecursive(self.document, self.index.conditions)
+            values = getValuesByKeyRecursive(self.document["document"], self.index.conditions)
             logging.info("Found {} in conditions ".format(values))
             
             if values:
