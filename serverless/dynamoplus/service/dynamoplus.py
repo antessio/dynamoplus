@@ -48,6 +48,14 @@ class DynamoPlusService(object):
             data, lastKey = indexService.findDocuments({"collection":{"name":documentType}})
             print("Indexes by doc type")
             return list(map(lambda d: DynamoPlusService.buildIndex(documentType+"#"+d["name"]), data))
+            # for d in data:
+            #     indexFound = 
+            #     print(indexFound.conditions)
+                # indexService = IndexService(self.getSystemDocumentTypeConfigurationFromDocumentType("index"),indexConfiguration)
+                # data, lastKey = indexService.findDocuments({"collection":{"name":documentType}})
+        
+                # if len(data)>0:
+                #     print(data)
                 
     @staticmethod
     def buildIndex(indexStr:str):

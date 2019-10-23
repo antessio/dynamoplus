@@ -121,13 +121,13 @@ class TestHttpHandler(unittest.TestCase):
     def fill_data(self,table):
         timestamp = datetime.utcnow()
         document = {"name": "example", "idKey":"id", "orderingKey": "ordering", "creation_date_time": timestamp.isoformat()}
-        table.put_item(Item={"pk":"collection#1","sk":"collection","data":"1", "document":{**document}})
-        table.put_item(Item={"pk":"collection#1","sk":"collection#name","data":"example", "document": {**document}})
+        table.put_item(Item={"pk":"collection#1","sk":"collection","data":"1", **document})
+        table.put_item(Item={"pk":"collection#1","sk":"collection#name","data":"example", **document})
         for i in range(1,21):
             document = {"id": str(i), "title": "data_"+str(i), "even":str(i%2), "ordering":str(i)}
-            table.put_item(Item={"pk":"example#"+str(i),"sk":"example","data":str(i), "document":{**document}})
-            table.put_item(Item={"pk":"example#"+str(i),"sk":"example#title","data":"data_"+str(i), "document": {**document}})
-            table.put_item(Item={"pk":"example#"+str(i),"sk":"example#even","data":str(i%2), "document": {**document}})
+            table.put_item(Item={"pk":"example#"+str(i),"sk":"example","data":str(i), **document})
+            table.put_item(Item={"pk":"example#"+str(i),"sk":"example#title","data":"data_"+str(i), **document})
+            table.put_item(Item={"pk":"example#"+str(i),"sk":"example#even","data":str(i%2), **document})
     def getMockTable(self):
         table = self.dynamodb.create_table(TableName="example_1",
             KeySchema=[
@@ -155,6 +155,81 @@ class TestHttpHandler(unittest.TestCase):
         d1={k: v for k, v in d1.items() if k not in fields}
         d2={k: v for k, v in d2.items() if k not in fields}
         self.assertDictEqual(d1,d2)
+    # @patch.object(Repository, "getEntityDTO")
+    # @patch.object(Repository, "get")
+    # def test_getNotFound(self, mock_get,mock_getEntityDTO):
+    #     expectedRow = {"id": "1", "sk": "sk","pk":"pk", "data":"data"}
+    #     expectedResult = {"id":"randomUid","attr1":"value1"}
+    #     mock_get.return_value=None
+    #     handler = HttpHandler("host#id#creation_date_time,category#id#order","host")
+    #     result = handler.get({"entity":"host", "id":"randomUid"})
+    #     self.assertEqual(result["statusCode"],404)
+    #     mock_get.assert_called_with("randomUid")
+    #     self.assertFalse(mock_getEntityDTO.called)
+
+    # @patch.object(Repository, "getEntityDTO")
+    # @patch.object(Repository, "get")
+    # def test_getWrongEntity(self, mock_get,mock_getEntityDTO):
+    #     expectedRow = {"id": "1", "sk": "sk","pk":"pk", "data":"data"}
+    #     expectedResult = {"id":"randomUid","attr1":"value1"}
+    #     mock_get.return_value=None
+    #     handler = HttpHandler("host#id#creation_date_time,category#id#order","host")
+    #     result = handler.get({"entity":"nonExisting", "id":"randomUid"})
+    #     self.assertEqual(result["statusCode"],400)
+    #     self.assertFalse(mock_get.called)
+    #     self.assertFalse(mock_getEntityDTO.called)
+
+    # @patch.object(Repository, "getEntityDTO")
+    # @patch.object(Repository, "create")
+    # def test_create(self, mock_create,mock_getEntityDTO):
+    #     expectedRow = {"id": "randomUid", "sk": "sk","pk":"pk", "data":"data"}
+    #     expectedResult = {"id":"randomUid","attr1":"value1"}
+    #     mock_create.return_value=expectedRow
+    #     mock_getEntityDTO.return_value=expectedResult
+    #     handler = HttpHandler("host#id#creation_date_time,category#id#order","host")
+    #     result = handler.create({"entity":"host"},body="{\"attr1\": \"value1\"}")
+    #     self.assertEqual(result["statusCode"],201)
+    #     self.assertEqual(result["body"], handler._formatJson(expectedResult))
+    #     self.assertTrue(mock_create.called)
+    #     mock_getEntityDTO.assert_called_with(expectedRow)
+    
+    # @patch.object(Repository, "getEntityDTO")
+    # @patch.object(Repository, "update")
+    # def test_update(self, mock_update,mock_getEntityDTO):
+    #     expectedRow = {"id": "randomUid", "sk": "sk","pk":"pk", "data":"data"}
+    #     expectedResult = {"id":"randomUid","attr1":"value1"}
+    #     mock_update.return_value=expectedRow
+    #     mock_getEntityDTO.return_value=expectedResult
+    #     handler = HttpHandler("host#id#creation_date_time,category#id#order","host")
+    #     result = handler.update({"entity":"host"},body="{\"attr1\": \"value1\"}")
+    #     self.assertEqual(result["statusCode"],200)
+    #     self.assertEqual(result["body"], handler._formatJson(expectedResult))
+    #     self.assertTrue(mock_update.called)
+    #     mock_getEntityDTO.assert_called_with(expectedRow)
+    
+    # @patch.object(Repository, "delete")
+    # def test_delete(self, mock_delete):
+    #     handler = HttpHandler("host#id#creation_date_time,category#id#order","host")
+    #     result = handler.delete({"entity":"host","id":"randomUid"},body="{\"attr1\": \"value1\"}")
+    #     self.assertEqual(result["statusCode"],200)
+    #     mock_delete.assert_called_with("randomUid")
+
+    # @patch.object(IndexUtils, "buildIndex")
+    # @patch.object(Repository, "find")
+    # def test_query(self, mock_find, mock_buildIndex):
+    #     foundIndex = {
+    #         "tablePrefix": "host",
+    #         "conditions": ["attr1","attr2"]
+    #     }
+    #     orderBy="top"
+    #     expectedResult = [{"id": "1","attr1":"value1","attr2":"value2"}]
+    #     mock_buildIndex.return_value=orderBy,foundIndex
+    #     mock_find.return_value=expectedResult
+    #     handler = HttpHandler("host#id#creation_date_time,category#id#order","host")
+    #     result = handler.query({"entity": "host", "queryId": "attr1__attr2"},queryStringParameters={},body="{\"attr1\": \"value1\",\"attr2\":\"value2\"}",headers={"Origin": "http://localhost:3000"})
+    #     self.assertEqual(result["statusCode"],200)
+    #     #self.assertEqual(result["body"], handler._formatJson(expectedResult))
+    #     #mock_find.assert_called_with()
 
 if __name__ == '__main__':
     unittest.main()
