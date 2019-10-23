@@ -47,9 +47,14 @@ class Repository(object):
     def update(self, document:dict):
         model = self.getModelFromDocument(document)
         dynamoDbItem = model.toDynamoDbItem()
-        updateExpression = "SET document=:document"
-        expressionValue={":document": dynamoDbItem["document"]}
-        response = self.table.update_item(
+        if dynamoDbItem.keys():
+            # only updates attributes in the idKey or pk or sk
+            logger.info("updating {} ".format(dynamoDbItem))
+            updateExpression = "SET "+", ".join(map(lambda k: k+"= :"+k, filter(lambda k: k != self.documentTypeConfiguration.idKey and k!="pk" and k!="sk" and k!="data", dynamoDbItem.keys())))
+            expressionValue = dict(
+                map(lambda kv: (":"+kv[0],kv[1]), 
+                filter(lambda kv: kv[0] != self.documentTypeConfiguration.idKey and kv[0]!="pk" and kv[0] !="sk" and kv[0] !="data", dynamoDbItem.items())))
+            response = self.table.update_item(
                 Key={
                     'pk': model.pk(),
                     'sk': model.sk()
@@ -58,36 +63,14 @@ class Repository(object):
                 ExpressionAttributeValues=expressionValue,
                 ReturnValues="UPDATED_NEW"
             )
-        logger.info("Response from update operation is "+response.__str__())
-        if response['ResponseMetadata']['HTTPStatusCode']==200:
-            return self.getModelFromDocument(dynamoDbItem)
+            logger.info("Response from update operation is "+response.__str__())
+            if response['ResponseMetadata']['HTTPStatusCode']==200:
+                return self.getModelFromDocument(dynamoDbItem)
+            else:
+                logger.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
+                return None
         else:
-            logger.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
-            return None
-        # if dynamoDbItem.keys():
-        #     # only updates attributes in the idKey or pk or sk
-        #     logger.info("updating {} ".format(dynamoDbItem))
-        #     updateExpression = "SET "+", ".join(map(lambda k: k+"= :"+k, filter(lambda k: k != self.documentTypeConfiguration.idKey and k!="pk" and k!="sk" and k!="data", dynamoDbItem.keys())))
-        #     expressionValue = dict(
-        #         map(lambda kv: (":"+kv[0],kv[1]), 
-        #         filter(lambda kv: kv[0] != self.documentTypeConfiguration.idKey and kv[0]!="pk" and kv[0] !="sk" and kv[0] !="data", dynamoDbItem.items())))
-        #     response = self.table.update_item(
-        #         Key={
-        #             'pk': model.pk(),
-        #             'sk': model.sk()
-        #         },
-        #         UpdateExpression=updateExpression,
-        #         ExpressionAttributeValues=expressionValue,
-        #         ReturnValues="UPDATED_NEW"
-        #     )
-        #     logger.info("Response from update operation is "+response.__str__())
-        #     if response['ResponseMetadata']['HTTPStatusCode']==200:
-        #         return self.getModelFromDocument(dynamoDbItem)
-        #     else:
-        #         logger.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
-        #         return None
-        # else:
-        #     raise Exception("dynamo db item empty ")
+            raise Exception("dynamo db item empty ")
     def delete(self, id:str):
         model = self.getModelFromDocument({self.documentTypeConfiguration.idKey: id})
         response = self.table.delete_item(
