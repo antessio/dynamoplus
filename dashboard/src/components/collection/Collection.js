@@ -7,10 +7,8 @@ const { Panel } = Collapse;
 const { TreeNode } = Tree;
 export default (props)=>{
     const collection = props.collection
-    const [documents,isLoadingGetDocuments] = useGetDocuments(collection.name,[]);
     const isActive=Object.keys(collection).filter(k=>k==='active').map(k=>collection[k]).join(",")
     const color = isActive=="true"?"green":"red";
-    console.log(documents)
     return (    
     <Card 
     actions={[
@@ -41,18 +39,7 @@ export default (props)=>{
         <Descriptions.Item label="Sort key ">{collection.orderingKey}</Descriptions.Item>
     </Descriptions>
 
-    <Tree
-    showIcon
-    switcherIcon={<Icon type="database" />}>
-        {documents && documents.map(
-            d=><TreeNode key={d[collection.idKey]} 
-                    icon={<Icon type="container" />} 
-                    title={d[collection.idKey]}>
-                    {Object.keys(d).map(k=>renderDocumentFields(k,d[k]))}
-                </TreeNode>
-
-        )}
-    </Tree>
+    
     <Link to={"/indexes/"+collection.name}>
             <Icon type="search" />
             <span >Indexes</span>
@@ -63,40 +50,4 @@ export default (props)=>{
         </Panel>
     </Collapse>
     </Card>    )
-}
-
-const renderDocumentFields=(fieldKey,fieldValue)=>{
-    if (Array.isArray(fieldValue)){
-        return <TreeNode 
-        key={fieldKey}
-        icon={<Icon type="switcher"/>}
-        title={fieldKey}>
-        {fieldValue.map((subItem,i)=><TreeNode 
-            key={fieldKey+"_"+i} 
-                    icon={<Icon type="switcher" />} 
-                    title={i}>
-                        {renderDocumentFields(fieldKey,subItem)}
-                    </TreeNode>)}
-        </TreeNode>
-    }else if(typeof fieldValue == "object"){
-            return (<TreeNode key={fieldKey}
-            icon={<Icon type="switcher" />}
-            title={fieldKey}>
-                {
-                    Object.keys(fieldValue).map(k=>
-                        renderDocumentFields(k,fieldValue[k])
-                    )
-                    }
-            </TreeNode>
-            )
-            
-    }else if(fieldValue){
-    return (<TreeNode 
-            key={fieldKey} 
-                    icon={<Icon type="select" />} 
-                    title={fieldKey+" : "+fieldValue}>
-                </TreeNode>)
-    }else{
-        return null;
-    }
 }

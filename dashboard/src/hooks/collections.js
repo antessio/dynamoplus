@@ -67,3 +67,41 @@ export const useGetCollections = (dependencies)=>{
 
 
 }
+
+export const useGetSingleCollection = (collectionName,dependencies)=>{
+  const { getTokenSilently } = useAuth0();
+  const [collection, setCollection] = useState([])
+  const [isLoading, setLoading] = useState(false)
+  const getCollection = async (collectionName) => {
+      setLoading(true)
+      try {
+        const token = await getTokenSilently()
+        const response = await fetch(process.env.REACT_APP_API_BASE_PATH+"/dynamoplus/collection/query/name", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          method: 'POST',
+          body: JSON.stringify({
+            "name": collectionName
+          })
+  
+        });
+  
+        const responseData = await response.json();
+        
+        const collections = responseData.data
+        console.log(collections)
+        setCollection(collections[0])
+        setLoading(false)
+      } catch (error) {
+        setLoading(false)
+      }
+    };
+  useEffect(() => {
+      //setLoading(true)
+      getCollection(collectionName)
+    }, dependencies);
+  return [collection,isLoading]
+
+
+}
