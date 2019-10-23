@@ -77,8 +77,8 @@ class TestRepository(unittest.TestCase):
     def test_query(self):
         for i in range(1,10):
             document = {"id": str(i), "attribute1": str(i%2), "attribute2":"value_"+str(i)}
-            self.table.put_item(Item={"pk":"example#"+str(i),"sk":"example","data":str(i),**document})
-            self.table.put_item(Item={"pk":"example#"+str(i),"sk":"example#attribute1","data":str(i%2),**document})
+            self.table.put_item(Item={"pk":"example#"+str(i),"sk":"example","data":str(i), "document":{**document}})
+            self.table.put_item(Item={"pk":"example#"+str(i),"sk":"example#attribute1","data":str(i%2), "document":{**document}})
         index = Index("example",["attribute1"])
         query = Query({"attribute1":"1"},index)
         result = self.repository.find(query)

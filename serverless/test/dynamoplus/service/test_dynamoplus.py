@@ -113,6 +113,20 @@ class TestDynamoPlusService(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(len(result),1)
 
+    def test_recordIndexing(self):
+        self.table = self.getMockTable()
+        # collection definition
+        document = {"id": "1", "name": "example", "creation_date_time":"1234114","idKey":"id","orderingKey":"ordering"}
+        self.table.put_item(Item={"pk":"collection#1","sk":"collection","data":"1", "document":{**document}})
+        self.table.put_item(Item={"pk":"collection#1","sk":"collection#name","data":"example", "document":{**document}})        
+        # index definition
+        self.table.put_item(Item={"pk":"index#1","sk":"index","data":"1", "name": "name__ORDER_BY__ordering", "document":{ "conditions":["name"],"collection":{"name":"example"}, "order_by":"ordering"}})
+        self.table.put_item(Item={"pk":"index#1","sk":"index#name","data":"name__ORDER_BY__ordering", "name": "name__ORDER_BY__ordering", "collection":{"name":"example"},"document":{ "conditions":["name"],"order_by":"ordering"}})
+        self.table.put_item(Item={"pk":"index#1","sk":"index#collection.name","data":"example","name": "name__ORDER_BY__ordering", "collection":{"name":"example"},"document":{ "conditions":["name"],"order_by":"ordering"}})
+        self.table.put_item(Item={"pk":"example#1","sk":"example","data":"1","name": "value_1", "ordering":"1","document":{"value_1":"1"}})
+        self.table.put_item(Item={"pk":"example#1","sk":"example#name","data":"value_1#1","name": "value_1", "ordering":"1", "document":{"value_1":"1"}})
+        dynamoPlusService = DynamoPlusService("collection#id#creation_date_time,index#id#creation_date_time","collection#name,index#name,index#collection.name")
+
     def getMockTable(self):
         table = self.dynamodb.create_table(TableName="example_1",
             KeySchema=[
