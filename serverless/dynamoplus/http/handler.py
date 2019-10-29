@@ -4,7 +4,7 @@ from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.models.indexes.indexes import Index
 from dynamoplus.service.indexes import IndexService
 from dynamoplus.service.dynamoplus import DynamoPlusService
-from dynamoplus.repository.repositories import Repository
+from dynamoplus.repository.repositories import DomainRepository
 from decimal import Decimal
 from datetime import datetime
 import typing
@@ -17,6 +17,7 @@ import json
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+## TODO : it has to be converter in "Router"
 
 class HttpHandler(object):
     def __init__(self):
@@ -27,7 +28,7 @@ class HttpHandler(object):
         documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
         if not documentTypeConfiguration:
             return self.getHttpResponse(headers=self.getResponseHeaders(headers), statusCode=400,body=self.formatJson({"msg": "entity {} not handled".format(documentType)}))
-        repository = Repository(documentTypeConfiguration)
+        repository = DomainRepository(documentTypeConfiguration)
         logger.info("get {} by id {}".format(documentType,id))
         result = repository.get(id)
         if result:
@@ -42,7 +43,7 @@ class HttpHandler(object):
         if not documentTypeConfiguration:
             return self.getHttpResponse(headers=self.getResponseHeaders(headers),statusCode=400,body=self.formatJson({"msg": "entity {} not handled".format(documentType)}))
         logger.info("Creating {} ".format(documentType))
-        repository = Repository(documentTypeConfiguration)
+        repository = DomainRepository(documentTypeConfiguration)
         data = json.loads(body,parse_float=Decimal)
         timestamp = datetime.utcnow()
         uid=str(uuid.uuid1())
@@ -64,7 +65,7 @@ class HttpHandler(object):
         if not documentTypeConfiguration:
             return self.getHttpResponse(headers=self.getResponseHeaders(headers),statusCode=400,body=self.formatJson({"msg": "entity {} not handled".format(documentType)}))
         logger.info("updating {} ".format(documentType))
-        repository = Repository(documentTypeConfiguration)
+        repository = DomainRepository(documentTypeConfiguration)
         data = json.loads(body,parse_float=Decimal)
         timestamp = datetime.utcnow()
         data["update_date_time"]=timestamp.isoformat()
@@ -84,7 +85,7 @@ class HttpHandler(object):
         documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
         if not documentTypeConfiguration:
             return self.getHttpResponse(headers=self.getResponseHeaders(headers),statusCode=400,body=self.formatJson({"msg": "entity {} not handled".format(documentType)}))
-        repository = Repository(documentTypeConfiguration)
+        repository = DomainRepository(documentTypeConfiguration)
         logger.info("delete {} by id {}".format(documentType,id))
         try:
             repository.delete(id)
@@ -100,7 +101,7 @@ class HttpHandler(object):
         documentTypeConfiguration = self.dynamoService.getDocumentTypeConfigurationFromDocumentType(documentType)
         if not documentTypeConfiguration:
             return self.getHttpResponse(headers=self.getResponseHeaders(headers),statusCode=400,body=self.formatJson({"msg": "entity {} not handled".format(documentType)}))
-        repository = Repository(documentTypeConfiguration)
+        repository = DomainRepository(documentTypeConfiguration)
         queryId = pathParameters['queryId'] if 'queryId' in pathParameters  else None
         logger.info("Received {} as index".format(queryId))
         indexService = self.dynamoService.getIndexServiceByIndex(documentType, queryId)
@@ -153,13 +154,13 @@ class HttpHandler(object):
             targetEntity = pathParameters['collection']
             return targetEntity
 
-    def getRepositoryFromTargetEntityConfiguration(self, targetConfiguration):
+    def getDomainRepositoryFromTargetEntityConfiguration(self, targetConfiguration):
         entity=targetConfiguration["name"]
         idKey = targetConfiguration["idKey"]
         orderingKey = targetConfiguration["orderingKey"]
-        return self.getRepository(entity, idKey,orderingKey)
-    def getRepository(self, entity, idKey, orderingKey):
-        return Repository(self.dynamoTable,entity, idKey,orderingKey,dynamoDB=self.dynamoDB)
+        return self.getDomainRepository(entity, idKey,orderingKey)
+    def getDomainRepository(self, entity, idKey, orderingKey):
+        return DomainRepository(self.dynamoTable,entity, idKey,orderingKey,dynamoDB=self.dynamoDB)
 
     def getDocumentTypeConfiguration(self, targetEntity):
         targetConfiguration = self.getTargetEntityConfiguration(targetEntity)

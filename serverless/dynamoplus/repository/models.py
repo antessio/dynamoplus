@@ -1,5 +1,6 @@
 from typing import *
 import logging
+from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.models.indexes.indexes import Index
 from dynamoplus.utils.utils import convertToString, findValue, getValuesByKeyRecursive
@@ -14,11 +15,17 @@ class QueryResult(object):
         self.lastEvaluatedKey=lastEvaluatedKey
         
 class Model(object):
-    def __init__(self, documentTypeConfiguration: DocumentTypeConfiguration,document:dict):
-        self.idKey = documentTypeConfiguration.idKey
-        self.orderKey = documentTypeConfiguration.orderingKey
-        self.entityName = documentTypeConfiguration.entityName
-        self.document = document        
+    def __init__(self, collection:Collection, document:dict):
+        self.idKey = collection.idKey
+        self.orderKey = collection.orderingKey
+        self.entityName = collection.name
+        self.document = document
+
+    # def __init__(self, documentTypeConfiguration: DocumentTypeConfiguration,document:dict):
+    #     self.idKey = documentTypeConfiguration.idKey
+    #     self.orderKey = documentTypeConfiguration.orderingKey
+    #     self.entityName = documentTypeConfiguration.entityName
+    #     self.document = document        
     def pk(self):
         
         return self.document["pk"] if "pk" in self.document else  (self.entityName+"#"+self.document[self.idKey] if self.idKey in self.document else None)

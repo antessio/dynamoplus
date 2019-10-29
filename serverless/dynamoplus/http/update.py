@@ -8,6 +8,6 @@ logging.basicConfig(level=logging.INFO)
 
 def update(event, context):
     entities = os.environ['ENTITIES']
-    dynamodbTable = os.environ['DYNAMODB_TABLE']
+    dynamodbTable = os.environ['DYNAMODB_DOMAIN_TABLE']
     handler = HttpHandler(entities,dynamodbTable)
     return handler.create(event["pathParameters"],body=event["body"])

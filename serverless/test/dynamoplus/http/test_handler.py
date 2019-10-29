@@ -2,7 +2,7 @@ from typing import *
 import unittest
 import os
 import sys
-from dynamoplus.repository.repositories import Repository
+from dynamoplus.repository.repositories import DomainRepository
 from dynamoplus.repository.models import Model
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.http.handler import HttpHandler
@@ -20,7 +20,7 @@ class TestHttpHandler(unittest.TestCase):
     def setUp(self):
         os.environ["TEST_FLAG"]="true"
         os.environ["ALLOWED_ORIGINS"]="http://localhost"
-        os.environ["DYNAMODB_TABLE"]="example_1"
+        os.environ["DYNAMODB_DOMAIN_TABLE"]="example_1"
         os.environ["ENTITIES"]="collection#id#creation_date_time,index#id#creation_date_time"
         os.environ["INDEXES"]="collection#name,index#name,index#collection.name"
         self.dynamodb = boto3.resource("dynamodb")
@@ -155,8 +155,8 @@ class TestHttpHandler(unittest.TestCase):
         d1={k: v for k, v in d1.items() if k not in fields}
         d2={k: v for k, v in d2.items() if k not in fields}
         self.assertDictEqual(d1,d2)
-    # @patch.object(Repository, "getEntityDTO")
-    # @patch.object(Repository, "get")
+    # @patch.object(DomainRepository, "getEntityDTO")
+    # @patch.object(DomainRepository, "get")
     # def test_getNotFound(self, mock_get,mock_getEntityDTO):
     #     expectedRow = {"id": "1", "sk": "sk","pk":"pk", "data":"data"}
     #     expectedResult = {"id":"randomUid","attr1":"value1"}
@@ -167,8 +167,8 @@ class TestHttpHandler(unittest.TestCase):
     #     mock_get.assert_called_with("randomUid")
     #     self.assertFalse(mock_getEntityDTO.called)
 
-    # @patch.object(Repository, "getEntityDTO")
-    # @patch.object(Repository, "get")
+    # @patch.object(DomainRepository, "getEntityDTO")
+    # @patch.object(DomainRepository, "get")
     # def test_getWrongEntity(self, mock_get,mock_getEntityDTO):
     #     expectedRow = {"id": "1", "sk": "sk","pk":"pk", "data":"data"}
     #     expectedResult = {"id":"randomUid","attr1":"value1"}
@@ -179,8 +179,8 @@ class TestHttpHandler(unittest.TestCase):
     #     self.assertFalse(mock_get.called)
     #     self.assertFalse(mock_getEntityDTO.called)
 
-    # @patch.object(Repository, "getEntityDTO")
-    # @patch.object(Repository, "create")
+    # @patch.object(DomainRepository, "getEntityDTO")
+    # @patch.object(DomainRepository, "create")
     # def test_create(self, mock_create,mock_getEntityDTO):
     #     expectedRow = {"id": "randomUid", "sk": "sk","pk":"pk", "data":"data"}
     #     expectedResult = {"id":"randomUid","attr1":"value1"}
@@ -193,8 +193,8 @@ class TestHttpHandler(unittest.TestCase):
     #     self.assertTrue(mock_create.called)
     #     mock_getEntityDTO.assert_called_with(expectedRow)
     
-    # @patch.object(Repository, "getEntityDTO")
-    # @patch.object(Repository, "update")
+    # @patch.object(DomainRepository, "getEntityDTO")
+    # @patch.object(DomainRepository, "update")
     # def test_update(self, mock_update,mock_getEntityDTO):
     #     expectedRow = {"id": "randomUid", "sk": "sk","pk":"pk", "data":"data"}
     #     expectedResult = {"id":"randomUid","attr1":"value1"}
@@ -207,7 +207,7 @@ class TestHttpHandler(unittest.TestCase):
     #     self.assertTrue(mock_update.called)
     #     mock_getEntityDTO.assert_called_with(expectedRow)
     
-    # @patch.object(Repository, "delete")
+    # @patch.object(DomainRepository, "delete")
     # def test_delete(self, mock_delete):
     #     handler = HttpHandler("host#id#creation_date_time,category#id#order","host")
     #     result = handler.delete({"entity":"host","id":"randomUid"},body="{\"attr1\": \"value1\"}")
@@ -215,7 +215,7 @@ class TestHttpHandler(unittest.TestCase):
     #     mock_delete.assert_called_with("randomUid")
 
     # @patch.object(IndexUtils, "buildIndex")
-    # @patch.object(Repository, "find")
+    # @patch.object(DomainRepository, "find")
     # def test_query(self, mock_find, mock_buildIndex):
     #     foundIndex = {
     #         "tablePrefix": "host",

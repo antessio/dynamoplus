@@ -6,7 +6,7 @@ from boto3.dynamodb.types import TypeDeserializer
 from dynamoplus.service.dynamoplus import DynamoPlusService
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.repository.models import IndexModel
-from dynamoplus.repository.repositories import IndexRepository
+from dynamoplus.repository.repositories import IndexDomainRepository
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -26,7 +26,7 @@ def deserialize(data):
         return data
 
 def dynamoStreamHandler(event, context):
-    tableName = os.environ['DYNAMODB_TABLE']
+    tableName = os.environ['DYNAMODB_DOMAIN_TABLE']
     indexes = os.environ['INDEXES']
     entities = os.environ['ENTITIES']
     logger.info("Events on dynamo {} ".format(str(event)))
@@ -63,7 +63,7 @@ def dynamoStreamHandler(event, context):
 
 def indexing(repositoryAction, dynamoPlusService, sk, documentTypeConfiguration, newRecord):
     for index in dynamoPlusService.getIndexConfigurationsByDocumentType(sk):
-        repository = IndexRepository(documentTypeConfiguration,index)
+        repository = IndexDomainRepository(documentTypeConfiguration,index)
         indexModel = IndexModel(documentTypeConfiguration,newRecord,index)
         if indexModel.data():
             ## if new record doesn't contain the key should skip repositoryAction

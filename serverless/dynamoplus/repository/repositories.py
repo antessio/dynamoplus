@@ -1,6 +1,7 @@
 from typing import *
+import abc
 import logging
-from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
+from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.indexes.indexes import Index, Query
 from dynamoplus.repository.models import Model,IndexModel, QueryResult
 from dynamoplus.utils.utils import convertToString, findValue, sanitize
@@ -19,15 +20,35 @@ try:
 except:
     logger.info("Unable to instantiate")
 
-class Repository(object):
-    def __init__(self, documentTypeConfiguration: DocumentTypeConfiguration):
-        self.documentTypeConfiguration = documentTypeConfiguration
-        self.tableName = os.environ['DYNAMODB_TABLE']
+class Repository(abc.ABC):
+    @abc.abstractmethod
+    def getModelFromDocument(self, document:dict):
+        pass
+    @abc.abstractmethod
+    def create(self, document:dict):
+        pass
+    @abc.abstractmethod
+    def get(self, id:str):
+        pass
+    @abc.abstractmethod
+    def update(self, document:dict):
+        pass
+    @abc.abstractmethod
+    def delete(self, id:str):
+        pass
+    @abc.abstractmethod
+    def find(self, query: Query):
+        pass
+
+class DomainRepository(Repository):
+    def __init__(self, collection: Collection):
+        self.collection = collection
+        self.tableName = os.environ['DYNAMODB_DOMAIN_TABLE']
         self.dynamoDB = connection if connection is not None else boto3.resource('dynamodb')
         self.table = self.dynamoDB.Table(self.tableName)
     
     def getModelFromDocument(self, document:dict):
-        return Model(self.documentTypeConfiguration,document)
+        return Model(self.collection,document)
     def create(self, document:dict):
         model = self.getModelFromDocument(document)
         dynamoDbItem = model.toDynamoDbItem()
@@ -37,7 +58,7 @@ class Repository(object):
     def get(self, id:str):
         # TODO: copy from query -> if the indexKeys is empty then get by primary key, otherwise get by global secondary index
         # it means if needed first get from index, then by primary key or, in case of index it throws a non supported operation exception
-        model = self.getModelFromDocument({self.documentTypeConfiguration.idKey: id})
+        model = self.getModelFromDocument({self.collection.idKey: id})
         result = self.table.get_item(
         Key={
             'pk': model.pk(),
@@ -50,10 +71,10 @@ class Repository(object):
         if dynamoDbItem.keys():
             # only updates attributes in the idKey or pk or sk
             logger.info("updating {} ".format(dynamoDbItem))
-            updateExpression = "SET "+", ".join(map(lambda k: k+"= :"+k, filter(lambda k: k != self.documentTypeConfiguration.idKey and k!="pk" and k!="sk" and k!="data", dynamoDbItem.keys())))
+            updateExpression = "SET "+", ".join(map(lambda k: k+"= :"+k, filter(lambda k: k != self.collection.idKey and k!="pk" and k!="sk" and k!="data", dynamoDbItem.keys())))
             expressionValue = dict(
                 map(lambda kv: (":"+kv[0],kv[1]), 
-                filter(lambda kv: kv[0] != self.documentTypeConfiguration.idKey and kv[0]!="pk" and kv[0] !="sk" and kv[0] !="data", dynamoDbItem.items())))
+                filter(lambda kv: kv[0] != self.collection.idKey and kv[0]!="pk" and kv[0] !="sk" and kv[0] !="data", dynamoDbItem.items())))
             response = self.table.update_item(
                 Key={
                     'pk': model.pk(),
@@ -72,7 +93,7 @@ class Repository(object):
         else:
             raise Exception("dynamo db item empty ")
     def delete(self, id:str):
-        model = self.getModelFromDocument({self.documentTypeConfiguration.idKey: id})
+        model = self.getModelFromDocument({self.collection.idKey: id})
         response = self.table.delete_item(
             Key={
             'pk': model.pk(),
@@ -84,7 +105,7 @@ class Repository(object):
     def find(self, query: Query):
         logger.info(" Received query={}".format(query.__str__()))
         document = query.document
-        indexModel = IndexModel(self.documentTypeConfiguration,document,query.index)
+        indexModel = IndexModel(self.collection,document,query.index)
         orderingKey = query.index.orderingKey if query.index else None
         logger.info("order by is {} ".format(orderingKey))
         limit = query.limit
@@ -116,12 +137,12 @@ class Repository(object):
     
         if 'LastEvaluatedKey' in response:
             lastKey=response['LastEvaluatedKey']
-        return QueryResult(list(map(lambda i: Model(self.documentTypeConfiguration, i),response[u'Items'])),lastKey)
+        return QueryResult(list(map(lambda i: Model(self.collection, i),response[u'Items'])),lastKey)
 
 
-class IndexRepository(Repository):
-    def __init__(self,documentTypeConfiguration: DocumentTypeConfiguration, index:Index):
-        super().__init__(documentTypeConfiguration)
+class IndexDomainRepository(DomainRepository):
+    def __init__(self,collection: Collection, index:Index):
+        super().__init__(collection)
         self.index = index
     def getModelFromDocument(self, document:dict):
-        return IndexModel(self.documentTypeConfiguration,document,self.index)
+        return IndexModel(self.collection,document,self.index)
