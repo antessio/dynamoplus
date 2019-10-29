@@ -1,8 +1,8 @@
 Starting from handler.py, self.getTargetConfiguration
 - handler
 - IndexService
-- IndexRepository
-- Repository
+- IndexDomainRepository
+- DomainRepository
 
 
 Configuration: 
@@ -24,11 +24,11 @@ handlder->
     
 configurationService ->
 
-    - search for entity configuration in the system env, if not found search in the database using indexService and indexRepository as said before
+    - search for entity configuration in the system env, if not found search in the database using indexService and indexDomainRepository as said before
 
 indexService ->
 
-    - wraps indexRepository
+    - wraps indexDomainRepository
 
 indexUtils ->
 
@@ -40,7 +40,7 @@ repository ->
     - crud operation
     - find (optional?)
 
-indexRepository ->
+indexDomainRepository ->
 
     - uses GSI for find
     - uses indexUtils(?) to generate the sk and data 

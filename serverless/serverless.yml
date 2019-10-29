@@ -23,8 +23,8 @@ provider:
 
   environment:
     ALLOWED_ORIGINS: ${self:custom.allowed_origins}
-    DYNAMODB_TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}
-    DYNAMODB_TABLE: { Ref: DomainDynamoDbTable }
+    DYNAMODB_DOMAIN_TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}
+    DYNAMODB_DOMAIN_TABLE: { Ref: DomainDynamoDbTable }
     INDEXES: ${self:custom.system_indexes}
     ENTITIES: ${self:custom.system_collections}
     AUTH0_CLIENT_ID: ${file(./secrets.json):AUTH0_CLIENT_ID}
@@ -45,7 +45,7 @@ provider:
         - dynamodb:GetShardIterator
         - dynamodb:DescribeStream
         - dynamodb:ListStreams
-      Resource: [!GetAtt DomainDynamoDbTable.Arn, !Join [ '/',[!GetAtt DomainDynamoDbTable.Arn,index/*]]]
+      Resource: [!GetAtt SystemDynamoDbTable.Arn, !Join [ '/',[!GetAtt SystemDynamoDbTable.Arn,index/*]], !GetAtt DomainDynamoDbTable.Arn, !Join [ '/',[!GetAtt DomainDynamoDbTable.Arn,index/*]]]
 
 
 functions:
@@ -147,6 +147,40 @@ resources:
         RestApiId:
           Ref: 'ApiGatewayRestApi'
         StatusCode: '401'
+    SystemDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: S
+          - AttributeName: sk
+            AttributeType: S
+          - AttributeName: data
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+          - AttributeName: sk
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_SYSTEM_TABLE_NAME}
+        GlobalSecondaryIndexes:
+        - IndexName: sk-data-index
+          KeySchema:
+          - AttributeName: sk
+            KeyType: HASH
+          - AttributeName: data
+            KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: '1'
+            WriteCapacityUnits: '1'
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
     DomainDynamoDbTable:
       Type: 'AWS::DynamoDB::Table'
       DeletionPolicy: Retain
@@ -166,7 +200,7 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_TABLE_NAME}
+        TableName: ${self:provider.environment.DYNAMODB_DOMAIN_TABLE_NAME}
         GlobalSecondaryIndexes:
         - IndexName: sk-data-index
           KeySchema:
@@ -180,5 +214,5 @@ resources:
             ReadCapacityUnits: '1'
             WriteCapacityUnits: '1'
         StreamSpecification:
-          StreamViewType: NEW_AND_OLD_IMAGES
+          StreamViewType: NEW_AND_OLD_IMAGES 
       

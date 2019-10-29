@@ -2,7 +2,7 @@ import unittest
 import decimal
 from dynamoplus.models.indexes.indexes import Index
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
-from dynamoplus.repository.repositories import Repository
+from dynamoplus.repository.repositories import DomainRepository
 from dynamoplus.models.indexes.indexes import Query, Index
 from dynamoplus.repository.models import QueryResult, Model
 from dynamoplus.service.indexes import IndexService
@@ -15,8 +15,8 @@ class TestIndexService(unittest.TestCase):
         pass
 
 
-    @patch.object(Repository,"find")
-    @patch.object(Repository, "__init__")
+    @patch.object(DomainRepository,"find")
+    @patch.object(DomainRepository, "__init__")
     def test_findDocument(self, mock_repository,mock_find):
         documentTypeConfiguration = DocumentTypeConfiguration("example","id","ordering")
         index = Index("example",["attribute1"])

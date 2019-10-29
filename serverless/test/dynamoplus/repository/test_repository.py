@@ -2,8 +2,8 @@ import unittest
 from typing import *
 from dynamoplus.repository.models import Model,IndexModel
 from dynamoplus.models.indexes.indexes import Query,Index
-from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
-from dynamoplus.repository.repositories import Repository
+from dynamoplus.repository.repositories import DomainRepository
+from dynamoplus.models.system.collection.collection import Collection
 from moto import mock_dynamodb2
 import boto3
 import os
@@ -11,11 +11,11 @@ import os
 from boto3.dynamodb.conditions import Key, Attr
 
 @mock_dynamodb2
-class TestRepository(unittest.TestCase):
+class TestDomainRepository(unittest.TestCase):
     @mock_dynamodb2
     def setUp(self):
         os.environ["TEST_FLAG"]="true"
-        os.environ["DYNAMODB_TABLE"]="example"
+        os.environ["DYNAMODB_DOMAIN_TABLE"]="example"
         self.dynamodb = boto3.resource("dynamodb")
         self.dynamodb.create_table(TableName="example",
             KeySchema=[
@@ -35,12 +35,12 @@ class TestRepository(unittest.TestCase):
                 }
             ]
         )
-        self.documentTypeConfiguration = DocumentTypeConfiguration("example", "id","ordering")
-        self.repository = Repository(self.documentTypeConfiguration)
+        self.collection = Collection("example", "id","ordering")
+        self.repository = DomainRepository(self.collection)
         self.table = self.dynamodb.Table('example')
     def tearDown(self):
         self.table.delete()
-        del os.environ["DYNAMODB_TABLE"]
+        del os.environ["DYNAMODB_DOMAIN_TABLE"]
     def test_create(self):
         document = {"id": "randomUid","ordering":"1"}
         result = self.repository.create(document)
