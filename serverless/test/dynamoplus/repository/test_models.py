@@ -14,7 +14,7 @@ class TestModels(unittest.TestCase):
         self.assertEqual(model.pk(), "example#randomId")
         self.assertEqual(model.sk(), "example")
         self.assertEqual(model.data(), "randomId#123456")
-        self.assertEqual(model.orderValue(), "123456")
+        self.assertEqual(model.order_value(), "123456")
     def test_model(self):
         collection = Collection("example","id",None)
         document = {"id": "randomId"}
@@ -22,7 +22,7 @@ class TestModels(unittest.TestCase):
         self.assertEqual(model.pk(), "example#randomId")
         self.assertEqual(model.sk(), "example")
         self.assertEqual(model.data(), "randomId")
-        self.assertIsNone(model.orderValue())
+        self.assertIsNone(model.order_value())
     def test_indexModel(self):
         collection = Collection("example","id",None)
         document = {"id": "randomId", "attr1": "value2", "nested":{"condition":{"1": "value1"}}}
@@ -31,7 +31,7 @@ class TestModels(unittest.TestCase):
         self.assertEqual(model.pk(), "example#randomId")
         self.assertEqual(model.sk(), "example#nested.condition.1#attr1")
         self.assertEqual(model.data(), "value1#value2")
-        self.assertIsNone(model.orderValue())
+        self.assertIsNone(model.order_value())
     def test_indexModelWithOrdering(self):
         collection = Collection("example","id","ordering")
         document = {"id": "randomId", "ordering": "1","attr1": "value2", "nested":{"condition":{"1": "value1"}}}
@@ -40,7 +40,7 @@ class TestModels(unittest.TestCase):
         self.assertEqual(model.pk(), "example#randomId")
         self.assertEqual(model.sk(), "example#nested.condition.1#attr1")
         self.assertEqual(model.data(), "value1#value2#1")
-        self.assertEqual(model.orderValue(),"1")
+        self.assertEqual(model.order_value(), "1")
     def test_indexModelWithNoValue(self):
         collection = Collection("example","id","ordering")
         document = {}
@@ -49,4 +49,4 @@ class TestModels(unittest.TestCase):
         self.assertEqual(model.pk(), None)
         self.assertEqual(model.sk(), "example")
         self.assertEqual(model.data(), None)
-        self.assertEqual(model.orderValue(),None)
+        self.assertEqual(model.order_value(), None)
