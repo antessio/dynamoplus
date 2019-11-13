@@ -57,15 +57,15 @@ class TestHttpHandler(unittest.TestCase):
 
     def fill_sytem_data(self):
         self.systemTable.put_item(Item={"pk": "collection#example", "sk": "collection", "data": "example",
-                                        "document": "{\"idKey\":\"id\",\"name\":\"example\",\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
+                                        "document": "{\"id_key\":\"id\",\"name\":\"example\",\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
         self.systemTable.put_item(Item={"pk": "index#collection.name", "sk": "index", "data": "example",
-                                        "document": "{\"name\":\"collection.name\",\"collection\":{\"idKey\":\"id\",\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
+                                        "document": "{\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
         self.systemTable.put_item(Item={"pk": "index#even", "sk": "index", "data": "even",
                                         "document": "{\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
 
     def fill_data(self):
         timestamp = datetime.utcnow()
-        document = {"name": "example", "idKey": "id", "ordering_key": "ordering",
+        document = {"name": "example", "id_key": "id", "ordering_key": "ordering",
                     "creation_date_time": timestamp.isoformat()}
         for i in range(1, 21):
             document = {"id": str(i), "title": "data_" + str(i), "even": str(i % 2), "ordering": str(i)}

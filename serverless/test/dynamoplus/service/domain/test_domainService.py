@@ -21,7 +21,7 @@ class TestDomainService(unittest.TestCase):
     @patch.object(DynamoPlusRepository, "__init__")
     def test_createDocument(self, mock_repository, mock_create):
         expected_id = 'randomId'
-        document = {"idKey": expected_id, "fields": [{"field1": "string"}]}
+        document = {"id_key": expected_id, "fields": [{"field1": "string"}]}
         expected_model = Model(self.exampleCollectionMetadata, document)
         mock_repository.return_value = None
         mock_create.return_value = expected_model
@@ -35,7 +35,7 @@ class TestDomainService(unittest.TestCase):
     @patch.object(DynamoPlusRepository, "__init__")
     def test_updateDocument(self, mock_repository, mock_update):
         expected_id = 'randomId'
-        document = {"idKey": expected_id, "fields": [{"field1": "string"}]}
+        document = {"id_key": expected_id, "fields": [{"field1": "string"}]}
         expected_model = Model(self.exampleCollectionMetadata, document)
         mock_repository.return_value = None
         mock_update.return_value = expected_model
@@ -58,7 +58,7 @@ class TestDomainService(unittest.TestCase):
     @patch.object(DynamoPlusRepository, "__init__")
     def test_getDocument(self, mock_repository, mock_get):
         expected_id = "randomId"
-        document = {"idKey": expected_id, "fields": [{"field1": "string"}]}
+        document = {"id_key": expected_id, "fields": [{"field1": "string"}]}
         expected_model = Model(self.exampleCollectionMetadata, document)
         mock_repository.return_value = None
         mock_get.return_value = expected_model

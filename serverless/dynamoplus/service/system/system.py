@@ -29,7 +29,7 @@ def from_index_to_dict(index_metadata: Index):
 def from_collection_to_dict(collection: Collection):
     d = {
         "name": collection.name,
-        "idKey": collection.id_key,
+        "id_key": collection.id_key,
         "ordering": collection.ordering_key
         ## TODO attributes definition
     }
@@ -39,7 +39,7 @@ def from_collection_to_dict(collection: Collection):
 
 
 def from_dict_to_collection(d: dict):
-    return Collection(d["name"], d["idKey"], d["ordering"] if "ordering" in d else None)
+    return Collection(d["name"], d["id_key"], d["ordering"] if "ordering" in d else None)
 
 
 class SystemService:
@@ -86,11 +86,16 @@ class SystemService:
     def delete_index(name: str):
         DynamoPlusRepository(indexMetadata, True).delete(name)
 
-    # def getIndexFromCollectioName(self, collectionName: str):
-    #     pass
     @staticmethod
-    def find_collection_by_example(example: Collection, query_id: str):
-        index = Index("collection", ["collection.name"])
+    def find_indexes_from_collection_name(collection_name: str):
+        index = Index("index", ["collection.name"])
+        query = Query({"collection":{"name": collection_name}}, index)
+        result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
+        return list(map(lambda d: from_dict_to_index(d.data_model.document), result.data))
+
+    @staticmethod
+    def find_collection_by_example(example: Collection):
+        index = Index("collection", ["name"])
         query = Query({"name": example.name}, index)
         result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
         return list(map(lambda d: from_dict_to_collection(d.data_model.document), result.data))

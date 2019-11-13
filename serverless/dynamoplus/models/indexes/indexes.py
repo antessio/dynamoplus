@@ -25,6 +25,7 @@ class Index(object):
 
     @collection_name.setter
     def collection_name(self, value):
+
         self._collection_name = value
 
     @property
@@ -35,8 +36,13 @@ class Index(object):
     def ordering_key(self,value):
         self._ordering_key = value
 
+    def __eq__(self, o: object) -> bool:
+        if isinstance(o, Index):
+            return self._collection_name.__eq__(o.collection_name) and self._conditions.__eq__(o.conditions) and self._ordering_key.__eq__(o.ordering_key)
+        return super().__eq__(o)
+
     def __str__(self):
-        return "documentType={} conditions={} orderingKey={}".format(self._collection_name, self._conditions,
+        return "collection_name={} conditions={} ordering_key={}".format(self._collection_name, self._conditions,
                                                                      self._ordering_key)
 
 
@@ -49,7 +55,7 @@ class Query(object):
 
     def __eq__(self, o: object) -> bool:
         if isinstance(o,Query):
-            return self.document.__eq__(o.document)
+            return self.document.__eq__(o.document) and self.index.__eq__(o.index)
         return super().__eq__(o)
 
     def __repr__(self) -> str:

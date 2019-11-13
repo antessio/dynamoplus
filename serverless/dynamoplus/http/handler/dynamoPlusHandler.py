@@ -132,7 +132,7 @@ class DynamoPlusHandlerInterface(abc.ABC):
         pass
 
     @staticmethod
-    def isSystem(collection_name):
+    def is_system(collection_name):
         SYSTEM_ENTITIES = os.environ['ENTITIES']
         return collection_name in SYSTEM_ENTITIES.split(",")
 
@@ -157,7 +157,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
         4)
         get by id
         """
-        is_system = DynamoPlusHandlerInterface.isSystem(collection_name)
+        is_system = DynamoPlusHandlerInterface.is_system(collection_name)
         if is_system:
             logger.info("Get {} metadata from system".format(collection_name))
             if collection_name == 'collection':
@@ -208,7 +208,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
         7)
         create
         """
-        is_system = DynamoPlusHandlerInterface.isSystem(collection_name)
+        is_system = DynamoPlusHandlerInterface.is_system(collection_name)
         if is_system:
             logger.info("Creating {} metadata {}".format(collection_name, document))
             if collection_name == 'collection':
@@ -255,7 +255,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
         5)
         update
         """
-        is_system = DynamoPlusHandlerInterface.isSystem(collection_name)
+        is_system = DynamoPlusHandlerInterface.is_system(collection_name)
         if is_system:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,"updating {} is not supported ".format(collection_name))
         else:
@@ -286,7 +286,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
         4)
         delete
         """
-        is_system = DynamoPlusHandlerInterface.isSystem(collection_name)
+        is_system = DynamoPlusHandlerInterface.is_system(collection_name)
         if is_system:
             logger.info("delete {} metadata from system".format(collection_name))
             if collection_name == 'collection':
@@ -317,7 +317,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
         4)
         find by example
         """
-        is_system = DynamoPlusHandlerInterface.isSystem(collection_name)
+        is_system = DynamoPlusHandlerInterface.is_system(collection_name)
         if is_system:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                    "{} is not a valid collection".format(collection_name))

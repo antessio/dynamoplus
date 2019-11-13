@@ -20,8 +20,8 @@ class TestSystemService(unittest.TestCase):
     @patch.object(DynamoPlusRepository, "__init__")
     def test_createCollection(self, mock_repository, mock_create):
         expected_id = 'example'
-        target_collection = {"name": "example", "idKey": "id", "ordering": None}
-        document = {"name": expected_id, "idKey": "id"}
+        target_collection = {"name": "example", "id_key": "id", "ordering": None}
+        document = {"name": expected_id, "id_key": "id"}
         collection_metadata = Collection("collection", "name")
         expected_model = Model(collection_metadata, document)
         mock_repository.return_value = None
@@ -60,7 +60,7 @@ class TestSystemService(unittest.TestCase):
         expected_id = 'example'
         mock_repository.return_value = None
         collection_metadata = Collection("collection", "name")
-        document = {"name": expected_id, "idKey": expected_id, "fields": [{"field1": "string"}]}
+        document = {"name": expected_id, "id_key": expected_id, "fields": [{"field1": "string"}]}
         expected_model = Model(collection_metadata, document)
         mock_get.return_value = expected_model
         result = self.systemService.get_collection_by_name(expected_id)
@@ -103,12 +103,25 @@ class TestSystemService(unittest.TestCase):
     @patch.object(IndexDynamoPlusRepository, "find")
     @patch.object(IndexDynamoPlusRepository, "__init__")
     def test_queryCollectionByName(self,mock_index_dynamoplus_repository,mock_find):
-        index = Index("collection", ["collection.name"])
+        index = Index("collection", ["name"])
         expected_query = Query({"name": "example"}, index)
         collection_metadata = Collection("example","name")
         mock_index_dynamoplus_repository.return_value = None
-        mock_find.return_value = QueryResult([Model(Collection("example","id"),{"name":"example","idKey":"id"},False)])
-        collections = self.systemService.find_collection_by_example(collection_metadata,'collection.name')
+        mock_find.return_value = QueryResult([Model(Collection("example","id"),{"name":"example","id_key":"id"},False)])
+        collections = self.systemService.find_collection_by_example(collection_metadata)
         self.assertTrue(len(collections)==1)
         self.assertEqual(collections[0].name,"example")
+        self.assertEqual(call(expected_query), mock_find.call_args_list[0])
+
+    @patch.object(IndexDynamoPlusRepository, "find")
+    @patch.object(IndexDynamoPlusRepository, "__init__")
+    def test_queryIndex_by_CollectionByName(self, mock_index_dynamoplus_repository, mock_find):
+        index = Index("index", ["collection.name"])
+        expected_query = Query({"collection":{"name": "example"}}, index)
+        mock_index_dynamoplus_repository.return_value = None
+        mock_find.return_value = QueryResult(
+            [Model(Collection("index", "name"), {"name": "collection.name", "collection":{"name":"example"},"conditions":["collection.name"]}, False)])
+        indexes = self.systemService.find_indexes_from_collection_name("example")
+        self.assertTrue(len(indexes) == 1)
+        self.assertEqual(indexes[0].index_name, "collection.name")
         self.assertEqual(call(expected_query), mock_find.call_args_list[0])
