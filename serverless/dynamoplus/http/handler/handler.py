@@ -3,11 +3,6 @@ import logging
 import os
 from decimal import Decimal
 
-# from dynamoplus.service.indexes import IndexService
-# from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
-# from dynamoplus.models.indexes.indexes import Index
-# from dynamoplus.service.dynamoplus import DynamoPlusService
-# from dynamoplus.repository.repositories import DynamoPlusRepository
 from dynamoplus.http.handler.dynamoPlusHandler import DynamoPlusHandler, HandlerException
 from dynamoplus.utils.decimalencoder import DecimalEncoder
 
@@ -110,15 +105,15 @@ class HttpHandler(object):
         # return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
         #                               body=self.format_json({"data": data, "lastKey": lastEvaluatedKey}))
 
-    def checkAllowedOrigin(self, origin):
-        allowedOrigins = os.environ["ALLOWED_ORIGINS"].split(",")
-        return origin in allowedOrigins
+    def check_allowed_origin(self, origin):
+        allowed_origins = os.environ["ALLOWED_ORIGINS"].split(",")
+        return origin in allowed_origins
 
     def get_response_headers(self, request_headers):
         response_headers = {}
         if request_headers and "origin" in request_headers:
             origin = request_headers["origin"]
-            if self.checkAllowedOrigin(origin):
+            if self.check_allowed_origin(origin):
                 response_headers["Access-Control-Allow-Origin"] = origin
                 response_headers["Access-Control-Allow-Credentials"] = True
         return response_headers
@@ -154,26 +149,3 @@ class HttpHandler(object):
         if "collection" in path_parameters:
             return path_parameters['collection']
 
-    def getDynamoPlusRepositoryFromTargetEntityConfiguration(self, targetConfiguration):
-        entity = targetConfiguration["name"]
-        idKey = targetConfiguration["idKey"]
-        orderingKey = targetConfiguration["orderingKey"]
-        return self.getDynamoPlusRepository(entity, idKey, orderingKey)
-
-    def getDynamoPlusRepository(self, entity, idKey, orderingKey):
-        return DynamoPlusRepository(self.dynamoTable, entity, idKey, orderingKey, dynamoDB=self.dynamoDB)
-
-    def getDocumentTypeConfiguration(self, targetEntity):
-        targetConfiguration = self.getTargetEntityConfiguration(targetEntity)
-        if not targetConfiguration:
-            '''
-                find the entity 
-            '''
-            systemDocumentTypesIndexService = IndexService(self.dynamoTable, "collection", "collection#name",
-                                                           self.dynamoDB)
-            documentTypesResult = systemDocumentTypesIndexService.findByExample({"name": targetEntity})
-            logger.info("Response is {}".format(str(documentTypesResult)))
-            if "data" in documentTypesResult:
-                if len(documentTypesResult["data"]) > 0:
-                    targetConfiguration = documentTypesResult["data"][0]
-        return targetConfiguration
