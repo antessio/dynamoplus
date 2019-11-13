@@ -1,7 +1,7 @@
 import os
 import logging
 logging.basicConfig(level=logging.INFO)
-from dynamoplus.http.handler import HttpHandler
+from dynamoplus.http.handler.handler import HttpHandler
 
 def get(event, context):
     handler = HttpHandler()

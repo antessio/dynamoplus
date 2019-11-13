@@ -1,9 +1,10 @@
 import unittest
 import decimal
+import logging
 from dynamoplus.models.indexes.indexes import Index
 #from dynamoplus.models.documents.documentTypes import Collection
 from dynamoplus.models.system.collection.collection import Collection
-from dynamoplus.repository.repositories import DomainRepository
+from dynamoplus.repository.repositories import DynamoPlusRepository
 from dynamoplus.models.indexes.indexes import Query, Index
 from dynamoplus.repository.models import QueryResult, Model
 from dynamoplus.service.dynamoplus import DynamoPlusService
@@ -12,32 +13,40 @@ from moto import mock_dynamodb2
 import boto3
 import os
 
+
+logging.getLogger('boto').setLevel(logging.DEBUG)
+
 @mock_dynamodb2
 class TestDynamoPlusService(unittest.TestCase):
 
     @mock_dynamodb2
     def setUp(self):
-        os.environ["TEST_FLAG"]="true"
-        os.environ["DYNAMODB_DOMAIN_TABLE"]="example_1"
-        self.dynamodb = boto3.resource("dynamodb")
-
-    
-    @mock_dynamodb2
-    def tearDown(self):
-        del os.environ["DYNAMODB_DOMAIN_TABLE"]
-    
-    @mock_dynamodb2
-    def test_getIndexFromCollectionName(self):
-        self.tableDomain = self.getMockTable()
+        os.environ["DYNAMODB_DOMAIN_TABLE"] = "example-domain"
+        os.environ["DYNAMODB_SYSTEM_TABLE"] = "example-system"
+        self.dynamodb = boto3.resource("dynamodb", region_name='eu-west-1')
+        os.environ["ENTITIES"] = "collection#id#creation_date_time,index#id#creation_date_time"
+        os.environ["INDEXES"] = "collection#name,index#name,index#collection.name"
+        self.system_table = self.getMockTable("example-system")
         self.fillSystemData()
-        dynamoPlus = DynamoPlusService()
-        indexes = dynamoPlus.getIndexesFromCollecionName("example")
-        self.assertEqual(len(indexes),1)
+        self.dynamoPlus = DynamoPlusService()
+        #self.getMockTable("example-domain")
+        #self.table = self.getMockTable("example-domain")
+
+
+
+    def tearDown(self):
+        #self.system_table.delete()
+        del os.environ["DYNAMODB_DOMAIN_TABLE"]
+        del os.environ["DYNAMODB_SYSTEM_TABLE"]
+
+    # @mock_dynamodb2
+    # def test_getIndexFromCollectionName(self):
+    #     indexes = self.dynamoPlus.get_indexes_from_collecion_name("example")
+    #     self.assertEqual(len(indexes),1)
         
     # @mock_dynamodb2
     # def test_getCollectionFromCollectionName_inSystem(self):
-    #     dynamoPlusService = DynamoPlusService()
-    #     result = dynamoPlusService.getCollectionConfigurationFromCollectionName("collection")
+    #     result = dynamoPlus.getCollectionConfigurationFromCollectionName("collection")
     #     self.assertEqual(result.name, "collection")
     #     self.assertEqual(result.idKey, "name")
     #     self.assertEqual(result.orderingKey, "ordering")
@@ -105,28 +114,29 @@ class TestDynamoPlusService(unittest.TestCase):
     #     self.assertEqual(len(result),1)
 
     def fillSystemData(self):
-        systemTable = self.getMockTable("system")
-        systemTable.put_item(Item={"pk":"collection#example","sk":"collection","data":"example","fields": [{"field1": "string"}, {"field2.field21": "string"}]})
-        systemTable.put_item(Item={"pk":"index#example__by__field1__field2.field21","sk":"index","data":"example__by__field1__field2.field21","collection":{"name":"example"},"fields": [{"field1": "string"}, {"field2.field21": "string"}]})
-        systemTable.put_item(Item={"pk":"index#example__by__field1__field2.field21","sk":"collection.name","data":"example","collection":{"name":"example"},"fields": [{"field1": "string"}, {"field2.field21": "string"}]})
+        system_table = self.dynamodb.Table('example-system')
+        system_table.put_item(Item={"pk": "collection#example", "sk": "collection", "data": "example", "document": "{\"name\":\"example\",\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
+        system_table.put_item(Item={"pk": "index#collection.name", "sk": "index#collection.name", "data": "example", "document": "{\"name\":\"collection.name\",\"collection\":{\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
 
-    def getMockTable(self,suffix=None):
-        table = self.dynamodb.create_table(TableName="example_1"+("-domain" if suffix is None else suffix),
-            KeySchema=[
-                {'AttributeName': 'pk','KeyType': 'HASH'},
-                {'AttributeName': 'sk','KeyType': 'RANGE'}
-            ],
-            AttributeDefinitions=[
-                    {'AttributeName':'pk','AttributeType':'S'},
-                    {'AttributeName':'sk','AttributeType':'S'},
-                    {'AttributeName':'data','AttributeType':'S'}
-            ],
-            GlobalSecondaryIndexes=[
-                {
-                    'IndexName': 'sk-data-index',
-                    'KeySchema': [{'AttributeName': 'sk','KeyType': 'HASH'},{'AttributeName': 'data','KeyType': 'RANGE'}],
-                    "Projection":{"ProjectionType": "ALL"}
-                }
-            ]
-        )
+    def getMockTable(self, tableName):
+        table = self.dynamodb.create_table(TableName=tableName,
+                                           KeySchema=[
+                                               {'AttributeName': 'pk', 'KeyType': 'HASH'},
+                                               {'AttributeName': 'sk', 'KeyType': 'RANGE'}
+                                           ],
+                                           AttributeDefinitions=[
+                                               {'AttributeName': 'pk', 'AttributeType': 'S'},
+                                               {'AttributeName': 'sk', 'AttributeType': 'S'},
+                                               {'AttributeName': 'data', 'AttributeType': 'S'}
+                                           ],
+                                           GlobalSecondaryIndexes=[
+                                               {
+                                                   'IndexName': 'sk-data-index',
+                                                   'KeySchema': [{'AttributeName': 'sk', 'KeyType': 'HASH'},
+                                                                 {'AttributeName': 'data', 'KeyType': 'RANGE'}],
+                                                   "Projection": {"ProjectionType": "ALL"}
+                                               }
+                                           ]
+                                           )
+        print("Table status:", table.table_status)
         return table

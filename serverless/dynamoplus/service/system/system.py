@@ -1,71 +1,96 @@
-from typing import * 
+from typing import *
 
-from dynamoplus.repository.repositories import DomainRepository
-from dynamoplus.repository.models import Model
-from dynamoplus.models.system.collection.collection import Collection,AttributeDefinition, AttributeType
+from dynamoplus.models.indexes.indexes import Query
+from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
+from dynamoplus.repository.models import Model, QueryResult, DataModel
+from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
 from dynamoplus.models.system.index.index import Index
 
-collectionMetadata = Collection("collection","name")
-indexMetadata = Collection("index","name")
+collectionMetadata = Collection("collection", "name")
+indexMetadata = Collection("index", "name")
+
+
+def from_dict_to_index(d: dict):
+    return Index(d["collection"]["name"], d["conditions"], d["ordering_key"] if "ordering_key" in d else None)
+
+
+def from_index_to_dict(index_metadata: Index):
+    return {
+        "name": index_metadata.index_name,
+        "collection": {
+            "name": index_metadata.collection_name
+        },
+        "ordering_key": index_metadata._ordering_key,
+        "conditions": index_metadata.conditions
+
+    }
+
+
+def from_collection_to_dict(collection: Collection):
+    d = {
+        "name": collection.name,
+        "idKey": collection.id_key,
+        "ordering": collection.ordering_key
+        ## TODO attributes definition
+    }
+    # if collection.attributeDefinition:
+
+    return d
+
+
+def from_dict_to_collection(d: dict):
+    return Collection(d["name"], d["idKey"], d["ordering"] if "ordering" in d else None)
+
+
 class SystemService:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    
 
-    def createCollection(self,metadata:Collection):
-        collection=self._fromCollectionToDict(metadata)
-        repository = DomainRepository(collectionMetadata)
-        model=repository.create(collection)
-        return self._fromDictToCollection(model.fromDynamoDbItem())
+    @staticmethod
+    def create_collection(metadata: Collection):
+        collection = from_collection_to_dict(metadata)
+        repository = DynamoPlusRepository(collectionMetadata, True)
+        model = repository.create(collection)
+        return from_dict_to_collection(model.document)
+
     # def updateCollection(self, metadata:Collection):
     #     collection=self.fromCollectionToDict(metadata)
-    #     repository = DomainRepository(collectionMetadata)
+    #     repository = DynamoPlusRepository(collectionMetadata)
     #     model = repository.update(collection)
     #     return self.fromDictToCollection(model.document)
-    def deleteCollection(self,name:str):
-        DomainRepository(collectionMetadata).delete(name)
-    def getCollectionByName(self,name:str):
-        model=DomainRepository(collectionMetadata).get(name)
-        return model.document
+    @staticmethod
+    def delete_collection(name: str):
+        DynamoPlusRepository(collectionMetadata, True).delete(name)
 
-    def createIndex(self,i:Index):
-        index = self._fromIndexToDict(i)
-        repository = DomainRepository(indexMetadata)
-        model=repository.create(index)
-        return self._fromDictToIndex(model.fromDynamoDbItem())
+    @staticmethod
+    def get_collection_by_name(name: str):
+        model = DynamoPlusRepository(collectionMetadata, True).get(name)
+        if model:
+            return from_dict_to_collection(model.document)
 
-    def getIndex(self, name:str):
-        model = DomainRepository(indexMetadata).get(name)
-        return self._fromDictToIndex(model.fromDynamoDbItem())
-    def getIndexFromCollectioName(self, collectionName:str):
-        pass
-    
-    def _fromDictToIndex(self, d:dict):
-        return Index(d["collection"]["name"],d["conditions"],d["orderingKey"] if "orderingKey" in d else None)
-    def _fromIndexToDict(self,indexMetadata:Index):
-        return {
-            "name": indexMetadata.indexName(),
-            "collection":{
-                "name": indexMetadata.collectionName
-            },
-            "orderingKey": indexMetadata.orderingKey ,
-            "conditions": indexMetadata.conditions
-            
-        }
-    def _fromDictToCollection(self, d:dict):
-        return Collection(d["name"],d["idKey"],d["ordering"] if "ordering" in d else None)
-    def _fromCollectionToDict(self,collection:Collection):
-        d={
-            "name": collection.name,
-            "idKey": collection.idKey,
-            "ordering": collection.orderingKey
-            ## TODO attributes definition
-        }
-        # if collection.attributeDefinition:
+    @staticmethod
+    def create_index(i: Index) -> Index:
+        index = from_index_to_dict(i)
+        repository = DynamoPlusRepository(indexMetadata, True)
+        model = repository.create(index)
+        if model:
+            return from_dict_to_index(model.document)
 
-        return d
-    '''   
-    - get indexes for a collection (used in indexing)
-    - get index by name (used in query)
-    - delete index
-    '''
+    @staticmethod
+    def get_index(name: str):
+        model = DynamoPlusRepository(indexMetadata, True).get(name)
+        if model:
+            return from_dict_to_index(model.document)
+
+    @staticmethod
+    def delete_index(name: str):
+        DynamoPlusRepository(indexMetadata, True).delete(name)
+
+    # def getIndexFromCollectioName(self, collectionName: str):
+    #     pass
+    @staticmethod
+    def find_collection_by_example(example: Collection, query_id: str):
+        index = Index("collection", ["collection.name"])
+        query = Query({"name": example.name}, index)
+        result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
+        return list(map(lambda d: from_dict_to_collection(d.data_model.document), result.data))

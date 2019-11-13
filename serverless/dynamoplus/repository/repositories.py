@@ -1,148 +1,142 @@
 from typing import *
 import abc
 import logging
+
+from pynamodb.exceptions import DoesNotExist
+
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.indexes.indexes import Index, Query
-from dynamoplus.repository.models import Model,IndexModel, QueryResult
-from dynamoplus.utils.utils import convertToString, findValue, sanitize
-from boto3.dynamodb.conditions import Key, Attr
-import boto3
+from dynamoplus.repository.models import Model, IndexModel, QueryResult, IndexDataModel, DataModel, SystemDataModel
+from dynamoplus.utils.utils import convertToString, find_value, sanitize
+
 import os
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-logging.getLogger("botocore").setLevel(logging.WARNING)
-logging.getLogger("boto3").setLevel(logging.WARNING)
-connection = None
-try:
-    if not os.environ["TEST_FLAG"]:
-        connection=boto3.resource('dynamodb')
-except:
-    logger.info("Unable to instantiate")
+
+pynamoDbLogging = logging.getLogger("pynamodb")
+pynamoDbLogging.setLevel(logging.DEBUG)
+pynamoDbLogging.propagate = True
+
 
 class Repository(abc.ABC):
     @abc.abstractmethod
-    def getModelFromDocument(self, document:dict):
+    def getModelFromDocument(self, document: dict):
         pass
+
     @abc.abstractmethod
-    def create(self, document:dict):
+    def create(self, document: dict):
         pass
+
     @abc.abstractmethod
-    def get(self, id:str):
+    def get(self, id: str):
         pass
+
     @abc.abstractmethod
-    def update(self, document:dict):
+    def update(self, document: dict):
         pass
+
     @abc.abstractmethod
-    def delete(self, id:str):
+    def delete(self, id: str):
         pass
+
     @abc.abstractmethod
     def find(self, query: Query):
         pass
 
-class DomainRepository(Repository):
-    def __init__(self, collection: Collection):
+
+class DynamoPlusRepository(Repository):
+    def __init__(self, collection: Collection, isSystem=False):
         self.collection = collection
-        self.tableName = os.environ['DYNAMODB_DOMAIN_TABLE']
-        self.dynamoDB = connection if connection is not None else boto3.resource('dynamodb')
-        self.table = self.dynamoDB.Table(self.tableName)
-    
-    def getModelFromDocument(self, document:dict):
-        return Model(self.collection,document)
-    def create(self, document:dict):
+        ## TODO: table name depends if it's system or domain
+        self.tableName = os.environ['DYNAMODB_DOMAIN_TABLE'] if not isSystem else os.environ['DYNAMODB_SYSTEM_TABLE']
+        self.region = os.environ['REGION'] if 'REGION' in os.environ else 'eu-west-1'
+        logger.info("Table name is {}".format(self.tableName))
+        self.isSystem = isSystem
+        if self.isSystem:
+            SystemDataModel.setup_model(SystemDataModel, self.region, self.tableName)
+        else:
+            DataModel.setup_model(DataModel, self.region, self.tableName)
+
+    def getModelFromDocument(self, document: dict):
+        return Model(self.collection, document, self.isSystem)
+
+    def create(self, document: dict):
         model = self.getModelFromDocument(document)
-        dynamoDbItem = model.toDynamoDbItem()
-        response = self.table.put_item(Item=sanitize(dynamoDbItem))
-        logger.info("Response from put item operation is "+response.__str__())
-        return self.getModelFromDocument(dynamoDbItem)
-    def get(self, id:str):
+        dynamoDbItem = model.to_dynamo_db_item()
+        response = model.data_model.save()
+        # response = self.table.put_item(Item=sanitize(dynamoDbItem))
+        logger.info("Response from put item operation is " + response.__str__())
+        return model.data_model
+
+    def get(self, id: str):
         # TODO: copy from query -> if the indexKeys is empty then get by primary key, otherwise get by global secondary index
         # it means if needed first get from index, then by primary key or, in case of index it throws a non supported operation exception
-        model = self.getModelFromDocument({self.collection.idKey: id})
-        result = self.table.get_item(
-        Key={
-            'pk': model.pk(),
-            'sk': model.sk()
-        })
-        return self.getModelFromDocument( result[u'Item']) if 'Item' in result else None
-    def update(self, document:dict):
+        model = self.getModelFromDocument({self.collection.id_key: id})
+        try:
+            return model.data_model.get(model.pk(), model.sk())
+        except DoesNotExist as e:
+            logger.error("{} doesn't exist ".format(id))
+            logger.exception(e)
+
+    def update(self, document: dict):
         model = self.getModelFromDocument(document)
-        dynamoDbItem = model.toDynamoDbItem()
-        if dynamoDbItem.keys():
-            # only updates attributes in the idKey or pk or sk
-            logger.info("updating {} ".format(dynamoDbItem))
-            updateExpression = "SET "+", ".join(map(lambda k: k+"= :"+k, filter(lambda k: k != self.collection.idKey and k!="pk" and k!="sk" and k!="data", dynamoDbItem.keys())))
-            expressionValue = dict(
-                map(lambda kv: (":"+kv[0],kv[1]), 
-                filter(lambda kv: kv[0] != self.collection.idKey and kv[0]!="pk" and kv[0] !="sk" and kv[0] !="data", dynamoDbItem.items())))
-            response = self.table.update_item(
-                Key={
-                    'pk': model.pk(),
-                    'sk': model.sk()
-                },
-                UpdateExpression=updateExpression,
-                ExpressionAttributeValues=expressionValue,
-                ReturnValues="UPDATED_NEW"
-            )
-            logger.info("Response from update operation is "+response.__str__())
-            if response['ResponseMetadata']['HTTPStatusCode']==200:
-                return self.getModelFromDocument(dynamoDbItem)
-            else:
-                logger.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
-                return None
-        else:
-            raise Exception("dynamo db item empty ")
-    def delete(self, id:str):
-        model = self.getModelFromDocument({self.collection.idKey: id})
-        response = self.table.delete_item(
-            Key={
-            'pk': model.pk(),
-            'sk': model.sk()
-            })
-        if response['ResponseMetadata']['HTTPStatusCode']!=200:
-            logger.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
-            raise Exception("Error code {}".format(response['ResponseMetadata']['HTTPStatusCode']))
+        response = model.data_model.update(actions=[
+            model.data_model_class.document.set(document)
+        ])
+        logger.info("Response from update operation is " + response.__str__())
+        return model.data_model
+
+    def delete(self, id: str):
+        model = self.getModelFromDocument({self.collection.id_key: id})
+        response = model.data_model.delete()
+
+    def find(self, query: Query):
+        return None
+
+
+class IndexDynamoPlusRepository(DynamoPlusRepository):
+    def __init__(self, collection: Collection, index: Index, isSystem=False):
+        super().__init__(collection, isSystem)
+        self.index = index
+
+    def getModelFromDocument(self, document: dict):
+        return IndexModel(self.collection, document, self.index, self.isSystem)
+
     def find(self, query: Query):
         logger.info(" Received query={}".format(query.__str__()))
         document = query.document
-        indexModel = IndexModel(self.collection,document,query.index)
-        orderingKey = query.index.orderingKey if query.index else None
-        logger.info("order by is {} ".format(orderingKey))
+        index_model = IndexModel(self.collection, document, query.index,self.isSystem)
+        ordering_key = None
+        try:
+            query.index.ordering_key if query.index else None
+        except AttributeError:
+            logger.info("missing ordering key in index")
+        logger.info("order by is {} ".format(ordering_key))
         limit = query.limit
-        startFrom = query.startFrom
-        if indexModel.data() is not None:
-            if orderingKey is None:
-                key=Key('sk').eq(indexModel.sk()) & Key('data').eq(indexModel.data())
-                logger.info("The key that will be used is sk={} is equal data={}".format(indexModel.sk(), indexModel.data()))
+        start_from = query.start_from
+        result = []
+        index_model.data_model.skDataIndex.Meta.table_name = self.tableName
+        index_model.data_model.skDataIndex.Meta.model.Meta.table_name = self.tableName
+        if index_model.data() is not None:
+            if ordering_key is None:
+                logger.info(
+                    "The key that will be used is sk={} is equal data={}".format(index_model.sk(), index_model.data()))
+                result = index_model.data_model.skDataIndex.query(index_model.sk(),
+                                                                  index_model.data_model_class.data == index_model.data())
             else:
-                key=Key('sk').eq(indexModel.sk()) & Key('data').begins_with(indexModel.data())
-                logger.info("The key that will be used is sk={} begins with data={}".format(indexModel.sk(), indexModel.data()))
+                logger.info(
+                    "The key that will be used is sk={} begins with data={}".format(index_model.sk(),
+                                                                                    index_model.data()))
+                result = index_model.data_model.skDataIndex.query(index_model.sk(),
+                                                                  index_model.data_model_class.data.startswith(
+                                                                     index_model.data()))
         else:
-            key=Key('sk').eq(indexModel.sk())
-            logger.info("The key that will be used is sk={} with no data".format(indexModel.sk()))
+            logger.info("The key that will be used is sk={} with no data".format(index_model.sk()))
+            result = index_model.data_model.skDataIndex.query(index_model.sk())
 
-            
-        
-        dynamoQuery=dict(
-            IndexName="sk-data-index",
-            KeyConditionExpression=key,
-            Limit=limit,
-            ExclusiveStartKey=startFrom
-        )
-        response = self.table.query(
-                **{k: v for k, v in dynamoQuery.items() if v is not None}
-            )
-        logger.info("Response from dynamo db {}".format(str(response)))
-        lastKey=None
-    
-        if 'LastEvaluatedKey' in response:
-            lastKey=response['LastEvaluatedKey']
-        return QueryResult(list(map(lambda i: Model(self.collection, i),response[u'Items'])),lastKey)
-
-
-class IndexDomainRepository(DomainRepository):
-    def __init__(self,collection: Collection, index:Index):
-        super().__init__(collection)
-        self.index = index
-    def getModelFromDocument(self, document:dict):
-        return IndexModel(self.collection,document,self.index)
+        last_key = result.last_evaluated_key if result.last_evaluated_key else None
+        items = []
+        for i in result:
+            items.append(Model(self.collection, i.document).data_model)
+        return QueryResult(items, last_key)
