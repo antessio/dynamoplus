@@ -11,18 +11,20 @@ class Index(object):
     def conditions(self):
         return self._conditions
 
+
     @property
     def collection_name(self):
         return self._collection_name
+
+    @collection_name.setter
+    def collection_name(self, value):
+        self._collection_name = value
 
     @property
     def index_name(self):
         return "__".join(self._conditions) + (
             "__ORDER_BY__" + self._ordering_key if self._ordering_key is not None else "")
 
-    @collection_name.setter
-    def collection_name(self, value):
-        self._collection_name = value
 
 
     @conditions.setter
