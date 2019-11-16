@@ -161,7 +161,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
         if is_system:
             logger.info("Get {} metadata from system".format(collection_name))
             if collection_name == 'collection':
-                collection_metadata = self.systemService.get_collection_by_name(collection_name, id)
+                collection_metadata = self.systemService.get_collection_by_name(collection_name)
                 if collection_metadata is None:
                     raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
                                            "{} not found with name {}".format(collection_name, id))
