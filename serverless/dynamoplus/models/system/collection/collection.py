@@ -30,3 +30,5 @@ class Collection(object):
         self.attribute_definition = attributes_definition
         self.ordering_key = ordering_key
 
+    def __str__(self) -> str:
+        return "Collection => name = {} id_key = {} ordering_key = {} ".format(self.name,self.id_key,self.ordering_key)

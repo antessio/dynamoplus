@@ -17,8 +17,9 @@ class TestSdk(unittest.TestCase):
         pass
 
     def test_create_query(self):
-        #collection = self.sdk.create_collection("category","id","ordering")
-        collection = self.sdk.get_collection("category")
+        collection = self.sdk.create_collection("book","isbn","rating")
+        print(collection)
+        collection = self.sdk.get_collection("book")
         print(collection)
 
 

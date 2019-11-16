@@ -73,6 +73,7 @@ class DynamoPlusRepository(Repository):
         # TODO: copy from query -> if the indexKeys is empty then get by primary key, otherwise get by global secondary index
         # it means if needed first get from index, then by primary key or, in case of index it throws a non supported operation exception
         model = self.getModelFromDocument({self.collection.id_key: id})
+        logger.info("model for {} is {}".format(self.collection,model))
         try:
             return model.data_model.get(model.pk(), model.sk())
         except DoesNotExist as e:
