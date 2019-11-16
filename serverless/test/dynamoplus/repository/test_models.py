@@ -50,3 +50,9 @@ class TestModels(unittest.TestCase):
         self.assertEqual(model.sk(), "example")
         self.assertEqual(model.data(), None)
         self.assertEqual(model.order_value(), None)
+    def test_collecton_metadata(self):
+        collection = Collection("collection","name")
+        model = Model(collection, {"name": "example"},True)
+        self.assertEqual(model.pk(),"collection#example")
+        self.assertEqual(model.sk(),"collection")
+        self.assertEqual(model.data(),"example")

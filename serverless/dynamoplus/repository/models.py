@@ -153,6 +153,9 @@ class Model(object):
     def from_dynamo_db_item(self):
         return {k: v for k, v in self.document.items() if k not in ["pk", "sk", "data"]}
 
+    def __str__(self) -> str:
+        return "Model => collection_name = {} id_key = {} ordering_key = {} document = {}".format(self.collectionName,self.idKey,self.ordering_key,self.document)
+
 
 class IndexModel(Model):
     def __init__(self, collection:Collection, document:dict, index: Index, is_system: bool = False):

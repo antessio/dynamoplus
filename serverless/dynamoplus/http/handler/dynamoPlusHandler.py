@@ -142,21 +142,6 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
         self.systemService = SystemService()
 
     def get(self, collection_name: str, id: str):
-        """
-        1)
-        domain:
-            if collectioName not found system:
-                raise NotFoundException
-        system:
-            no check
-        2)
-        get collection metadata:
-            get from system
-        3)
-        create repository
-        4)
-        get by id
-        """
         is_system = DynamoPlusHandlerInterface.is_system(collection_name)
         if is_system:
             logger.info("Get {} metadata from system".format(collection_name))
@@ -187,27 +172,6 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
             return document
 
     def create(self, collection_name: str, document: dict) -> dict:
-        """
-        1)
-        domain:
-            if collectioName not found system:
-                raise NotFoundException
-        system:
-            no check
-        2)
-        get collection metadata:
-            get from system
-        3)
-        validate
-        4)
-        create repository
-        5)
-        key generator
-        6) 
-        if exists => error
-        7)
-        create
-        """
         is_system = DynamoPlusHandlerInterface.is_system(collection_name)
         if is_system:
             logger.info("Creating {} metadata {}".format(collection_name, document))
