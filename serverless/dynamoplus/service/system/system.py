@@ -9,6 +9,14 @@ from dynamoplus.models.system.index.index import Index
 collectionMetadata = Collection("collection", "name")
 indexMetadata = Collection("index", "name")
 
+def from_collection_to_dict(collection_metadata:Collection):
+    result = {"name": collection_metadata.name, "id_key": collection_metadata.id_key}
+    if collection_metadata.ordering_key:
+        result["ordering_key"] = collection_metadata.ordering_key
+    return result
+def from_index_to_dict(index_metadata:Index):
+    return {"name":index_metadata.index_name, "collection":{"name": index_metadata.collection_name}, "conditions": index_metadata.conditions}
+
 
 def from_dict_to_index(d: dict):
     return Index(d["collection"]["name"], d["conditions"], d["ordering_key"] if "ordering_key" in d else None)
