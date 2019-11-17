@@ -30,7 +30,7 @@ class AttributeType(Enum):
 
 
 class Field(object):
-    def __init__(self, attribute_name: str, attribute_type: AttributeType,
+    def __init__(self, attribute_name: str, attribute_type: AttributeType=None,
                  attribute_constraints: typing.List[Constraint] = []):
         self._attribute_name = attribute_name
         self._attribute_type = attribute_type
@@ -183,8 +183,9 @@ class SDK(object):
                 "name": collection_name
             },
             "name": index_name,
-            "fields": [f.__dict__ for f in fields]
+            "conditions": [f.attribute_name for f in fields]
         }
+        print(index)
         json_data = json.dumps(index)
         headers = {'Content-type': 'application/json'}
         connection.request("POST", "/{}/dynamoplus/index".format(self.environment),json_data,headers)
