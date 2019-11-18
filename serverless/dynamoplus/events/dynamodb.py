@@ -43,13 +43,13 @@ def dynamoStreamHandler(event, context):
             collection_metadata = system_service.get_collection_by_name(sk)
             if collection_metadata:
                 if record.get('eventName') == 'INSERT':
-                    new_record = deserialize(record['dynamodb']['NewImage'])
+                    new_record = deserialize(record['dynamodb']['NewImage'])["document"]
                     logger.info("creating index for {}".format(str(new_record)))
                     indexing(lambda r: r.create(new_record), system_service, sk,
                              collection_metadata, new_record)
 
                 elif record.get('eventName') == 'MODIFY':
-                    new_record = deserialize(record['dynamodb']['NewImage'])
+                    new_record = deserialize(record['dynamodb']['NewImage'])["document"]
                     # document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], new_record.items()))
                     logger.info("updating index for {}".format(str(new_record)))
                     indexing(lambda r: r.update(new_record), system_service, sk,
@@ -58,7 +58,7 @@ def dynamoStreamHandler(event, context):
                 elif record.get('eventName') == 'REMOVE':
                     old_record = deserialize(record['dynamodb']['OldImage'])
                     logger.info('removing index on record  {}'.format(str(old_record)))
-                    id = old_record[collection_metadata.id_key]
+                    id = old_record["document"][collection_metadata.id_key]
                     indexing(lambda r: r.delete(id), system_service, sk,
                              collection_metadata, old_record)
             else:
