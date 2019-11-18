@@ -1,7 +1,7 @@
 import unittest
 import decimal
 
-from dynamoplus.models.indexes.indexes import Query
+from dynamoplus.models.query.query import Query
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
 from dynamoplus.repository.models import Model, DataModel, QueryResult, IndexModel
 from dynamoplus.service.domain.domain import DomainService

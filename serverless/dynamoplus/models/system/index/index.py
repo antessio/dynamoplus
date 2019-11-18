@@ -22,7 +22,7 @@ class Index(object):
 
     @property
     def index_name(self):
-        return "__".join(self._conditions) + (
+        return self._collection_name+"#"+("__".join(self._conditions)) + (
             "__ORDER_BY__" + self._ordering_key if self._ordering_key is not None else "")
 
 

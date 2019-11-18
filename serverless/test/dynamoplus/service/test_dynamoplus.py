@@ -1,11 +1,11 @@
 import unittest
 import decimal
 import logging
-from dynamoplus.models.indexes.indexes import Index
+from dynamoplus.models.query.query import Index
 #from dynamoplus.models.documents.documentTypes import Collection
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.repository.repositories import DynamoPlusRepository
-from dynamoplus.models.indexes.indexes import Query, Index
+from dynamoplus.models.query.query import Query, Index
 from dynamoplus.repository.models import QueryResult, Model
 from dynamoplus.service.dynamoplus import DynamoPlusService
 
@@ -41,8 +41,8 @@ class TestDynamoPlusService(unittest.TestCase):
 
     # @mock_dynamodb2
     # def test_getIndexFromCollectionName(self):
-    #     indexes = self.dynamoPlus.get_indexes_from_collecion_name("example")
-    #     self.assertEqual(len(indexes),1)
+    #     query = self.dynamoPlus.get_indexes_from_collecion_name("example")
+    #     self.assertEqual(len(query),1)
         
     # @mock_dynamodb2
     # def test_getCollectionFromCollectionName_inSystem(self):

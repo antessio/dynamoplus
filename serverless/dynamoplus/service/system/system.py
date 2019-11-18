@@ -1,6 +1,6 @@
 from typing import *
 
-from dynamoplus.models.indexes.indexes import Query
+from dynamoplus.models.query.query import Query
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
 from dynamoplus.repository.models import Model, QueryResult, DataModel
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType

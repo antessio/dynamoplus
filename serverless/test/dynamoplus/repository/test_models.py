@@ -3,7 +3,7 @@ from typing import *
 from dynamoplus.repository.models import Model, IndexModel
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.models.system.collection.collection import Collection
-from dynamoplus.models.indexes.indexes import Index
+from dynamoplus.models.query.query import Index
 
 class TestModels(unittest.TestCase):
     def test_modelWithOrdering(self):
