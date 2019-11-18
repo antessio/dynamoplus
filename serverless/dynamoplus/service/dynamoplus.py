@@ -1,9 +1,9 @@
 from typing import *
-from dynamoplus.models.indexes.indexes import Index
+from dynamoplus.models.query.query import Index
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.service.indexes import IndexService
 from dynamoplus.repository.repositories import DynamoPlusRepository
-from dynamoplus.models.indexes.indexes import Query, Index
+from dynamoplus.models.query.query import Query, Index
 
 # from dynamoplus.repository.models import QueryResult, Document
 

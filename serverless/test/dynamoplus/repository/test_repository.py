@@ -1,7 +1,7 @@
 import unittest
 from typing import *
 from dynamoplus.repository.models import Model, IndexModel
-from dynamoplus.models.indexes.indexes import Query, Index
+from dynamoplus.models.query.query import Query, Index
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
 from dynamoplus.models.system.collection.collection import Collection
 from moto import mock_dynamodb2

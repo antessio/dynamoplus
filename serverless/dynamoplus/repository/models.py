@@ -2,7 +2,7 @@ from typing import *
 import logging
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
-from dynamoplus.models.indexes.indexes import Index
+from dynamoplus.models.query.query import Index
 from dynamoplus.utils.utils import convertToString, find_value, get_values_by_key_recursive
 ## pynamodb
 from pynamodb.models import Model

@@ -1,11 +1,11 @@
 from typing import *
 from typing import Union, Collection
 
-from dynamoplus.models.indexes.indexes import Index
+from dynamoplus.models.query.query import Index
 # from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.repository.repositories import IndexDynamoPlusRepository
-from dynamoplus.models.indexes.indexes import Query, Index
+from dynamoplus.models.query.query import Query, Index
 from dynamoplus.repository.models import QueryResult, Model
 
 
