@@ -57,7 +57,7 @@ def dynamoStreamHandler(event, context):
 
                 elif record.get('eventName') == 'REMOVE':
                     old_record = deserialize(record['dynamodb']['OldImage'])
-                    logger.info('removing index on record  {}'.format(pk))
+                    logger.info('removing index on record  {}'.format(str(old_record)))
                     id = old_record[collection_metadata.id_key]
                     indexing(lambda r: r.delete(id), system_service, sk,
                              collection_metadata, old_record)
