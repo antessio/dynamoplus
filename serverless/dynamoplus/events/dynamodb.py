@@ -2,6 +2,7 @@ from typing import *
 import logging
 import os
 import boto3
+import json
 from boto3.dynamodb.types import TypeDeserializer
 
 from dynamoplus.http.handler.dynamoPlusHandler import DynamoPlusHandler
@@ -43,24 +44,27 @@ def dynamoStreamHandler(event, context):
             collection_metadata = system_service.get_collection_by_name(sk)
             if collection_metadata:
                 if record.get('eventName') == 'INSERT':
-                    new_record = deserialize(record['dynamodb']['NewImage'])["document"]
+                    new_record = deserialize(record['dynamodb']['NewImage'])
                     logger.info("creating index for {}".format(str(new_record)))
-                    indexing(lambda r: r.create(new_record), system_service, sk,
-                             collection_metadata, new_record)
+                    document = json.loads(new_record["document"])
+                    indexing(lambda r: r.create(document), system_service, sk,
+                             collection_metadata, document)
 
                 elif record.get('eventName') == 'MODIFY':
                     new_record = deserialize(record['dynamodb']['NewImage'])["document"]
                     # document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], new_record.items()))
                     logger.info("updating index for {}".format(str(new_record)))
-                    indexing(lambda r: r.update(new_record), system_service, sk,
-                             collection_metadata, new_record)
+                    document = json.loads(new_record["document"])
+                    indexing(lambda r: r.update(document), system_service, sk,
+                             collection_metadata, document)
 
                 elif record.get('eventName') == 'REMOVE':
                     old_record = deserialize(record['dynamodb']['OldImage'])
                     logger.info('removing index on record  {}'.format(str(old_record)))
-                    id = old_record["document"][collection_metadata.id_key]
+                    document = json.loads(old_record["document"])
+                    id = document[collection_metadata.id_key]
                     indexing(lambda r: r.delete(id), system_service, sk,
-                             collection_metadata, old_record)
+                             collection_metadata, document)
             else:
                 logger.debug('Skipping indexing on record {} - {}: entity not found'.format(pk, sk))
         else:
