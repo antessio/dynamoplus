@@ -99,7 +99,7 @@ class SystemService:
         index = Index("index", ["collection.name"])
         query = Query({"collection":{"name": collection_name}}, index)
         result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
-        return list(map(lambda d: from_dict_to_index(d.data_model.document), result.data))
+        return list(map(lambda d: from_dict_to_index(d.document), result.data))
 
     @staticmethod
     def find_collection_by_example(example: Collection):
