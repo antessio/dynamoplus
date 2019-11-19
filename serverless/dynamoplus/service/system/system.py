@@ -1,3 +1,4 @@
+import json
 from typing import *
 
 from dynamoplus.models.query.query import Query
@@ -59,7 +60,7 @@ class SystemService:
         collection = from_collection_to_dict(metadata)
         repository = DynamoPlusRepository(collectionMetadata, True)
         model = repository.create(collection)
-        return from_dict_to_collection(model.document)
+        return from_dict_to_collection(json.loads(model.document))
 
     # def updateCollection(self, metadata:Collection):
     #     collection=self.fromCollectionToDict(metadata)
@@ -74,7 +75,7 @@ class SystemService:
     def get_collection_by_name(name: str):
         model = DynamoPlusRepository(collectionMetadata, True).get(name)
         if model:
-            return from_dict_to_collection(model.document)
+            return from_dict_to_collection(json.loads(model.document))
 
     @staticmethod
     def create_index(i: Index) -> Index:
@@ -82,13 +83,13 @@ class SystemService:
         repository = DynamoPlusRepository(indexMetadata, True)
         model = repository.create(index)
         if model:
-            return from_dict_to_index(model.document)
+            return from_dict_to_index(json.loads(model.document))
 
     @staticmethod
     def get_index(name: str):
         model = DynamoPlusRepository(indexMetadata, True).get(name)
         if model:
-            return from_dict_to_index(model.document)
+            return from_dict_to_index(json.loads(model.document))
 
     @staticmethod
     def delete_index(name: str):
