@@ -60,7 +60,7 @@ class SystemService:
         collection = from_collection_to_dict(metadata)
         repository = DynamoPlusRepository(collectionMetadata, True)
         model = repository.create(collection)
-        return from_dict_to_collection(json.loads(model.document))
+        return from_dict_to_collection(model.document)
 
     # def updateCollection(self, metadata:Collection):
     #     collection=self.fromCollectionToDict(metadata)
@@ -75,7 +75,7 @@ class SystemService:
     def get_collection_by_name(name: str):
         model = DynamoPlusRepository(collectionMetadata, True).get(name)
         if model:
-            return from_dict_to_collection(json.loads(model.document))
+            return from_dict_to_collection(model.document)
 
     @staticmethod
     def create_index(i: Index) -> Index:
@@ -83,13 +83,13 @@ class SystemService:
         repository = DynamoPlusRepository(indexMetadata, True)
         model = repository.create(index)
         if model:
-            return from_dict_to_index(json.loads(model.document))
+            return from_dict_to_index(model.document)
 
     @staticmethod
     def get_index(name: str):
         model = DynamoPlusRepository(indexMetadata, True).get(name)
         if model:
-            return from_dict_to_index(json.loads(model.document))
+            return from_dict_to_index(model.document)
 
     @staticmethod
     def delete_index(name: str):
@@ -100,11 +100,11 @@ class SystemService:
         index = Index("index", ["collection.name"])
         query = Query({"collection":{"name": collection_name}}, index)
         result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
-        return list(map(lambda d: from_dict_to_index(d.document), result.data))
+        return list(map(lambda m: from_dict_to_index(m.document), result.data))
 
     @staticmethod
     def find_collection_by_example(example: Collection):
         index = Index("collection", ["name"])
         query = Query({"name": example.name}, index)
         result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
-        return list(map(lambda d: from_dict_to_collection(d.document), result.data))
+        return list(map(lambda m: from_dict_to_collection(m.document), result.data))
