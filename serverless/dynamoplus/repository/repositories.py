@@ -139,5 +139,5 @@ class IndexDynamoPlusRepository(DynamoPlusRepository):
         last_key = result.last_evaluated_key if result.last_evaluated_key else None
         items = []
         for i in result:
-            items.append(Model(self.collection, i.document).data_model)
+            items.append(Model(self.collection, i.document))
         return QueryResult(items, last_key)
