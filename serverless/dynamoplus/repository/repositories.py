@@ -63,7 +63,6 @@ class DynamoPlusRepository(Repository):
 
     def create(self, document: dict):
         model = self.getModelFromDocument(document)
-        dynamoDbItem = model.to_dynamo_db_item()
         response = model.data_model.save()
         # response = self.table.put_item(Item=sanitize(dynamoDbItem))
         logger.info("Response from put item operation is " + response.__str__())

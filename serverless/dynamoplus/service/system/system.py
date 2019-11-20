@@ -8,7 +8,7 @@ from dynamoplus.models.system.collection.collection import Collection, Attribute
 from dynamoplus.models.system.index.index import Index
 
 collectionMetadata = Collection("collection", "name")
-indexMetadata = Collection("index", "name")
+indexMetadata = Collection("index", "uid")
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -93,7 +93,7 @@ class SystemService:
         if model:
             created_index = from_dict_to_index(model.document)
             logger.info("index created {}".format(created_index))
-            IndexDynamoPlusRepository(indexMetadata,Index(None,"index",["collection.name"])).create(model.document)
+            IndexDynamoPlusRepository(indexMetadata,Index(None,"index",["collection.name"]),True).create(model.document)
             logger.info("{} has been indexed ".format(created_index.collection_name))
             return created_index
 
