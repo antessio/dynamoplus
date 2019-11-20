@@ -92,9 +92,9 @@ class SystemService:
         model = repository.create(index)
         if model:
             created_index = from_dict_to_index(model.document)
-            logger.info("index created {}".format(created_index))
-            IndexDynamoPlusRepository(indexMetadata,Index(None,"index",["collection.name"]),True).create(model.document)
-            logger.info("{} has been indexed ".format(created_index.collection_name))
+            logger.info("index created {}".format(created_index.__str__()))
+            index_by_collection_name = IndexDynamoPlusRepository(indexMetadata,Index(None,"index",["collection.name"]),True).create(model.document)
+            logger.info("{} has been indexed {}".format(created_index.collection_name,index_by_collection_name.document))
             return created_index
 
     @staticmethod
