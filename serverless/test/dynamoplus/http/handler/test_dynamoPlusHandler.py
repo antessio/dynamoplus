@@ -62,7 +62,7 @@ class TestDynamoPlusHandler(unittest.TestCase):
         mock_system_service.return_value = None
         mock_get_collection_by_name.return_value = Collection("example", "id", "ordering")
         mock_domain_service.return_value = None
-        expected_index = Index("example", ["attribute1"])
+        expected_index = Index("1","example", ["attribute1"])
         mock_get_index.return_value=expected_index
         expected_document_example = {"attribute1": "1"}
         expected_documents = [
@@ -76,4 +76,3 @@ class TestDynamoPlusHandler(unittest.TestCase):
         self.assertTrue(mock_get_collection_by_name.called_with("example"))
         self.assertTrue(mock_get_index.called_with("attribute1"))
         self.assertEqual(call(expected_index,expected_document_example),mock_find_by_index.call_args_list[0])
-        #        self.assertEqual(call(document), mock_create.call_args_list[0])

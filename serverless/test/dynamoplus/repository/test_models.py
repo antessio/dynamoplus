@@ -26,7 +26,7 @@ class TestModels(unittest.TestCase):
     def test_indexModel(self):
         collection = Collection("example","id",None)
         document = {"id": "randomId", "attr1": "value2", "nested":{"condition":{"1": "value1"}}}
-        index = Index("example",["nested.condition.1","attr1"],None)
+        index = Index("1","example",["nested.condition.1","attr1"],None)
         model = IndexModel(collection, document, index)
         self.assertEqual(model.pk(), "example#randomId")
         self.assertEqual(model.sk(), "example#nested.condition.1#attr1")
@@ -35,7 +35,7 @@ class TestModels(unittest.TestCase):
     def test_indexModelWithOrdering(self):
         collection = Collection("example","id","ordering")
         document = {"id": "randomId", "ordering": "1","attr1": "value2", "nested":{"condition":{"1": "value1"}}}
-        index = Index("example",["nested.condition.1","attr1"],"ordering")
+        index = Index("1","example",["nested.condition.1","attr1"],"ordering")
         model = IndexModel(collection, document, index)
         self.assertEqual(model.pk(), "example#randomId")
         self.assertEqual(model.sk(), "example#nested.condition.1#attr1")

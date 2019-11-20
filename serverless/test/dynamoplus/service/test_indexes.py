@@ -21,7 +21,7 @@ class TestIndexService(unittest.TestCase):
     def test_findDocument(self, mock_repository,mock_find):
         #documentTypeConfiguration = DocumentTypeConfiguration("example","id","ordering")
         collectionConfiguration = Collection("example","id","ordering")
-        index = Index("example",["attribute1"])
+        index = Index("1","example",["attribute1"])
         data =[
             Model(collectionConfiguration,{"pk": "example#1","sk":"example#attribute1", "data":"value1"}),
             Model(collectionConfiguration,{"pk": "example#2","sk":"example#attribute1", "data":"value1"}),

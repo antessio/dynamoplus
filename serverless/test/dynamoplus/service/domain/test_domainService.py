@@ -88,7 +88,7 @@ class TestDomainService(unittest.TestCase):
     @patch.object(IndexDynamoPlusRepository, "__init__")
     def test_find_by_index(self, mock_index_repository, mock_find):
         # given
-        index = Index("example", ["attribute1"])
+        index = Index("1","example", ["attribute1"])
         expected_example = {"attribute1": "1"}
         expected_query = Query(expected_example, index)
         mock_index_repository.return_value = None

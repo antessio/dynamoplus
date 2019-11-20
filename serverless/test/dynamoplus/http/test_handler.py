@@ -59,9 +59,9 @@ class TestHttpHandler(unittest.TestCase):
         self.systemTable.put_item(Item={"pk": "collection#example", "sk": "collection", "data": "example",
                                         "document": "{\"id_key\":\"id\",\"name\":\"example\",\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
         self.systemTable.put_item(Item={"pk": "index#collection.name", "sk": "index", "data": "example",
-                                        "document": "{\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
+                                        "document": "{\"uid\": \"1\",\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
         self.systemTable.put_item(Item={"pk": "index#even", "sk": "index", "data": "even",
-                                        "document": "{\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
+                                        "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
 
     def fill_data(self):
         timestamp = datetime.utcnow()
