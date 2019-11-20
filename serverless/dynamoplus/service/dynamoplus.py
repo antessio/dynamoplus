@@ -8,7 +8,7 @@ from dynamoplus.models.query.query import Query, Index
 # from dynamoplus.repository.models import QueryResult, Document
 
 collectionMetadata = Collection("collection", "name")
-indexMetadata = Collection("index", "name")
+indexMetadata = Collection("index", "uid")
 systemCollections = {
     "collection": collectionMetadata,
     "index": indexMetadata

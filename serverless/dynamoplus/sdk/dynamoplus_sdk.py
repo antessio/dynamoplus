@@ -1,6 +1,8 @@
 import http.client as http_client
 import getopt
 import typing
+import uuid
+
 import requests
 import logging
 import ssl
@@ -179,6 +181,7 @@ class SDK(object):
         # }
         connection = self.get_connection()
         index = {
+            "uid": str(uuid.uuid1()),
             "collection":{
                 "name": collection_name
             },
