@@ -125,15 +125,17 @@ class Model(object):
         self.document = document
         if is_system:
             self.data_model_class = SystemDataModel
-            self.data_model = SystemDataModel(getPk(self.document, self.collectionName, self.idKey),
-                                              getSk(self.document, self.collectionName),
-                                              data=getData(self.document, self.idKey, self.ordering_key),
-                                              document=self.document)
+            self.data_model = SystemDataModel(self.pk(),self.sk(),data=self.data(),document=self.document)
+            # self.data_model = SystemDataModel(getPk(self.document, self.collectionName, self.idKey),
+            #                                   getSk(self.document, self.collectionName),
+            #                                   data=getData(self.document, self.idKey, self.ordering_key),
+            #                                   document=self.document)
         else:
             self.data_model_class = DataModel
-            self.data_model = DataModel(getPk(self.document, self.collectionName, self.idKey),
-                                        getSk(self.document, self.collectionName),
-                                        data=getData(self.document, self.idKey, self.ordering_key), document=self.document)
+            self.data_model = DataModel(self.pk(), self.sk(), data=self.data(), document=self.document)
+            # self.data_model = DataModel(getPk(self.document, self.collectionName, self.idKey),
+            #                             getSk(self.document, self.collectionName),
+            #                             data=getData(self.document, self.idKey, self.ordering_key), document=self.document)
 
     def pk(self):
         return getPk(self.document, self.collectionName, self.idKey)
@@ -159,8 +161,8 @@ class Model(object):
 
 class IndexModel(Model):
     def __init__(self, collection:Collection, document:dict, index: Index, is_system: bool = False):
-        super().__init__(collection, document, is_system)
         self.index = index
+        super().__init__(collection, document, is_system)
 
     def sk(self):
         if self.index is None:
