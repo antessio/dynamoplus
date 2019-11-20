@@ -18,6 +18,11 @@ pynamoDbLogging = logging.getLogger("pynamodb")
 pynamoDbLogging.setLevel(logging.DEBUG)
 pynamoDbLogging.propagate = True
 
+domain_table_name = os.environ['DYNAMODB_DOMAIN_TABLE'] if 'DYNAMODB_DOMAIN_TABLE' in os.environ else 'dynamoplus-domain'
+system_table_name = os.environ['DYNAMODB_SYSTEM_TABLE'] if 'DYNAMODB_SYSTEM_TABLE' in os.environ else 'dynamoplus-system'
+region = os.environ['REGION'] if 'REGION' in os.environ else 'eu-west-1'
+SystemDataModel.setup_model(SystemDataModel, system_table_name, region)
+DataModel.setup_model(DataModel, domain_table_name, region)
 
 class Repository(abc.ABC):
     @abc.abstractmethod
@@ -53,10 +58,6 @@ class DynamoPlusRepository(Repository):
         self.region = os.environ['REGION'] if 'REGION' in os.environ else 'eu-west-1'
         logger.info("Table name is {}".format(self.tableName))
         self.isSystem = isSystem
-        if self.isSystem:
-            SystemDataModel.setup_model(SystemDataModel, self.region, self.tableName)
-        else:
-            DataModel.setup_model(DataModel, self.region, self.tableName)
 
     def getModelFromDocument(self, document: dict):
         return Model(self.collection, document, self.isSystem)
@@ -96,9 +97,9 @@ class DynamoPlusRepository(Repository):
 
 
 class IndexDynamoPlusRepository(DynamoPlusRepository):
-    def __init__(self, collection: Collection, index: Index, isSystem=False):
-        super().__init__(collection, isSystem)
+    def __init__(self, collection: Collection, index: Index, is_system=False):
         self.index = index
+        super().__init__(collection, is_system)
 
     def getModelFromDocument(self, document: dict):
         return IndexModel(self.collection, document, self.index, self.isSystem)

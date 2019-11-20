@@ -71,9 +71,10 @@ class SystemDataModel(Model):
     skDataIndex = IndexDataModel()
 
     @staticmethod
-    def setup_model(model, region, table_name):
+    def setup_model(model, table_name, region):
         model.Meta.table_name = table_name
-        model.Meta.region = region
+        if region:
+            model.Meta.region = region
 
 
 class DataModel(Model):
@@ -88,9 +89,10 @@ class DataModel(Model):
     skDataIndex = IndexDataModel()
 
     @staticmethod
-    def setup_model(model, region, table_name):
+    def setup_model(model, table_name, region = None):
         model.Meta.table_name = table_name
-        model.Meta.region = region
+        if region:
+            model.Meta.region = region
 
 
 class QueryResult(object):
