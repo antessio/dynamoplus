@@ -1,6 +1,6 @@
 import unittest
 from typing import *
-from dynamoplus.repository.models import Model, IndexModel
+from dynamoplus.repository.models import Model, IndexModel, SystemDataModel, DataModel
 from dynamoplus.models.query.query import Query, Index
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
 from dynamoplus.models.system.collection.collection import Collection
@@ -12,6 +12,8 @@ import os
 
 from boto3.dynamodb.conditions import Key, Attr
 
+SystemDataModel.setup_model(SystemDataModel, "example-system", "eu-west-1")
+DataModel.setup_model(DataModel, "example-domain", "eu-west-1")
 
 @mock_dynamodb2
 class TestDynamoPlusRepository(unittest.TestCase):
@@ -42,6 +44,8 @@ class TestDynamoPlusRepository(unittest.TestCase):
         self.collection = Collection("example", "id", "ordering")
         self.repository = DynamoPlusRepository(self.collection)
         self.table = self.dynamodb.Table('example-domain')
+
+
 
     def tearDown(self):
         self.table.delete()
