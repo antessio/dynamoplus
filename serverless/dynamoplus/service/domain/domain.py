@@ -33,7 +33,7 @@ class DomainService:
         DynamoPlusRepository(self.collection).delete(id)
 
     def find_all(self):
-        index = Index(self.collection.name, [])
+        index = Index(None,self.collection.name, [])
         return self.find_by_index(index, {})
 
     def find_by_index(self, index: Index, example: dict):

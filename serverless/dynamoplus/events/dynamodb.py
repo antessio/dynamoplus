@@ -5,7 +5,7 @@ import boto3
 import json
 from boto3.dynamodb.types import TypeDeserializer
 
-from dynamoplus.http.handler.dynamoPlusHandler import DynamoPlusHandler
+from dynamoplus.http.handler.dynamoPlusHandler import DynamoPlusHandler, DynamoPlusHandlerInterface
 from dynamoplus.repository.models import IndexModel
 from dynamoplus.repository.repositories import DynamoPlusRepository
 from dynamoplus.service.system.system import SystemService
@@ -39,9 +39,9 @@ def dynamoStreamHandler(event, context):
         pk = keys['pk']['S']
         sk = keys['sk']['S']
         if "#" not in sk:
-
             system_service = SystemService()
             collection_metadata = system_service.get_collection_by_name(sk)
+
             if collection_metadata:
                 if record.get('eventName') == 'INSERT':
                     new_record = deserialize(record['dynamodb']['NewImage'])
@@ -73,10 +73,11 @@ def dynamoStreamHandler(event, context):
 
 def indexing(repository_action: Callable[[DynamoPlusRepository],None], system_service: SystemService, collection_name: str,
              collection_metadata: Collection, new_record: dict):
-
-    for index in system_service.find_indexes_from_collection_name(collection_name):
-        repository = DynamoPlusRepository(collection_metadata)
-        is_system = DynamoPlusHandler.is_system(collection_name)
-        index_model = IndexModel(collection_metadata, new_record, index, is_system)
-        if index_model.data():
-            repository_action(repository)
+    is_system_collection = DynamoPlusHandlerInterface.is_system(collection_name)
+    if not is_system_collection:
+        for index in system_service.find_indexes_from_collection_name(collection_name):
+            repository = DynamoPlusRepository(collection_metadata)
+            is_system = DynamoPlusHandler.is_system(collection_name)
+            index_model = IndexModel(collection_metadata, new_record, index, is_system)
+            if index_model.data():
+                repository_action(repository)

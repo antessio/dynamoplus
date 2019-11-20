@@ -107,7 +107,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
                 Item={"pk": "example#" + str(i), "sk": "example", "data": str(i), "document": json.dumps(document)})
             self.table.put_item(Item={"pk": "example#" + str(i), "sk": "example#attribute1", "data": str(i % 2),
                                       "document": json.dumps(document)})
-        index = Index("example", ["attribute1"])
+        index = Index("1","example", ["attribute1"])
         query = Query({"attribute1": "1"}, index)
         self.indexRepository = IndexDynamoPlusRepository(self.collection, index)
         result = self.indexRepository.find(query)
@@ -123,7 +123,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
                 Item={"pk": "example#" + str(i), "sk": "example", "data": str(i), "document": json.dumps(document)})
             self.table.put_item(Item={"pk": "example#" + str(i), "sk": "example#attribute1", "data": str(i % 2),
                                       "document": json.dumps(document)})
-        index = Index("example", ["attribute1"])
+        index = Index("1","example", ["attribute1"])
         query = Query({}, index)
         self.indexRepository = IndexDynamoPlusRepository(self.collection, index)
         result = self.indexRepository.find(query)

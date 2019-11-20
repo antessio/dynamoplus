@@ -70,15 +70,15 @@ class TestSystemService(unittest.TestCase):
     @patch.object(DynamoPlusRepository, "create")
     @patch.object(DynamoPlusRepository, "__init__")
     def test_createIndexWithOrdering(self, mock_repository, mock_create):
-        expected_id = 'example#field1__field2.field21__ORDER_BY__field2.field21'
+        expected_id = 'field1__field2.field21__ORDER_BY__field2.field21'
         expected_conditions = ["field1", "field2.field21"]
-        target_index = {"name": expected_id, "collection": {"name": "example"}, "conditions": expected_conditions,
+        target_index = {"uid":"1","name": expected_id, "collection": {"name": "example"}, "conditions": expected_conditions,
                        "ordering_key": "field2.field21"}
         index_metadata = Collection("index", "name")
         expected_model = Model(index_metadata, target_index)
         mock_repository.return_value = None
         mock_create.return_value = expected_model
-        index = Index("example", expected_conditions, "field2.field21")
+        index = Index("1","example", expected_conditions, "field2.field21")
         created_index = self.systemService.create_index(index)
         index_name = created_index.index_name
         self.assertEqual(index_name, expected_id)
@@ -87,14 +87,14 @@ class TestSystemService(unittest.TestCase):
     @patch.object(DynamoPlusRepository, "create")
     @patch.object(DynamoPlusRepository, "__init__")
     def test_createIndexWithNoOrdering(self, mock_repository, mock_create):
-        expected_id = 'example#field1__field2.field21'
+        expected_id = 'field1__field2.field21'
         expected_conditions = ["field1", "field2.field21"]
-        target_index = {"name": expected_id, "collection": {"name": "example"}, "conditions": expected_conditions, "ordering_key": None}
+        target_index = {"uid":"1","name": expected_id, "collection": {"name": "example"}, "conditions": expected_conditions, "ordering_key": None}
         index_metadata = Collection("index", "name")
         expected_model = Model(index_metadata, target_index)
         mock_repository.return_value = None
         mock_create.return_value = expected_model
-        index = Index("example", expected_conditions)
+        index = Index("1","example", expected_conditions)
         created_index = self.systemService.create_index(index)
         index_name = created_index.index_name
         self.assertEqual(index_name, expected_id)
@@ -103,7 +103,7 @@ class TestSystemService(unittest.TestCase):
     @patch.object(IndexDynamoPlusRepository, "find")
     @patch.object(IndexDynamoPlusRepository, "__init__")
     def test_queryCollectionByName(self,mock_index_dynamoplus_repository,mock_find):
-        index = Index("collection", ["name"])
+        index = Index("1","collection", ["name"])
         expected_query = Query({"name": "example"}, index)
         collection_metadata = Collection("example","name")
         mock_index_dynamoplus_repository.return_value = None
@@ -116,12 +116,13 @@ class TestSystemService(unittest.TestCase):
     @patch.object(IndexDynamoPlusRepository, "find")
     @patch.object(IndexDynamoPlusRepository, "__init__")
     def test_queryIndex_by_CollectionByName(self, mock_index_dynamoplus_repository, mock_find):
-        index = Index("index", ["collection.name"])
+        index = Index("1","index", ["collection.name"])
         expected_query = Query({"collection":{"name": "example"}}, index)
         mock_index_dynamoplus_repository.return_value = None
         mock_find.return_value = QueryResult(
-            [Model(Collection("index", "name"), {"name": "collection.name", "collection":{"name":"example"},"conditions":["collection.name"]}, False)])
+            [Model(Collection("index", "name"), {"uid":"1","name": "collection.name", "collection":{"name":"example"},"conditions":["collection.name"]}, False)])
         indexes = self.systemService.find_indexes_from_collection_name("example")
         self.assertTrue(len(indexes) == 1)
-        self.assertEqual(indexes[0].index_name, "example#collection.name")
+        self.assertEqual(indexes[0].uid, "1")
+        self.assertEqual(indexes[0].index_name, "collection.name")
         self.assertEqual(call(expected_query), mock_find.call_args_list[0])

@@ -1,4 +1,4 @@
-import json
+import logging
 from typing import *
 
 from dynamoplus.models.query.query import Query
@@ -10,21 +10,29 @@ from dynamoplus.models.system.index.index import Index
 collectionMetadata = Collection("collection", "name")
 indexMetadata = Collection("index", "name")
 
-def from_collection_to_dict(collection_metadata:Collection):
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+def from_collection_to_dict(collection_metadata: Collection):
     result = {"name": collection_metadata.name, "id_key": collection_metadata.id_key}
     if collection_metadata.ordering_key:
         result["ordering_key"] = collection_metadata.ordering_key
     return result
-def from_index_to_dict(index_metadata:Index):
-    return {"name":index_metadata.index_name, "collection":{"name": index_metadata.collection_name}, "conditions": index_metadata.conditions}
+
+
+def from_index_to_dict(index_metadata: Index):
+    return {"name": index_metadata.index_name, "collection": {"name": index_metadata.collection_name},
+            "conditions": index_metadata.conditions}
 
 
 def from_dict_to_index(d: dict):
-    return Index(d["collection"]["name"], d["conditions"], d["ordering_key"] if "ordering_key" in d else None)
+    return Index(d["uid"], d["collection"]["name"], d["conditions"], d["ordering_key"] if "ordering_key" in d else None,
+                 d["index_name"] if "index_name" in d else None)
 
 
 def from_index_to_dict(index_metadata: Index):
     return {
+        "uid": index_metadata.uid,
         "name": index_metadata.index_name,
         "collection": {
             "name": index_metadata.collection_name
@@ -83,7 +91,11 @@ class SystemService:
         repository = DynamoPlusRepository(indexMetadata, True)
         model = repository.create(index)
         if model:
-            return from_dict_to_index(model.document)
+            created_index = from_dict_to_index(model.document)
+            logger.info("index created {}".format(created_index))
+            IndexDynamoPlusRepository(indexMetadata,Index(None,"index",["collection.name"])).create(model.document)
+            logger.info("{} has been indexed ".format(created_index.collection_name))
+            return created_index
 
     @staticmethod
     def get_index(name: str):
@@ -97,14 +109,14 @@ class SystemService:
 
     @staticmethod
     def find_indexes_from_collection_name(collection_name: str):
-        index = Index("index", ["collection.name"])
-        query = Query({"collection":{"name": collection_name}}, index)
+        index = Index(None, "index", ["collection.name"])
+        query = Query({"collection": {"name": collection_name}}, index)
         result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
         return list(map(lambda m: from_dict_to_index(m.document), result.data))
 
     @staticmethod
     def find_collection_by_example(example: Collection):
-        index = Index("collection", ["name"])
+        index = Index(None, "collection", ["name"])
         query = Query({"name": example.name}, index)
         result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
         return list(map(lambda m: from_dict_to_collection(m.document), result.data))
