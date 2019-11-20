@@ -130,6 +130,20 @@ class TestDynamoPlusRepository(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(len(result.data), 9)
 
+    def test_indexing(self):
+        index = Index("1", "example", ["attribute1"])
+        self.indexRepository = IndexDynamoPlusRepository(self.collection, index)
+        result = self.indexRepository.create({"id": "1", "attribute1": "100"})
+        self.assertIsNotNone(result)
+        self.assertIsNotNone(result.pk)
+        self.assertIsNotNone(result.sk)
+        self.assertIsNotNone(result.data)
+        self.assertIsNotNone(result.document)
+        self.assertEqual(result.pk, "example#1")
+        self.assertEqual(result.sk, "example#attribute1")
+        self.assertEqual(result.data, "100")
+
+
     # NOT SUPPORTED BY moto    
     # def test_query_with_ordering(self):
     #     for i in range(1,10):
