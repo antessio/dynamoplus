@@ -73,11 +73,11 @@ def dynamoStreamHandler(event, context):
 
 def indexing(repository_action: Callable[[DynamoPlusRepository],None], system_service: SystemService, collection_name: str,
              collection_metadata: Collection, new_record: dict):
-    is_system_collection = DynamoPlusHandlerInterface.is_system(collection_name)
-    if not is_system_collection:
+
+    is_system = DynamoPlusHandler.is_system(collection_name)
+    if not is_system:
         for index in system_service.find_indexes_from_collection_name(collection_name):
-            repository = IndexDynamoPlusRepository(collection_metadata,index,is_system_collection)
-            is_system = DynamoPlusHandler.is_system(collection_name)
+            repository = IndexDynamoPlusRepository(collection_metadata,index,False)
             index_model = IndexModel(collection_metadata, new_record, index, is_system)
             if index_model.data():
                 repository_action(repository)
