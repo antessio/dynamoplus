@@ -2,8 +2,6 @@ from typing import *
 import abc
 import logging
 
-from pynamodb.exceptions import DoesNotExist
-
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.query.query import Index, Query
 from dynamoplus.repository.models import Model, IndexModel, QueryResult
