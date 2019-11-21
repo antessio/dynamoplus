@@ -1,6 +1,5 @@
 import unittest
 from typing import *
-from dynamoplus.repository.models import Model, IndexModel, SystemDataModel, DataModel
 from dynamoplus.models.query.query import Query, Index
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
 from dynamoplus.models.system.collection.collection import Collection
@@ -12,8 +11,6 @@ import os
 
 from boto3.dynamodb.conditions import Key, Attr
 
-SystemDataModel.setup_model(SystemDataModel, "example-system", "eu-west-1")
-DataModel.setup_model(DataModel, "example-domain", "eu-west-1")
 
 @mock_dynamodb2
 class TestDynamoPlusRepository(unittest.TestCase):
@@ -59,9 +56,9 @@ class TestDynamoPlusRepository(unittest.TestCase):
         self.assertIsNotNone(result.sk)
         self.assertIsNotNone(result.data)
         self.assertIsNotNone(result.document)
-        self.assertEqual(result.pk, "example#randomUid")
-        self.assertEqual(result.sk, "example")
-        self.assertEqual(result.data, "randomUid#1")
+        self.assertEqual(result.pk(), "example#randomUid")
+        self.assertEqual(result.sk(), "example")
+        self.assertEqual(result.data(), "randomUid#1")
         self.assertDictEqual(result.document, document)
         # self.assertEqual(result.document["attribute1"],"value2")
         # self.assertIn("pk",result.toDynamoDbItem())
@@ -70,17 +67,17 @@ class TestDynamoPlusRepository(unittest.TestCase):
 
     def test_update(self):
         document = {"id": "1234", "attribute1": "value1"}
-        self.table.put_item(Item={"pk": "example#1234", "sk": "example", "data": "1234", **document})
+        self.table.put_item(Item={"pk": "example#1234", "sk": "example", "data": "1234", "document": json.dumps(document)})
         document["attribute1"] = "value2"
         result = self.repository.update(document)
         self.assertIsNotNone(result)
-        self.assertIsNotNone(result.pk)
-        self.assertIsNotNone(result.sk)
-        self.assertIsNotNone(result.data)
+        self.assertIsNotNone(result.pk())
+        self.assertIsNotNone(result.sk())
+        self.assertIsNotNone(result.data())
         self.assertIsNotNone(result.document)
-        self.assertEqual(result.pk, "example#1234")
-        self.assertEqual(result.sk, "example")
-        self.assertEqual(result.data, "1234")
+        self.assertEqual(result.pk(), "example#1234")
+        self.assertEqual(result.sk(), "example")
+        self.assertEqual(result.data(), "1234")
         self.assertDictEqual(result.document, document)
         self.assertEqual(result.document["attribute1"], "value2")
 
@@ -95,13 +92,13 @@ class TestDynamoPlusRepository(unittest.TestCase):
             Item={"pk": "example#1234", "sk": "example", "data": "1234", "document": json.dumps(document)})
         result = self.repository.get("1234")
         self.assertIsNotNone(result)
-        self.assertIsNotNone(result.pk)
-        self.assertIsNotNone(result.sk)
-        self.assertIsNotNone(result.data)
+        self.assertIsNotNone(result.pk())
+        self.assertIsNotNone(result.sk())
+        self.assertIsNotNone(result.data())
         self.assertIsNotNone(result.document)
-        self.assertEqual(result.pk, "example#1234")
-        self.assertEqual(result.sk, "example")
-        self.assertEqual(result.data, "1234")
+        self.assertEqual(result.pk(), "example#1234")
+        self.assertEqual(result.sk(), "example")
+        self.assertEqual(result.data(), "1234")
         self.assertDictEqual(result.document, document)
 
     def test_query(self):
@@ -139,13 +136,13 @@ class TestDynamoPlusRepository(unittest.TestCase):
         self.indexRepository = IndexDynamoPlusRepository(self.collection, index)
         result = self.indexRepository.create({"id": "1", "attribute1": "100"})
         self.assertIsNotNone(result)
-        self.assertIsNotNone(result.pk)
-        self.assertIsNotNone(result.sk)
-        self.assertIsNotNone(result.data)
+        self.assertIsNotNone(result.pk())
+        self.assertIsNotNone(result.sk())
+        self.assertIsNotNone(result.data())
         self.assertIsNotNone(result.document)
-        self.assertEqual(result.pk, "example#1")
-        self.assertEqual(result.sk, "example#attribute1")
-        self.assertEqual(result.data, "100")
+        self.assertEqual(result.pk(), "example#1")
+        self.assertEqual(result.sk(), "example#attribute1")
+        self.assertEqual(result.data(), "100")
 
 
     # NOT SUPPORTED BY moto    

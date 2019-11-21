@@ -107,7 +107,7 @@ class TestSystemService(unittest.TestCase):
         expected_query = Query({"name": "example"}, index)
         collection_metadata = Collection("example","name")
         mock_index_dynamoplus_repository.return_value = None
-        mock_find.return_value = QueryResult([Model(Collection("example","id"),{"name":"example","id_key":"id"},False)])
+        mock_find.return_value = QueryResult([Model(Collection("example", "id"), {"name": "example", "id_key": "id"})])
         collections = self.systemService.find_collection_by_example(collection_metadata)
         self.assertTrue(len(collections)==1)
         self.assertEqual(collections[0].name,"example")
@@ -120,7 +120,9 @@ class TestSystemService(unittest.TestCase):
         expected_query = Query({"collection":{"name": "example"}}, index)
         mock_index_dynamoplus_repository.return_value = None
         mock_find.return_value = QueryResult(
-            [Model(Collection("index", "name"), {"uid":"1","name": "collection.name", "collection":{"name":"example"},"conditions":["collection.name"]}, False)])
+            [Model(Collection("index", "name"),
+                   {"uid": "1", "name": "collection.name", "collection": {"name": "example"},
+                    "conditions": ["collection.name"]})])
         indexes = self.systemService.find_indexes_from_collection_name("example")
         self.assertTrue(len(indexes) == 1)
         self.assertEqual(indexes[0].uid, "1")

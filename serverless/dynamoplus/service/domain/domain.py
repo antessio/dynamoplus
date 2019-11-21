@@ -15,19 +15,19 @@ class DomainService:
         self.collection = collection
 
     def get_document(self, id: str):
-        document = DynamoPlusRepository(self.collection).get(id)
-        if document:
-            return document.document
+        data_model = DynamoPlusRepository(self.collection).get(id)
+        if data_model:
+            return data_model.document
 
     def create_document(self, document: dict):
-        created_document = DynamoPlusRepository(self.collection).create(document)
-        if created_document:
-            return created_document.document
+        created_data_model = DynamoPlusRepository(self.collection).create(document)
+        if created_data_model:
+            return created_data_model.document
 
     def update_document(self, document: dict):
-        updated_document = DynamoPlusRepository(self.collection).update(document)
-        if updated_document:
-            return updated_document.document
+        updated_data_model = DynamoPlusRepository(self.collection).update(document)
+        if updated_data_model:
+            return updated_data_model.document
 
     def delete_document(self, id: str):
         DynamoPlusRepository(self.collection).delete(id)
@@ -39,4 +39,4 @@ class DomainService:
     def find_by_index(self, index: Index, example: dict):
         query = Query(example, index)
         result = IndexDynamoPlusRepository(self.collection, index, False).find(query)
-        return list(map(lambda data_model: data_model.document, result.data)), result.lastEvaluatedKey
+        return list(map(lambda dm: dm.document, result.data)), result.lastEvaluatedKey

@@ -9,10 +9,8 @@ import boto3
 from moto import mock_dynamodb2
 
 from dynamoplus.http.handler.handler import HttpHandler
-from dynamoplus.repository.models import SystemDataModel, DataModel
 
-SystemDataModel.setup_model(SystemDataModel, "example-system", "eu-west-1")
-DataModel.setup_model(DataModel, "example-domain", "eu-west-1")
+
 
 @mock_dynamodb2
 class TestHttpHandler(unittest.TestCase):

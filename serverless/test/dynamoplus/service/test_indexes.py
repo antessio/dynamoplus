@@ -23,9 +23,9 @@ class TestIndexService(unittest.TestCase):
         collectionConfiguration = Collection("example","id","ordering")
         index = Index("1","example",["attribute1"])
         data =[
-            Model(collectionConfiguration,{"pk": "example#1","sk":"example#attribute1", "data":"value1"}),
-            Model(collectionConfiguration,{"pk": "example#2","sk":"example#attribute1", "data":"value1"}),
-            Model(collectionConfiguration,{"pk": "example#3","sk":"example#attribute1", "data":"value1"})
+            Model(collectionConfiguration, {"pk": "example#1", "sk": "example#attribute1", "data": "value1"}),
+            Model(collectionConfiguration, {"pk": "example#2", "sk": "example#attribute1", "data": "value1"}),
+            Model(collectionConfiguration, {"pk": "example#3", "sk": "example#attribute1", "data": "value1"})
             ]
         mock_repository.return_value=None
         mock_find.return_value=QueryResult(data)
