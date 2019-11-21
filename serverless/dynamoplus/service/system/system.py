@@ -3,7 +3,7 @@ from typing import *
 
 from dynamoplus.models.query.query import Query
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
-from dynamoplus.repository.models import Model, QueryResult, DataModel
+from dynamoplus.repository.models import Model, QueryResult
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
 from dynamoplus.models.system.index.index import Index
 

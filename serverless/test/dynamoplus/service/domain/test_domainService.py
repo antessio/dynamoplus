@@ -3,7 +3,7 @@ import decimal
 
 from dynamoplus.models.query.query import Query
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
-from dynamoplus.repository.models import Model, DataModel, QueryResult, IndexModel
+from dynamoplus.repository.models import Model, QueryResult, IndexModel
 from dynamoplus.service.domain.domain import DomainService
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
 from dynamoplus.models.system.index.index import Index
@@ -73,8 +73,8 @@ class TestDomainService(unittest.TestCase):
         # given
         mock_index_repository.return_value = None
         mock_find.return_value = QueryResult([
-            Model(self.exampleCollectionMetadata, {"id": "1", "attribute1": "1"}).data_model,
-            Model(self.exampleCollectionMetadata, {"id": "2", "attribute1": "1"}).data_model
+            Model(self.exampleCollectionMetadata, {"id": "1", "attribute1": "1"}),
+            Model(self.exampleCollectionMetadata, {"id": "2", "attribute1": "1"})
         ])
         # when
         documents, last_evaluated_key = self.domainService.find_all()
@@ -93,8 +93,8 @@ class TestDomainService(unittest.TestCase):
         expected_query = Query(expected_example, index)
         mock_index_repository.return_value = None
         mock_find.return_value = QueryResult([
-            IndexModel(self.exampleCollectionMetadata, {"id": "1", "attribute1": "1"}, index).data_model,
-            IndexModel(self.exampleCollectionMetadata, {"id": "2", "attribute1": "1"}, index).data_model
+            IndexModel(self.exampleCollectionMetadata, {"id": "1", "attribute1": "1"},index),
+            IndexModel(self.exampleCollectionMetadata, {"id": "2", "attribute1": "1"},index)
         ])
         # when
         documents, last_evaluated_key = self.domainService.find_by_index(index, expected_example)
