@@ -106,10 +106,10 @@ class IndexModel(Model):
     def data(self):
         if self.index is None:
             return None
-        logging.info("orderKey {}".format(self.ordering_key))
+        logging.info("orderKey {}".format(self.index.ordering_key))
         order_value = None
         try:
-            order_value = self.document[self.ordering_key] if self.ordering_key is not None and self.ordering_key in self.document else None
+            order_value = self.document[self.index.ordering_key] if self.index.ordering_key is not None and self.index.ordering_key in self.document else None
         except AttributeError:
             logging.debug("ordering key missing")
         logging.debug("orderingPart {}".format(order_value))
