@@ -9,4 +9,4 @@ logging.basicConfig(level=logging.INFO)
 
 def update(event, context):
     handler = HttpHandler()
-    return handler.create(event["pathParameters"], body=event["body"])
+    return handler.update(event["pathParameters"], body=event["body"])
