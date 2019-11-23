@@ -91,9 +91,10 @@ class DynamoPlusRepository(Repository):
                 map(lambda kv: (":{}".format(kv[0]), "_{}".format(kv[1])),
                     filter(
                         lambda kv: kv[0] != self.collection.id_key and kv[0] != "pk" and kv[0] != "sk", dynamo_db_item.items())))
+            expression_attribute_names = {}
             for k in dynamo_db_item.keys():
                 if k != self.collection.id_key and k != "pk" and k != "sk":
-                    expression_value["_{}".format(k)]=k
+                    expression_attribute_names["_{}".format(k)]=k
             response = self.table.update_item(
                 Key={
                     'pk': model.pk(),
@@ -101,6 +102,7 @@ class DynamoPlusRepository(Repository):
                 },
                 UpdateExpression=update_expression,
                 ExpressionAttributeValues=expression_value,
+                ExpressionAttributeNames=expression_attribute_names,
                 ReturnValues="UPDATED_NEW"
             )
             logger.info("Response from update operation is " + response.__str__())
