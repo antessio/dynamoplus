@@ -30,7 +30,7 @@ class HttpHandler(object):
                 return self.get_http_response(headers=self.get_response_headers(headers), statusCode=404)
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
-                                          body=self.format_json({"msg": "entity {} not handled".format(collection)}))
+                                          body=self.format_json({"msg": e.message}))
 
     def create(self, path_parameters, query_string_parameters=[], body=None, headers=None):
         collection = self.get_document_type_from_path_parameters(path_parameters)
@@ -43,7 +43,7 @@ class HttpHandler(object):
                                           body=self.format_json(dto))
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
-                                          body=self.format_json({"msg": "entity {} not handled".format(collection)}))
+                                          body=self.format_json({"msg": e.message}))
         except Exception as e:
             logger.error("Unable to create entity {} for body {}".format(collection, body))
             logger.exception(str(e))
@@ -63,7 +63,7 @@ class HttpHandler(object):
                                           body=self.format_json(dto))
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
-                                          body=self.format_json({"msg": "entity {} not handled".format(collection)}))
+                                          body=self.format_json({"msg": e.message}))
         except Exception as e:
             logger.error("Unable to update entity {} for body {}".format(collection, body))
             logger.exception(str(e))
@@ -80,7 +80,7 @@ class HttpHandler(object):
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200)
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
-                                          body=self.format_json({"msg": "entity {} not handled".format(collection)}))
+                                          body=self.format_json({"msg": e.message}))
 
     def query(self, path_parameters, query_string_parameters={}, body=None, headers=None):
         logger.info("headers received {}".format(str(headers)))
@@ -94,7 +94,7 @@ class HttpHandler(object):
             return self.get_http_response(body=self.format_json({"data":documents,"last_key":last_evaluated_key}),headers=self.get_response_headers(headers), statusCode=200)
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
-                                          body=self.format_json({"msg": "entity {} not handled".format(collection)}))
+                                          body=self.format_json({"msg": e.message}))
         # limit = None
         # startFrom = None
         # if query_string_parameters is not None and "limit" in query_string_parameters:
