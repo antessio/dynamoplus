@@ -84,17 +84,18 @@ class DynamoPlusRepository(Repository):
         if dynamo_db_item.keys():
             # only updates attributes in the id_key or pk or sk
             logger.info("updating {} ".format(dynamo_db_item))
-            update_expression = "SET " + ", ".join(map(lambda k: "_{}=:{}".format(k,k), filter(
+
+            update_expression = "SET " + ", ".join(map(lambda k: "#{}=:{}".format(k,k), filter(
                 lambda k: k != self.collection.id_key and k != "pk" and k != "sk",
                 dynamo_db_item.keys())))
             expression_value = dict(
-                map(lambda kv: (":{}".format(kv[0]), "_{}".format(kv[1])),
+                map(lambda kv: (":{}".format(kv[0]), kv[1]),
                     filter(
                         lambda kv: kv[0] != self.collection.id_key and kv[0] != "pk" and kv[0] != "sk", dynamo_db_item.items())))
             expression_attribute_names = {}
             for k in dynamo_db_item.keys():
                 if k != self.collection.id_key and k != "pk" and k != "sk":
-                    expression_attribute_names["_{}".format(k)]=k
+                    expression_attribute_names["#{}".format(k)]=k
             response = self.table.update_item(
                 Key={
                     'pk': model.pk(),
