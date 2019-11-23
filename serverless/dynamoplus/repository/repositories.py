@@ -80,24 +80,27 @@ class DynamoPlusRepository(Repository):
 
     def update(self, document: dict):
         model = self.getModelFromDocument(document)
-        dynamoDbItem = model.to_dynamo_db_item()
-        if dynamoDbItem.keys():
+        dynamo_db_item = model.to_dynamo_db_item()
+        if dynamo_db_item.keys():
             # only updates attributes in the id_key or pk or sk
-            logger.info("updating {} ".format(dynamoDbItem))
+            logger.info("updating {} ".format(dynamo_db_item))
             update_expression = "SET " + ", ".join(map(lambda k: "_{}=:{}".format(k,k), filter(
                 lambda k: k != self.collection.id_key and k != "pk" and k != "sk",
-                dynamoDbItem.keys())))
-            expressionValue = dict(
+                dynamo_db_item.keys())))
+            expression_value = dict(
                 map(lambda kv: (":{}".format(kv[0]), "_{}".format(kv[1])),
                     filter(
-                        lambda kv: kv[0] != self.collection.id_key and kv[0] != "pk" and kv[0] != "sk", dynamoDbItem.items())))
+                        lambda kv: kv[0] != self.collection.id_key and kv[0] != "pk" and kv[0] != "sk", dynamo_db_item.items())))
+            for k in dynamo_db_item.keys():
+                if k != self.collection.id_key and k != "pk" and k != "sk":
+                    expression_value["_{}".format(k)]=k
             response = self.table.update_item(
                 Key={
                     'pk': model.pk(),
                     'sk': model.sk()
                 },
                 UpdateExpression=update_expression,
-                ExpressionAttributeValues=expressionValue,
+                ExpressionAttributeValues=expression_value,
                 ReturnValues="UPDATED_NEW"
             )
             logger.info("Response from update operation is " + response.__str__())
