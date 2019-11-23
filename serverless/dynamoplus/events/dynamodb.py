@@ -55,7 +55,7 @@ def dynamoStreamHandler(event, context):
                     new_record = deserialize(record['dynamodb']['NewImage'])
                     # document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], new_record.items()))
                     logger.info("updating index for {}".format(str(new_record)))
-                    document = json.loads(new_record["document"])
+                    document = json.loads(new_record)
                     indexing(lambda r: r.update(document), system_service, sk,
                              collection_metadata, document)
 
