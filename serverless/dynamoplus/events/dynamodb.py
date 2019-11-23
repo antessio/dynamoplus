@@ -52,7 +52,7 @@ def dynamoStreamHandler(event, context):
                              collection_metadata, document)
 
                 elif record.get('eventName') == 'MODIFY':
-                    new_record = deserialize(record['dynamodb']['NewImage'])["document"]
+                    new_record = deserialize(record['dynamodb']['NewImage'])
                     # document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], new_record.items()))
                     logger.info("updating index for {}".format(str(new_record)))
                     document = json.loads(new_record["document"])
