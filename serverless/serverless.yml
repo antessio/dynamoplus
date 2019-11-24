@@ -11,8 +11,9 @@ custom:
     start:
       migrate: true
   system_indexes: "collection#name,index#name,index#collection.name,collection#active"
-  system_collections: "collection#id#creation_date_time,index#id#creation_date_time"
-  allowed_origins: "http://localhost:3000" ## to change in production
+  #system_collections: "collection#id#creation_date_time,index#id#creation_date_time"
+  system_collections: "collection,index"
+  allowed_origins: "http://localhost:3000,https://dynamoplus-dashboard.firebaseapp.com" ## to change in production
 frameworkVersion: ">=1.1.0 <2.0.0"
 
 provider:
@@ -23,8 +24,11 @@ provider:
 
   environment:
     ALLOWED_ORIGINS: ${self:custom.allowed_origins}
-    DYNAMODB_TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}
-    DYNAMODB_TABLE: { Ref: DomainDynamoDbTable }
+    DYNAMODB_DOMAIN_TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}-domain
+    DYNAMODB_SYSTEM_TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}-system
+    DYNAMODB_DOMAIN_TABLE: ${self:service}-${opt:stage, self:provider.stage}-domain
+    DYNAMODB_SYSTEM_TABLE: ${self:service}-${opt:stage, self:provider.stage}-system
+    REGION: ${self:provider.region}
     INDEXES: ${self:custom.system_indexes}
     ENTITIES: ${self:custom.system_collections}
     AUTH0_CLIENT_ID: ${file(./secrets.json):AUTH0_CLIENT_ID}
@@ -43,9 +47,10 @@ provider:
         # New permissions needed for stream
         - dynamodb:GetRecords
         - dynamodb:GetShardIterator
+        - dynamodb:DescribeTable
         - dynamodb:DescribeStream
         - dynamodb:ListStreams
-      Resource: [!GetAtt DomainDynamoDbTable.Arn, !Join [ '/',[!GetAtt DomainDynamoDbTable.Arn,index/*]]]
+      Resource: [!GetAtt SystemDynamoDbTable.Arn, !Join [ '/',[!GetAtt SystemDynamoDbTable.Arn,index/*]], !GetAtt DomainDynamoDbTable.Arn, !Join [ '/',[!GetAtt DomainDynamoDbTable.Arn,index/*]]]
 
 
 functions:
@@ -66,9 +71,9 @@ functions:
           path: dynamoplus/{collection}
           method: post
           cors: true
-          authorizer: 
-            name: auth
-            type: request
+          #authorizer: 
+          #  name: auth
+          #  type: request
 
   query:
     handler: dynamoplus/http/query.query
@@ -77,9 +82,19 @@ functions:
           path: dynamoplus/{collection}/query/{queryId}
           method: post
           cors: true
-          authorizer: 
-            name: auth
-            type: request
+          #authorizer: 
+          #  name: auth
+          #  type: request
+  queryAll:
+    handler: dynamoplus/http/query.query
+    events:
+      - http:
+          path: dynamoplus/{collection}/query
+          method: post
+          cors: true
+          #authorizer: 
+          #  name: auth
+          #  type: request
 
   get:
     handler: dynamoplus/http/get.get
@@ -88,9 +103,9 @@ functions:
           path: dynamoplus/{collection}/{id}
           method: get
           cors: true
-          authorizer: 
-            name: auth
-            type: request
+          #authorizer: 
+          #  name: auth
+          #  type: request
 
   update:
     handler: dynamoplus/http/update.update
@@ -99,9 +114,9 @@ functions:
           path: dynamoplus/{collection}/{id}
           method: put
           cors: true
-          authorizer: 
-            name: auth
-            type: request
+          #authorizer: 
+          #  name: auth
+          #  type: request
 
   delete:
     handler: dynamoplus/http/delete.delete
@@ -110,9 +125,9 @@ functions:
           path: dynamoplus/{collection}/{id}
           method: delete
           cors: true
-          authorizer: 
-            name: auth
-            type: request
+          #authorizer: 
+          #  name: auth
+          #  type: request
 
 resources:
   Resources:
@@ -137,6 +152,40 @@ resources:
         RestApiId:
           Ref: 'ApiGatewayRestApi'
         StatusCode: '401'
+    SystemDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: S
+          - AttributeName: sk
+            AttributeType: S
+          - AttributeName: data
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+          - AttributeName: sk
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_SYSTEM_TABLE_NAME}
+        GlobalSecondaryIndexes:
+        - IndexName: sk-data-index
+          KeySchema:
+          - AttributeName: sk
+            KeyType: HASH
+          - AttributeName: data
+            KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: '1'
+            WriteCapacityUnits: '1'
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
     DomainDynamoDbTable:
       Type: 'AWS::DynamoDB::Table'
       DeletionPolicy: Retain
@@ -156,7 +205,7 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_TABLE_NAME}
+        TableName: ${self:provider.environment.DYNAMODB_DOMAIN_TABLE_NAME}
         GlobalSecondaryIndexes:
         - IndexName: sk-data-index
           KeySchema:
@@ -170,5 +219,5 @@ resources:
             ReadCapacityUnits: '1'
             WriteCapacityUnits: '1'
         StreamSpecification:
-          StreamViewType: NEW_AND_OLD_IMAGES
+          StreamViewType: NEW_AND_OLD_IMAGES 
       
