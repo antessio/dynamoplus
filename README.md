@@ -21,11 +21,8 @@ A serverless back-end to create REST endpoint in python
 2. Install Docker. Why Docker? Because it's the only way to ensure that the Python package that is
    created on your local machine and uploaded to AWS will actually run in AWS's lambda containers. 
 
-2. Setup an [auth0 client](https://auth0.com/docs/clients) and get your `client id` and `client secrets` from auth0.
+*NOTE: no authentication check is performed, the authorizer lambda is skipped 
 
-3. Plugin your `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET` and `AUDIENCE` in a new file called `secrets.json`. These will be used by the JSON web token decoder to validate private api access.
-
-4. Copy the `public_key_example` file to a new file named `public_key` and follow the instructions in that file
 
 # How it works
 
@@ -36,8 +33,8 @@ There are two special entities:
     //example
     {
         "name": "example",
-        "idKey": "id",
-        "orderingKey": "creation_date_time"
+        "id_key": "id",
+        "ordering_key": "creation_date_time"
     }
     ```
 - `index`
@@ -57,8 +54,8 @@ To create a new collection:
 POST /dynamoplus/collection
 {
     "name": "my-collection",
-    "idKey": "objectId",
-    "orderingKey": "custom_attribute"
+    "id_key": "objectId",
+    "ordering_key": "custom_attribute"
 }
 ```
 
@@ -88,8 +85,8 @@ Once created some new endpoints will be available:
     POST /dynamoplus/collection
     {
         "name": "category",
-        "idKey": "id",
-        "orderingKey": "ordering"
+        "id_key": "id",
+        "ordering_key": "ordering"
     }
     ```
 
@@ -99,8 +96,8 @@ Once created some new endpoints will be available:
     POST /dynamoplus/collection
     {
         "name": "book",
-        "idKey": "id",
-        "orderingKey": "rating"
+        "id_key": "id",
+        "ordering_key": "rating"
     }
     ```
 - Create a some indexes on book
