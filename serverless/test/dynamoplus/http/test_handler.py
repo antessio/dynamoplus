@@ -61,18 +61,30 @@ class TestHttpHandler(unittest.TestCase):
                                         "document": "{\"uid\": \"1\",\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
         self.systemTable.put_item(Item={"pk": "index#even", "sk": "index", "data": "even",
                                         "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
+        self.systemTable.put_item(Item={"pk": "index#starting", "sk": "index", "data": "starting",
+                                        "document": "{\"uid\": \"3\",\"name\":\"starting\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"starting\",\"starting\"]}"})
+
 
     def fill_data(self):
         timestamp = datetime.utcnow()
         document = {"name": "example", "id_key": "id", "ordering_key": "ordering",
                     "creation_date_time": timestamp.isoformat()}
+        # starting 19/11/19
+        target = 1574169491000/1000
+        one_hour = 60*60
         for i in range(1, 21):
-            document = {"id": str(i), "title": "data_" + str(i), "even": str(i % 2), "ordering": str(i)}
+            starting = target+(i*one_hour*24)
+            ending = starting+one_hour
+            document = {"id": str(i), "title": "data_" + str(i), "even": str(i % 2), "starting": datetime.utcfromtimestamp(starting).isoformat(), "ending": datetime.utcfromtimestamp(ending).isoformat(),"ordering": str(i)}
             self.table.put_item(
                 Item={"pk": "example#" + str(i), "sk": "example", "data": str(i), "document": json.dumps(document)})
             self.table.put_item(Item={"pk": "example#" + str(i), "sk": "example#title", "data": "data_" + str(i),
                                       "document": json.dumps(document)})
             self.table.put_item(Item={"pk": "example#" + str(i), "sk": "example#even", "data": str(i % 2),
+                                      "document": json.dumps(document)})
+            self.table.put_item(Item={"pk": "example#" + str(i), "sk": "example#starting", "data": datetime.utcfromtimestamp(starting).isoformat(),
+                                      "document": json.dumps(document)})
+            self.table.put_item(Item={"pk": "example#" + str(i), "sk": "example#ending", "data": datetime.utcfromtimestamp(ending).isoformat(),
                                       "document": json.dumps(document)})
 
     def test_getTargetEntity(self):
@@ -93,7 +105,7 @@ class TestHttpHandler(unittest.TestCase):
         expected_result = {"id": "1", "title": "data_1", "ordering": "1"}
         result = self.httpHandler.get({"collection": "example", "id": "1"})
         self.assertEqual(result["statusCode"], 200)
-        self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expected_result, ["even"])
+        self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expected_result, ["even","starting","ending"])
 
     def test_create(self):
         self.fill_sytem_data()
@@ -142,6 +154,23 @@ class TestHttpHandler(unittest.TestCase):
         headers=result["headers"]
         self.assertIn("Access-Control-Allow-Origin",headers)
         self.assertEqual(origin,headers["Access-Control-Allow-Origin"])
+
+    def test_query_by_range(self):
+        self.fill_sytem_data()
+        self.fill_data()
+        origin = "http://localhost"
+        starting = 1574428691000/1000
+        one_hour = 60*60
+
+        example = json.dumps({"starting": [datetime.utcfromtimestamp(starting).isoformat()[:-6], datetime.utcfromtimestamp(starting + (one_hour * 25)).isoformat()[:-6]]})
+        result = self.httpHandler.query({"collection": "example", "queryId": "starting"}, body=example,
+                                        headers={"origin": origin})
+        self.assertEqual(result["statusCode"], 200)
+        body = json.loads(result["body"])
+        self.assertEqual(len(body["data"]), 1)
+        headers = result["headers"]
+        self.assertIn("Access-Control-Allow-Origin", headers)
+        self.assertEqual(origin, headers["Access-Control-Allow-Origin"])
     def test_access_control_allow_origin(self):
         self.fill_sytem_data()
         self.fill_data()
