@@ -1,13 +1,17 @@
-import typing
-
 class DocumentTypeConfiguration(object):
-    def __init__(self, entityName:str, idKey:str, orderingKey:str):
-        self.entityName = entityName
-        self.idKey = idKey
-        self.orderingKey = orderingKey
-    def entityName(self):
-        return self.entityName
-    def idKey(self):
-        return self.idKey
-    def orderingKey(self):
-        return self.orderingKey
+    def __init__(self, entity_name: str, id_key: str, ordering_key: str):
+        self.entityName = entity_name
+        self.idKey = id_key
+        self.orderingKey = ordering_key
+
+    @property
+    def entity_name(self):
+        return self.entity_name
+
+    @property
+    def id_key(self):
+        return self.id_key
+
+    @property
+    def ordering_key(self):
+        return self.ordering_key

@@ -5,7 +5,9 @@ import decimal
 from datetime import datetime
 from typing import *
 import logging
+
 logging.basicConfig(level=logging.DEBUG)
+
 
 def convertToString(val):
     if isinstance(val, datetime):
@@ -14,43 +16,47 @@ def convertToString(val):
     elif isinstance(val, decimal.Decimal):
         logging.debug("converting decimal {} to string ".format(val))
         return str(val)
-    elif isinstance(val,bool):
+    elif isinstance(val, bool):
         return "true" if val else "false"
     elif val in ['True', 'False']:
-        return "true" if val=='True' else "false"
+        return "true" if val == 'True' else "false"
     else:
         return val
 
-def findValue(d:dict,keys:List[str]):
+
+def find_value(d: dict, keys: List[str]):
     k = keys[0]
     if k in d:
-        v=d[k]
+        v = d[k]
         if isinstance(v, dict):
-            return findValue(v,keys[1:])
+            return find_value(v, keys[1:])
         else:
             return convertToString(v)
     else:
         return None
 
-def getValuesByKeyRecursive(data, keys, skipIfNotFound=True):
+
+def get_values_by_key_recursive(data, keys, skip_if_not_found=True):
     result = []
     for k in keys:
-        subKeys = k.split(".")
-        if len(subKeys)>1:
-            subVal = findValue(data,subKeys)
-            if subVal is not None:
-                result.append(findValue(data,subKeys))
+        sub_keys = k.split(".")
+        if len(sub_keys) > 1:
+            sub_val = find_value(data, sub_keys)
+            if sub_val is not None:
+                result.append(find_value(data, sub_keys))
         elif k in data:
             result.append(str(data[k]))
         else:
-            if not skipIfNotFound:
-                raise Exception("{} not found in {} ".format(k,data))
+            if not skip_if_not_found:
+                raise Exception("{} not found in {} ".format(k, data))
     return result
+
 
 context = decimal.Context(
     Emin=-128, Emax=126, rounding=None, prec=38,
     traps=[decimal.Clamped, decimal.Overflow, decimal.Underflow]
 )
+
 
 def sanitize(data):
     """ Sanitizes an object so it can be updated to dynamodb (recursive) """
