@@ -100,6 +100,8 @@ class IndexModel(Model):
     def sk(self):
         if self.index is None:
             return self.collectionName
+        if self.index.range_condition:
+            return "{}#{}".format(self.collectionName, self.index.range_condition)
         return self.collectionName + "#" + "#".join(
             map(lambda x: x, self.index.conditions)) if self.index.conditions else self.collectionName
 
@@ -114,7 +116,10 @@ class IndexModel(Model):
             logging.debug("ordering key missing")
         logging.debug("orderingPart {}".format(order_value))
         logging.info("Entity {}".format(str(self.document)))
-        if self.index.conditions:
+        if self.index.range_condition:
+            v1,v2 = find_value(self.document, self.index.range_condition.split("."))
+            return v1,v2
+        elif self.index.conditions:
             logging.info("Index keys {}".format(self.index.conditions))
             '''
                 attr1#attr2#attr3#attr4#orderValue
