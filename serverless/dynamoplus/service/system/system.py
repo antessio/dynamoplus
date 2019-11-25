@@ -99,9 +99,17 @@ class SystemService:
 
     @staticmethod
     def get_index(name: str):
-        model = DynamoPlusRepository(indexMetadata, True).get(name)
-        if model:
-            return from_dict_to_index(model.document)
+        # model = DynamoPlusRepository(indexMetadata, True).get(name)
+        # if model:
+        #     return from_dict_to_index(model.document)
+        index = Index(None, "index", ["name"])
+        query = Query({"name": name}, index)
+        result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
+        indexes = list(map(lambda m: from_dict_to_index(m.document), result.data))
+        if len(indexes) == 0:
+            return None
+        else:
+            return indexes[0]
 
     @staticmethod
     def delete_index(name: str):
