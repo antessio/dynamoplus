@@ -62,7 +62,7 @@ class TestHttpHandler(unittest.TestCase):
                                         "document": "{\"uid\": \"1\",\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
         self.systemTable.put_item(Item={"pk": "index#1", "sk": "index#collection.name", "data": "example",
                                         "document": "{\"uid\": \"1\",\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
-        self.systemTable.put_item(Item={"pk": "index#1", "sk": "index#name", "data": "field",
+        self.systemTable.put_item(Item={"pk": "index#1", "sk": "index#collection.name#name", "data": "example#field",
                                         "document": "{\"uid\": \"1\",\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"field1\",\"field2.field21\"],\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
 
         ##index 2 - even
@@ -70,14 +70,14 @@ class TestHttpHandler(unittest.TestCase):
                                         "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
         self.systemTable.put_item(Item={"pk": "index#2", "sk": "index#collection.name", "data": "example",
                                         "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
-        self.systemTable.put_item(Item={"pk": "index#2", "sk": "index#name", "data": "even",
+        self.systemTable.put_item(Item={"pk": "index#2", "sk": "index#collection.name#name", "data": "example#even",
                                         "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
         ## index 3 - starting
         self.systemTable.put_item(Item={"pk": "index#3", "sk": "index", "data": "3",
                                         "document": "{\"uid\": \"3\",\"name\":\"starting\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"starting\",\"starting\"]}"})
         self.systemTable.put_item(Item={"pk": "index#3", "sk": "index#collection.name", "data": "example",
                                         "document": "{\"uid\": \"3\",\"name\":\"starting\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"starting\",\"starting\"]}"})
-        self.systemTable.put_item(Item={"pk": "index#3", "sk": "index#name", "data": "starting",
+        self.systemTable.put_item(Item={"pk": "index#3", "sk": "index#collection.name#name", "data": "example#starting",
                                         "document": "{\"uid\": \"3\",\"name\":\"starting\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"starting\",\"starting\"]}"})
 
 
