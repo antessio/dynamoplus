@@ -8,6 +8,7 @@ class Index(object):
         self._conditions = conditions
         conditions_set = set(self._conditions)
         condition_set_length = len(conditions_set)
+        self._range_condition = None
         if condition_set_length != len(self._conditions) and condition_set_length == 1:
             self._range_condition = conditions_set.pop()
         self._ordering_key = ordering_key
