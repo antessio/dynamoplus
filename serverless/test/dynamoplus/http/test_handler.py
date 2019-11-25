@@ -57,11 +57,27 @@ class TestHttpHandler(unittest.TestCase):
     def fill_sytem_data(self):
         self.systemTable.put_item(Item={"pk": "collection#example", "sk": "collection", "data": "example",
                                         "document": "{\"id_key\":\"id\",\"name\":\"example\",\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
-        self.systemTable.put_item(Item={"pk": "index#collection.name", "sk": "index", "data": "example",
+        ## index 1 - field1__field2.field21
+        self.systemTable.put_item(Item={"pk": "index#1", "sk": "index", "data": "1",
                                         "document": "{\"uid\": \"1\",\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
-        self.systemTable.put_item(Item={"pk": "index#even", "sk": "index", "data": "even",
+        self.systemTable.put_item(Item={"pk": "index#1", "sk": "index#collection.name", "data": "example",
+                                        "document": "{\"uid\": \"1\",\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
+        self.systemTable.put_item(Item={"pk": "index#1", "sk": "index#name", "data": "field",
+                                        "document": "{\"uid\": \"1\",\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"field1\",\"field2.field21\"],\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
+
+        ##index 2 - even
+        self.systemTable.put_item(Item={"pk": "index#2", "sk": "index", "data": "2",
                                         "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
-        self.systemTable.put_item(Item={"pk": "index#starting", "sk": "index", "data": "starting",
+        self.systemTable.put_item(Item={"pk": "index#2", "sk": "index#collection.name", "data": "example",
+                                        "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
+        self.systemTable.put_item(Item={"pk": "index#2", "sk": "index#name", "data": "even",
+                                        "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
+        ## index 3 - starting
+        self.systemTable.put_item(Item={"pk": "index#3", "sk": "index", "data": "3",
+                                        "document": "{\"uid\": \"3\",\"name\":\"starting\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"starting\",\"starting\"]}"})
+        self.systemTable.put_item(Item={"pk": "index#3", "sk": "index#collection.name", "data": "example",
+                                        "document": "{\"uid\": \"3\",\"name\":\"starting\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"starting\",\"starting\"]}"})
+        self.systemTable.put_item(Item={"pk": "index#3", "sk": "index#name", "data": "starting",
                                         "document": "{\"uid\": \"3\",\"name\":\"starting\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"starting\",\"starting\"]}"})
 
 
@@ -167,7 +183,7 @@ class TestHttpHandler(unittest.TestCase):
                                         headers={"origin": origin})
         self.assertEqual(result["statusCode"], 200)
         body = json.loads(result["body"])
-        self.assertEqual(len(body["data"]), 1)
+        self.assertEqual(len(body["data"]), 2)
         headers = result["headers"]
         self.assertIn("Access-Control-Allow-Origin", headers)
         self.assertEqual(origin, headers["Access-Control-Allow-Origin"])
