@@ -95,17 +95,17 @@ class SystemService:
             logger.info("index created {}".format(created_index.__str__()))
             index_by_collection_name = IndexDynamoPlusRepository(indexMetadata,Index(None,"index",["collection.name"]),True).create(model.document)
             logger.info("{} has been indexed {}".format(created_index.collection_name,index_by_collection_name.document))
-            index_by_name = IndexDynamoPlusRepository(indexMetadata,Index(None,"index",["name"]),True).create(model.document)
+            index_by_name = IndexDynamoPlusRepository(indexMetadata,Index(None,"index",["collection.name","name"]),True).create(model.document)
             logger.info("{} has been indexed {}".format(created_index.collection_name, index_by_name.document))
             return created_index
 
     @staticmethod
-    def get_index(name: str):
+    def get_index(name: str, collection_name:str):
         # model = DynamoPlusRepository(indexMetadata, True).get(name)
         # if model:
         #     return from_dict_to_index(model.document)
-        index = Index(None, "index", ["name"])
-        query = Query({"name": name}, index)
+        index = Index(None, "index", ["collection.name","name"])
+        query = Query({"name": name,"collection":{"name":collection_name}}, index)
         result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
         indexes = list(map(lambda m: from_dict_to_index(m.document), result.data))
         if len(indexes) == 0:

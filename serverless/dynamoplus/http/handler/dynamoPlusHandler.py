@@ -153,7 +153,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
                 logger.info("Found collection {}".format(collection_metadata.__str__))
                 return collection_metadata.__dict__
             elif collection_name == 'index':
-                index_metadata = self.systemService.get_index(id)
+                index_metadata = self.systemService.get_index(id,collection_name)
                 if index_metadata is None:
                     raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
                                            "{} not found with name {}".format(collection_name, id))
@@ -268,7 +268,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
                 logger.info("Query all {}".format(collection_name))
                 documents,last_evaluated_key = domain_service.find_all()
             else:
-                index_metadata = self.systemService.get_index(query_id)
+                index_metadata = self.systemService.get_index(query_id,collection_name)
                 if index_metadata is None:
                     raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
                 documents,last_evaluated_key = domain_service.find_by_index(index_metadata, example)
