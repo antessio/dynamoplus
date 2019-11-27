@@ -34,9 +34,9 @@ class DomainService:
 
     def find_all(self, limit: int = None, start_from: str = None):
         index = Index(None,self.collection.name, [])
-        return self.find_by_index(index, {},start_from,limit)
+        return self.find_by_index(index, {}, limit, start_from)
 
-    def find_by_index(self, index: Index, example: dict, start_from:str = None, limit:int = None):
+    def find_by_index(self, index: Index, example: dict, limit: int = None, start_from: str = None):
         query = Query(example, index, limit, start_from)
         result = IndexDynamoPlusRepository(self.collection, index, False).find(query)
         return list(map(lambda dm: dm.document, result.data)), result.lastEvaluatedKey
