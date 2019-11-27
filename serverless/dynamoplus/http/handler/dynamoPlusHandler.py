@@ -255,10 +255,10 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
             last_evaluated_key = None
             if collection_name == 'collection':
                 collections = SystemService.get_all_collections()
-                return list(map(lambda c: c.__dict__,collections)), None
+                return list(map(lambda c: from_dict_to_collection(c),collections)), None
             elif collection_name == 'index':
                     index_metadata_list = SystemService.find_indexes_from_collection_name(example["collection"]["name"])
-                    documents = list(map(lambda i: i.__dict__, index_metadata_list))
+                    documents = list(map(lambda i: from_dict_to_index(i), index_metadata_list))
                     return documents, None
             else:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
