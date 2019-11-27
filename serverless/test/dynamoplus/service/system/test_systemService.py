@@ -108,7 +108,7 @@ class TestSystemService(unittest.TestCase):
         collection_metadata = Collection("example","name")
         mock_index_dynamoplus_repository.return_value = None
         mock_find.return_value = QueryResult([Model(Collection("example", "id"), {"name": "example", "id_key": "id"})])
-        collections = self.systemService.find_collection_by_example(collection_metadata)
+        collections = self.systemService.find_collections_by_example(collection_metadata)
         self.assertTrue(len(collections)==1)
         self.assertEqual(collections[0].name,"example")
         self.assertEqual(call(expected_query), mock_find.call_args_list[0])
@@ -123,8 +123,8 @@ class TestSystemService(unittest.TestCase):
             [Model(Collection("index", "name"),
                    {"uid": "1", "name": "collection.name", "collection": {"name": "example"},
                     "conditions": ["collection.name"]})])
-        indexes = self.systemService.find_indexes_from_collection_name("example")
-        self.assertTrue(len(indexes) == 1)
+        indexes,last_key = self.systemService.find_indexes_from_collection_name("example")
+        self.assertEqual(1,len(indexes))
         self.assertEqual(indexes[0].uid, "1")
         self.assertEqual(indexes[0].index_name, "collection.name")
         self.assertEqual(call(expected_query), mock_find.call_args_list[0])

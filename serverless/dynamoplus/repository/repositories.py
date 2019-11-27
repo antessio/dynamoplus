@@ -145,7 +145,7 @@ class IndexDynamoPlusRepository(DynamoPlusRepository):
         ordering_key = query.index.ordering_key if query.index else None
         logger.info("order by is {} ".format(ordering_key))
         limit = query.limit
-        start_from = query.start_from
+        start_from = index_model.start_from(query.start_from) if query.start_from else None
         if query.index.range_condition:
             v_1, v_2 = index_model.data()
             key = Key('sk').eq(index_model.sk()) & Key('data').between(v_1,v_2)
@@ -179,5 +179,5 @@ class IndexDynamoPlusRepository(DynamoPlusRepository):
         last_key = None
 
         if 'LastEvaluatedKey' in response:
-            last_key = response['LastEvaluatedKey']
+            last_key = index_model.last_evaluated_key(response['LastEvaluatedKey'])
         return QueryResult(list(map(lambda i: Model.from_dynamo_db_item(i, self.collection), response[u'Items'])), last_key)
