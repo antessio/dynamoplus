@@ -91,7 +91,7 @@ class HttpHandler(object):
         logger.info("Received {} as index".format(query_id))
         document = json.loads(body, parse_float=Decimal)
         last_key = document["last_key"] if "last_key" in document else None
-        limit = int(query_string_parameters["limit"]) if "limit" in query_string_parameters else None
+        limit = int(query_string_parameters["limit"]) if query_string_parameters and "limit" in query_string_parameters else None
         try:
             documents,last_evaluated_key = self.dynamoPlusHandler.query(collection, query_id, document, last_key,limit)
             return self.get_http_response(body=self.format_json({"data":documents,"last_key":last_evaluated_key}),headers=self.get_response_headers(headers), statusCode=200)
