@@ -138,22 +138,20 @@ class DynamoPlusHandlerInterface(abc.ABC):
 
 
 class DynamoPlusHandler(DynamoPlusHandlerInterface):
-    def __init__(self, *args, **kwargs):
-        self.systemService = SystemService()
 
     def get(self, collection_name: str, id: str):
         is_system = DynamoPlusHandlerInterface.is_system(collection_name)
         if is_system:
             logger.info("Get {} metadata from system".format(collection_name))
             if collection_name == 'collection':
-                collection_metadata = self.systemService.get_collection_by_name(id)
+                collection_metadata = SystemService.get_collection_by_name(id)
                 if collection_metadata is None:
                     raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
                                            "{} not found with name {}".format(collection_name, id))
                 logger.info("Found collection {}".format(collection_metadata.__str__))
                 return collection_metadata.__dict__
             elif collection_name == 'index':
-                index_metadata = self.systemService.get_index(id,collection_name)
+                index_metadata = SystemService.get_index(id,collection_name)
                 if index_metadata is None:
                     raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
                                            "{} not found with name {}".format(collection_name, id))
@@ -161,7 +159,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
                 return index_metadata.__dict__
         else:
             logger.info("Get {} document".format(collection_name))
-            collection_metadata = self.systemService.get_collection_by_name(collection_name)
+            collection_metadata = SystemService.get_collection_by_name(collection_name)
             if collection_metadata is None:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "{} is not a valid collection".format(collection_name))
@@ -177,17 +175,17 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
             logger.info("Creating {} metadata {}".format(collection_name, document))
             if collection_name == 'collection':
                 collection_metadata = from_dict_to_collection(document)
-                collection_metadata = self.systemService.create_collection(collection_metadata)
+                collection_metadata = SystemService.create_collection(collection_metadata)
                 logger.info("Created collection {}".format(collection_metadata.__str__))
                 return from_collection_to_dict(collection_metadata)
             elif collection_name == 'index':
                 index_metadata = from_dict_to_index(document)
-                index_metadata = self.systemService.create_index(index_metadata)
+                index_metadata = SystemService.create_index(index_metadata)
                 logger.info("Created index {}".format(index_metadata.__str__))
                 return from_index_to_dict(index_metadata)
         else:
             logger.info("Create {} document {}".format(collection_name, document))
-            collection_metadata = self.systemService.get_collection_by_name(collection_name)
+            collection_metadata = SystemService.get_collection_by_name(collection_name)
             if collection_metadata is None:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "{} is not a valid collection".format(collection_name))
@@ -224,7 +222,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,"updating {} is not supported ".format(collection_name))
         else:
             logger.info("update {} document {}".format(collection_name, document))
-            collection_metadata = self.systemService.get_collection_by_name(collection_name)
+            collection_metadata = SystemService.get_collection_by_name(collection_name)
             if collection_metadata is None:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "{} is not a valid collection".format(collection_name))
@@ -239,12 +237,12 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
         if is_system:
             logger.info("delete {} metadata from system".format(collection_name))
             if collection_name == 'collection':
-                self.systemService.delete_collection(id)
+                SystemService.delete_collection(id)
             elif collection_name == 'index':
-                index_metadata = self.systemService.delete_index(id)
+                index_metadata = SystemService.delete_index(id)
         else:
             logger.info("delete {} document {}".format(collection_name,id))
-            collection_metadata = self.systemService.get_collection_by_name(collection_name)
+            collection_metadata = SystemService.get_collection_by_name(collection_name)
             if collection_metadata is None:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "{} is not a valid collection".format(collection_name))
@@ -256,10 +254,10 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
             documents = []
             last_evaluated_key = None
             if collection_name == 'collection':
-                collections = self.systemService.get_all_collections()
+                collections = SystemService.get_all_collections()
                 return list(map(lambda c: c.__dict__,collections)), None
             elif collection_name == 'index':
-                    index_metadata_list = self.systemService.find_indexes_from_collection_name(example["collection"]["name"])
+                    index_metadata_list = SystemService.find_indexes_from_collection_name(example["collection"]["name"])
                     documents = list(map(lambda i: i.__dict__, index_metadata_list))
                     return documents, None
             else:
@@ -267,7 +265,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
                                    "{} is not a valid collection".format(collection_name))
         else:
             logger.info("query id {} collection {} by example ".format( query_id,collection_name,example))
-            collection_metadata = self.systemService.get_collection_by_name(collection_name)
+            collection_metadata = SystemService.get_collection_by_name(collection_name)
             if collection_metadata is None:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "{} is not a valid collection".format(collection_name))
@@ -278,7 +276,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
                 logger.info("Query all {}".format(collection_name))
                 documents,last_evaluated_key = domain_service.find_all()
             else:
-                index_metadata = self.systemService.get_index(query_id,collection_name)
+                index_metadata = SystemService.get_index(query_id,collection_name)
                 if index_metadata is None:
                     raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
                 documents,last_evaluated_key = domain_service.find_by_index(index_metadata, example)

@@ -81,7 +81,7 @@ class SystemService:
 
 
     @staticmethod
-    def get_all_collections(self):
+    def get_all_collections():
         index_metadata=Index(None, "collection", [])
         query = Query({}, index_metadata)
         result = IndexDynamoPlusRepository(collectionMetadata, True, index_metadata).find(query)
