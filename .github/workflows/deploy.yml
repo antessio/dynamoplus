@@ -15,9 +15,9 @@ jobs:
         args: install
     - name: serverless deploy
       uses: serverless/github-action@develop
+      working-directory: ./serverless
       with:
         args: deploy
-      working-directory: ./serverless
       env:
         # SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
         # or if using AWS creds directly
