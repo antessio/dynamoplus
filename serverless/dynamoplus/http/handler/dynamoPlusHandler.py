@@ -252,15 +252,17 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
 
     def query(self, collection_name: str, query_id: str = None, example: dict = None, start_from : str = None, limit : int = None):
         is_system = DynamoPlusHandlerInterface.is_system(collection_name)
+        documents = []
+        last_evaluated_key = None
         if is_system:
-            documents = []
-            last_evaluated_key = None
             if collection_name == 'collection':
-                collections = SystemService.get_all_collections(limit,start_from)
-                return list(map(lambda c: from_collection_to_dict(c), collections)), None
+                collections,last_key = SystemService.get_all_collections(limit,start_from)
+                documents = list(map(lambda c: from_collection_to_dict(c), collections))
+                last_evaluated_key = last_key
             elif collection_name == 'index':
-                index_metadata_list = SystemService.find_indexes_from_collection_name(example["collection"]["name"], limit, start_from)
+                index_metadata_list, last_key = SystemService.find_indexes_from_collection_name(example["collection"]["name"], limit, start_from)
                 documents = list(map(lambda i: from_index_to_dict(i), index_metadata_list))
+                last_evaluated_key = last_key
             else:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "{} is not a valid collection".format(collection_name))
@@ -271,8 +273,6 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "{} is not a valid collection".format(collection_name))
             domain_service = DomainService(collection_metadata)
-            documents = []
-            last_evaluated_key = None
             if query_id is None:
                 logger.info("Query all {}".format(collection_name))
                 documents, last_evaluated_key = domain_service.find_all()
@@ -281,4 +281,4 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
                 if index_metadata is None:
                     raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
                 documents, last_evaluated_key = domain_service.find_by_index(index_metadata, example, start_from,limit)
-            return documents, last_evaluated_key
+        return documents, last_evaluated_key
