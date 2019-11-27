@@ -2,29 +2,8 @@ from typing import *
 
 from dynamoplus.models.system.index.index import Index
 
-class StartFrom:
-    def __init__(self, sk: str, data:str):
-        self._sk = sk
-        self._data = data
-
-    @property
-    def sk(self):
-        return self._sk
-
-    @sk.setter
-    def sk(self, value):
-        self._sk = value
-
-    @property
-    def data(self):
-        return self._data
-
-    @data.setter
-    def data(self,value):
-        self._data = value
-
 class Query(object):
-    def __init__(self, document: dict, index: Index, start_from: StartFrom = None, limit: int = 50):
+    def __init__(self, document: dict, index: Index, limit: int = 50, start_from: str = None):
         self.document = document
         self.index = index
         self.start_from = start_from
