@@ -100,7 +100,7 @@ class IndexModel(Model):
         return len(self.index.conditions) < len(get_values_by_key_recursive(self.document, self.index.conditions))
 
     def start_from(self, start_from:str):
-        return {"sk": self.sk(),"pk": "{}#{}".format(self.collectionName,start_from)}
+        return {"sk": self.sk(), "data": self.data(), "pk": "{}#{}".format(self.collectionName,start_from)}
 
     def last_evaluated_key(self, dynamo_last_evaluated_key:dict):
         return dynamo_last_evaluated_key["pk"].replace(self.collectionName+"#", "")
