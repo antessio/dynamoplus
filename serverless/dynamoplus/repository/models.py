@@ -2,12 +2,11 @@ import json
 from typing import *
 import logging
 from dynamoplus.models.system.collection.collection import Collection
-from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
+from decimal import Decimal
 from dynamoplus.models.query.query import Index
+from dynamoplus.utils.decimalencoder import DecimalEncoder
 from dynamoplus.utils.utils import convertToString, find_value, get_values_by_key_recursive
-## pynamodb
-##
-import os
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -81,12 +80,12 @@ class Model(object):
         return getOrderValue(self.document, self.ordering_key)
 
     def to_dynamo_db_item(self):
-        return {"document": json.dumps(self.document), "pk": self.pk(), "sk": self.sk(), "data": self.data()}
+        return {"document": json.dumps(self.document,cls=DecimalEncoder), "pk": self.pk(), "sk": self.sk(), "data": self.data()}
 
     @staticmethod
     def from_dynamo_db_item(dynamo_db_item: dict, collection: Collection):
         if "document" in dynamo_db_item:
-            return Model(collection,json.loads(dynamo_db_item["document"]))
+            return Model(collection,json.loads(dynamo_db_item["document"], parse_float=Decimal))
 
     def __str__(self) -> str:
         return "Model => collection_name = {} id_key = {} ordering_key = {} document = {}".format(self.collectionName,self.idKey,self.ordering_key,self.document)
@@ -97,9 +96,14 @@ class IndexModel(Model):
         self.index = index
         super().__init__(collection, document)
 
+    def use_begins_with(self):
+        return len(self.index.conditions) < len(get_values_by_key_recursive(self.document, self.index.conditions))
+
     def sk(self):
         if self.index is None:
             return self.collectionName
+        if self.index.range_condition:
+            return "{}#{}".format(self.collectionName, self.index.range_condition)
         return self.collectionName + "#" + "#".join(
             map(lambda x: x, self.index.conditions)) if self.index.conditions else self.collectionName
 
@@ -114,7 +118,10 @@ class IndexModel(Model):
             logging.debug("ordering key missing")
         logging.debug("orderingPart {}".format(order_value))
         logging.info("Entity {}".format(str(self.document)))
-        if self.index.conditions:
+        if self.index.range_condition:
+            v1,v2 = find_value(self.document, self.index.range_condition.split("."))
+            return v1,v2
+        elif self.index.conditions:
             logging.info("Index keys {}".format(self.index.conditions))
             '''
                 attr1#attr2#attr3#attr4#orderValue

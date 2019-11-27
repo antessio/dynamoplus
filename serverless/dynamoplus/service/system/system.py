@@ -79,6 +79,14 @@ class SystemService:
     def delete_collection(name: str):
         DynamoPlusRepository(collectionMetadata, True).delete(name)
 
+
+    @staticmethod
+    def get_all_collections():
+        index_metadata=Index(None, "collection", [])
+        query = Query({}, index_metadata)
+        result = IndexDynamoPlusRepository(collectionMetadata, True, index_metadata).find(query)
+        if result:
+            return list(map(lambda m: from_dict_to_collection(m.document), result.data))
     @staticmethod
     def get_collection_by_name(name: str):
         model = DynamoPlusRepository(collectionMetadata, True).get(name)
@@ -95,13 +103,23 @@ class SystemService:
             logger.info("index created {}".format(created_index.__str__()))
             index_by_collection_name = IndexDynamoPlusRepository(indexMetadata,Index(None,"index",["collection.name"]),True).create(model.document)
             logger.info("{} has been indexed {}".format(created_index.collection_name,index_by_collection_name.document))
+            index_by_name = IndexDynamoPlusRepository(indexMetadata,Index(None,"index",["collection.name","name"]),True).create(model.document)
+            logger.info("{} has been indexed {}".format(created_index.collection_name, index_by_name.document))
             return created_index
 
     @staticmethod
-    def get_index(name: str):
-        model = DynamoPlusRepository(indexMetadata, True).get(name)
-        if model:
-            return from_dict_to_index(model.document)
+    def get_index(name: str, collection_name:str):
+        # model = DynamoPlusRepository(indexMetadata, True).get(name)
+        # if model:
+        #     return from_dict_to_index(model.document)
+        index = Index(None, "index", ["collection.name","name"])
+        query = Query({"name": name,"collection":{"name":collection_name}}, index)
+        result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
+        indexes = list(map(lambda m: from_dict_to_index(m.document), result.data))
+        if len(indexes) == 0:
+            return None
+        else:
+            return indexes[0]
 
     @staticmethod
     def delete_index(name: str):
