@@ -275,10 +275,10 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
             domain_service = DomainService(collection_metadata)
             if query_id is None:
                 logger.info("Query all {}".format(collection_name))
-                documents, last_evaluated_key = domain_service.find_all()
+                documents, last_evaluated_key = domain_service.find_all(limit,start_from)
             else:
                 index_metadata = SystemService.get_index(query_id, collection_name)
                 if index_metadata is None:
                     raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
-                documents, last_evaluated_key = domain_service.find_by_index(index_metadata, example, start_from,limit)
+                documents, last_evaluated_key = domain_service.find_by_index(index_metadata, example, limit, start_from)
         return documents, last_evaluated_key
