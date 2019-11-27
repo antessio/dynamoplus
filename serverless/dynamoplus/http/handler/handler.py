@@ -1,8 +1,9 @@
 import json
 import logging
 import os
-from decimal import Decimal
+import base64
 
+from decimal import Decimal
 from dynamoplus.http.handler.dynamoPlusHandler import DynamoPlusHandler, HandlerException
 from dynamoplus.utils.decimalencoder import DecimalEncoder
 
@@ -89,8 +90,10 @@ class HttpHandler(object):
         query_id = path_parameters['queryId'] if 'queryId' in path_parameters else None
         logger.info("Received {} as index".format(query_id))
         document = json.loads(body, parse_float=Decimal)
+        last_key = document["last_key"] if "last_key" in document else None
+        limit = int(query_string_parameters["limit"]) if "limit" in query_string_parameters else None
         try:
-            documents,last_evaluated_key = self.dynamoPlusHandler.query(collection, query_id, document)
+            documents,last_evaluated_key = self.dynamoPlusHandler.query(collection, query_id, document, last_key,limit)
             return self.get_http_response(body=self.format_json({"data":documents,"last_key":last_evaluated_key}),headers=self.get_response_headers(headers), statusCode=200)
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,

@@ -187,6 +187,37 @@ class TestHttpHandler(unittest.TestCase):
         headers = result["headers"]
         self.assertIn("Access-Control-Allow-Origin", headers)
         self.assertEqual(origin, headers["Access-Control-Allow-Origin"])
+
+    def test_query_with_limit(self):
+        self.fill_sytem_data()
+        self.fill_data()
+        origin = "http://localhost"
+        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, query_string_parameters={"limit": "2"}, body="{\"even\": \"1\"}",
+                                        headers={"origin": origin})
+        self.assertEqual(result["statusCode"], 200)
+        body = json.loads(result["body"])
+        self.assertEqual(len(body["data"]), 2)
+        self.assertIn("last_key",body)
+        self.assertEqual("3",body["last_key"])
+        headers = result["headers"]
+        self.assertIn("Access-Control-Allow-Origin", headers)
+        self.assertEqual(origin, headers["Access-Control-Allow-Origin"])
+
+    def test_query_with_pagination(self):
+        self.fill_sytem_data()
+        self.fill_data()
+        origin = "http://localhost"
+        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, query_string_parameters={"limit": "2"}, body="{\"even\": \"1\",\"last_key\": \"3\" }",
+                                        headers={"origin": origin})
+        self.assertEqual(result["statusCode"], 200)
+        body = json.loads(result["body"])
+        self.assertEqual(len(body["data"]), 2)
+        self.assertIn("last_key",body)
+        self.assertEqual("7", body["last_key"])
+        headers = result["headers"]
+        self.assertIn("Access-Control-Allow-Origin", headers)
+        self.assertEqual(origin, headers["Access-Control-Allow-Origin"])
+
     def test_access_control_allow_origin(self):
         self.fill_sytem_data()
         self.fill_data()

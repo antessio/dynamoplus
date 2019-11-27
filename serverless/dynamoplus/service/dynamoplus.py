@@ -1,11 +1,8 @@
 from typing import *
-from dynamoplus.models.query.query import Index
-from dynamoplus.models.system.collection.collection import Collection
-from dynamoplus.service.indexes import IndexService
-from dynamoplus.repository.repositories import DynamoPlusRepository
-from dynamoplus.models.query.query import Query, Index
 
-# from dynamoplus.repository.models import QueryResult, Document
+from dynamoplus.models.system.collection.collection import Collection
+
+from dynamoplus.models.query.query import Query, Index
 
 collectionMetadata = Collection("collection", "name")
 indexMetadata = Collection("index", "uid")
