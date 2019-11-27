@@ -152,15 +152,16 @@ class IndexDynamoPlusRepository(DynamoPlusRepository):
             logger.info("the key that will be used is sk={} and data between {} and {}".format(index_model.sk(),v_1,v_2))
         else:
             if index_model.data() is not None:
-                if ordering_key is None:
-                    key = Key('sk').eq(index_model.sk()) & Key('data').eq(index_model.data())
-                    logger.info(
-                        "The key that will be used is sk={} is equal data={}".format(index_model.sk(), index_model.data()))
-                else:
+                if not index_model.use_begins_with() or ordering_key is not None:
                     key = Key('sk').eq(index_model.sk()) & Key('data').begins_with(index_model.data())
                     logger.info(
                         "The key that will be used is sk={} begins with data={}".format(index_model.sk(),
                                                                                         index_model.data()))
+                else:
+                    key = Key('sk').eq(index_model.sk()) & Key('data').eq(index_model.data())
+                    logger.info(
+                        "The key that will be used is sk={} is equal data={}".format(index_model.sk(), index_model.data()))
+
             else:
                 key = Key('sk').eq(index_model.sk())
                 logger.info("The key that will be used is sk={} with no data".format(index_model.sk()))
