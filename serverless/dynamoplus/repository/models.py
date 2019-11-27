@@ -1,6 +1,7 @@
 import json
 from typing import *
 import logging
+import base64
 from dynamoplus.models.system.collection.collection import Collection
 from decimal import Decimal
 from dynamoplus.models.query.query import Index
@@ -100,10 +101,12 @@ class IndexModel(Model):
         return len(self.index.conditions) < len(get_values_by_key_recursive(self.document, self.index.conditions))
 
     def start_from(self, start_from:str):
-        return {"sk": self.sk(), "data": self.data(), "pk": "{}#{}".format(self.collectionName,start_from)}
+        return json.loads(base64.b64decode(start_from))
+        #return {"sk": self.sk(), "data": self.data(), "pk": "{}#{}".format(self.collectionName,start_from)}
 
     def last_evaluated_key(self, dynamo_last_evaluated_key:dict):
-        return dynamo_last_evaluated_key["pk"].replace(self.collectionName+"#", "")
+        return str(base64.b64encode(bytes(json.dumps(dynamo_last_evaluated_key),"utf-8")),"utf-8")
+        #return dynamo_last_evaluated_key["pk"].replace(self.collectionName+"#", "")
 
     def sk(self):
         if self.index is None:

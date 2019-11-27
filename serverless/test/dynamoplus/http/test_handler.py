@@ -198,7 +198,7 @@ class TestHttpHandler(unittest.TestCase):
         body = json.loads(result["body"])
         self.assertEqual(len(body["data"]), 2)
         self.assertIn("last_key",body)
-        self.assertEqual("3",body["last_key"])
+        self.assertEqual("eyJwayI6ICJleGFtcGxlIzMiLCAic2siOiAiZXhhbXBsZSNldmVuIn0=",body["last_key"])
         headers = result["headers"]
         self.assertIn("Access-Control-Allow-Origin", headers)
         self.assertEqual(origin, headers["Access-Control-Allow-Origin"])
@@ -207,13 +207,13 @@ class TestHttpHandler(unittest.TestCase):
         self.fill_sytem_data()
         self.fill_data()
         origin = "http://localhost"
-        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, query_string_parameters={"limit": "2"}, body="{\"even\": \"1\",\"last_key\": \"3\" }",
+        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, query_string_parameters={"limit": "2"}, body="{\"even\": \"1\",\"last_key\": \"eyJwayI6ICJleGFtcGxlIzMiLCAic2siOiAiZXhhbXBsZSNldmVuIn0=\" }",
                                         headers={"origin": origin})
         self.assertEqual(result["statusCode"], 200)
         body = json.loads(result["body"])
         self.assertEqual(len(body["data"]), 2)
         self.assertIn("last_key",body)
-        self.assertEqual("7", body["last_key"])
+        self.assertEqual("eyJwayI6ICJleGFtcGxlIzciLCAic2siOiAiZXhhbXBsZSNldmVuIn0=", body["last_key"])
         headers = result["headers"]
         self.assertIn("Access-Control-Allow-Origin", headers)
         self.assertEqual(origin, headers["Access-Control-Allow-Origin"])
