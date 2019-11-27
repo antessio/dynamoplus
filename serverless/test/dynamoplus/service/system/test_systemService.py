@@ -117,7 +117,7 @@ class TestSystemService(unittest.TestCase):
     @patch.object(IndexDynamoPlusRepository, "__init__")
     def test_queryIndex_by_CollectionByName(self, mock_index_dynamoplus_repository, mock_find):
         index = Index("1","index", ["collection.name"])
-        expected_query = Query({"collection":{"name": "example"}}, index)
+        expected_query = Query({"collection": {"name": "example"}}, index)
         mock_index_dynamoplus_repository.return_value = None
         mock_find.return_value = QueryResult(
             [Model(Collection("index", "name"),

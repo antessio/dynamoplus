@@ -146,6 +146,7 @@ class IndexDynamoPlusRepository(DynamoPlusRepository):
         logger.info("order by is {} ".format(ordering_key))
         limit = query.limit
         start_from = index_model.start_from(query.start_from) if query.start_from else None
+        logging.info("query starts from {}".format(start_from))
         if query.index.range_condition:
             v_1, v_2 = index_model.data()
             key = Key('sk').eq(index_model.sk()) & Key('data').between(v_1,v_2)

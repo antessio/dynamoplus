@@ -83,7 +83,7 @@ class SystemService:
     @staticmethod
     def get_all_collections(limit:int = None, start_from: str = None):
         index_metadata=Index(None, "collection", [])
-        query = Query({}, index_metadata,start_from, limit)
+        query = Query({}, index_metadata, limit, start_from)
         result = IndexDynamoPlusRepository(collectionMetadata, True, index_metadata).find(query)
         if result:
             return list(map(lambda m: from_dict_to_collection(m.document), result.data)), result.lastEvaluatedKey
@@ -114,7 +114,7 @@ class SystemService:
         # if model:
         #     return from_dict_to_index(model.document)
         index = Index(None, "index", ["collection.name","name"])
-        query = Query({"name": name,"collection":{"name":collection_name}}, index)
+        query = Query({"name": name, "collection": {"name": collection_name}}, index)
         result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
         indexes = list(map(lambda m: from_dict_to_index(m.document), result.data))
         if len(indexes) == 0:
@@ -129,7 +129,7 @@ class SystemService:
     @staticmethod
     def find_indexes_from_collection_name(collection_name: str, limit:int = None, start_from:str = None):
         index = Index(None, "index", ["collection.name"])
-        query = Query({"collection": {"name": collection_name}}, index,start_from, limit)
+        query = Query({"collection": {"name": collection_name}}, index, limit, start_from)
         result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
         return list(map(lambda m: from_dict_to_index(m.document), result.data)), result.lastEvaluatedKey
 
