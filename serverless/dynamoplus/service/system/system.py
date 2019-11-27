@@ -79,6 +79,14 @@ class SystemService:
     def delete_collection(name: str):
         DynamoPlusRepository(collectionMetadata, True).delete(name)
 
+
+    @staticmethod
+    def get_all_collections(self):
+        index_metadata=Index(None, "collection", [])
+        query = Query({}, index_metadata)
+        result = IndexDynamoPlusRepository(collectionMetadata, True, index_metadata).find(query)
+        if result:
+            return list(map(lambda m: from_dict_to_collection(m.document), result.data))
     @staticmethod
     def get_collection_by_name(name: str):
         model = DynamoPlusRepository(collectionMetadata, True).get(name)

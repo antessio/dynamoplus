@@ -253,7 +253,17 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
     def query(self, collection_name: str, query_id: str = None, example: dict = None):
         is_system = DynamoPlusHandlerInterface.is_system(collection_name)
         if is_system:
-            raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
+            documents = []
+            last_evaluated_key = None
+            if collection_name == 'collection':
+                collections = self.systemService.get_all_collections()
+                return list(map(lambda c: c.__dict__,collections)), None
+            elif collection_name == 'index':
+                    index_metadata_list = self.systemService.find_indexes_from_collection_name(example["collection"]["name"])
+                    documents = list(map(lambda i: i.__dict__, index_metadata_list))
+                    return documents, None
+            else:
+                raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                    "{} is not a valid collection".format(collection_name))
         else:
             logger.info("query id {} collection {} by example ".format( query_id,collection_name,example))
