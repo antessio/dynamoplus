@@ -96,6 +96,9 @@ class IndexModel(Model):
         self.index = index
         super().__init__(collection, document)
 
+    def use_begins_with(self):
+        return len(self.index.conditions) < len(get_values_by_key_recursive(self.document, self.index.conditions))
+
     def sk(self):
         if self.index is None:
             return self.collectionName
