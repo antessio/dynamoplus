@@ -93,7 +93,7 @@ class HttpHandler(object):
         logger.debug("example query {}".format(query))
         last_key = query["last_key"] if "last_key" in query else None
         limit = int(query["limit"]) if query and "limit" in query else None
-        document = query["matches"]
+        document = query["matches"] if "matches" in query else {}
         logger.debug("last_key = {}".format(last_key))
         logger.debug("limit = {}".format(limit))
         try:
