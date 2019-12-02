@@ -91,7 +91,7 @@ class HttpHandler(object):
         logger.info("Received {} as index".format(query_id))
         query = json.loads(body, parse_float=Decimal)
         logger.debug("example query {}".format(query))
-        last_key = query["last_key"] if "last_key" in query else None
+        last_key = query["start_from"] if "start_from" in query else None
         limit = int(query["limit"]) if query and "limit" in query else None
         document = query["matches"] if "matches" in query else {}
         logger.debug("last_key = {}".format(last_key))
