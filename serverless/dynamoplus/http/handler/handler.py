@@ -89,10 +89,11 @@ class HttpHandler(object):
         logger.debug("query string parameters {}".format(query_string_parameters))
         query_id = path_parameters['queryId'] if 'queryId' in path_parameters else None
         logger.info("Received {} as index".format(query_id))
-        document = json.loads(body, parse_float=Decimal)
-        logger.debug("example document {}".format(document))
-        last_key = document["last_key"] if "last_key" in document else None
-        limit = int(query_string_parameters["limit"]) if query_string_parameters and "limit" in query_string_parameters else None
+        query = json.loads(body, parse_float=Decimal)
+        logger.debug("example query {}".format(query))
+        last_key = query["last_key"] if "last_key" in query else None
+        limit = int(query["limit"]) if query and "limit" in query else None
+        document = query["matches"]
         logger.debug("last_key = {}".format(last_key))
         logger.debug("limit = {}".format(limit))
         try:
@@ -107,7 +108,7 @@ class HttpHandler(object):
         #     limit = query_string_parameters["limit"]
         # if "startFrom" in headers:
         #     startFrom = headers["startFrom"]
-        # data, lastEvaluatedKey = indexService.find_documents(document, startFrom, limit)
+        # data, lastEvaluatedKey = indexService.find_documents(query, startFrom, limit)
         # return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
         #                               body=self.format_json({"data": data, "lastKey": lastEvaluatedKey}))
 
