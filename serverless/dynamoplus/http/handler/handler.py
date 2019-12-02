@@ -8,7 +8,7 @@ from dynamoplus.http.handler.dynamoPlusHandler import DynamoPlusHandler, Handler
 from dynamoplus.utils.decimalencoder import DecimalEncoder
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 ## TODO : it has to be converter in "Router"
