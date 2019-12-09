@@ -77,7 +77,8 @@ def indexing(repository_action: Callable[[DynamoPlusRepository],None], system_se
 
     is_system = DynamoPlusHandler.is_system(collection_name)
     if not is_system:
-        for index,last_evaluated_key in system_service.find_indexes_from_collection_name(collection_name):
+        indexes_by_collection_name,last_evaluated_key = system_service.find_indexes_from_collection_name(collection_name)
+        for index in indexes_by_collection_name:
             repository = IndexDynamoPlusRepository(collection_metadata,index,False)
             index_model = IndexModel(collection_metadata, new_record,index)
             if index_model.data():
