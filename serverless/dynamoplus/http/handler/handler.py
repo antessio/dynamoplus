@@ -1,13 +1,14 @@
 import json
 import logging
 import os
-from decimal import Decimal
+import base64
 
+from decimal import Decimal
 from dynamoplus.http.handler.dynamoPlusHandler import DynamoPlusHandler, HandlerException
 from dynamoplus.utils.decimalencoder import DecimalEncoder
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 ## TODO : it has to be converter in "Router"
@@ -85,12 +86,18 @@ class HttpHandler(object):
     def query(self, path_parameters, query_string_parameters={}, body=None, headers=None):
         logger.info("headers received {}".format(str(headers)))
         collection = self.get_document_type_from_path_parameters(path_parameters)
-
+        logger.debug("query string parameters {}".format(query_string_parameters))
         query_id = path_parameters['queryId'] if 'queryId' in path_parameters else None
         logger.info("Received {} as index".format(query_id))
-        document = json.loads(body, parse_float=Decimal)
+        query = json.loads(body, parse_float=Decimal)
+        logger.debug("example query {}".format(query))
+        last_key = query["start_from"] if "start_from" in query else None
+        limit = int(query["limit"]) if query and "limit" in query else None
+        document = query["matches"] if "matches" in query else {}
+        logger.debug("last_key = {}".format(last_key))
+        logger.debug("limit = {}".format(limit))
         try:
-            documents,last_evaluated_key = self.dynamoPlusHandler.query(collection, query_id, document)
+            documents,last_evaluated_key = self.dynamoPlusHandler.query(collection, query_id, document, last_key,limit)
             return self.get_http_response(body=self.format_json({"data":documents,"last_key":last_evaluated_key}),headers=self.get_response_headers(headers), statusCode=200)
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
@@ -101,7 +108,7 @@ class HttpHandler(object):
         #     limit = query_string_parameters["limit"]
         # if "startFrom" in headers:
         #     startFrom = headers["startFrom"]
-        # data, lastEvaluatedKey = indexService.find_documents(document, startFrom, limit)
+        # data, lastEvaluatedKey = indexService.find_documents(query, startFrom, limit)
         # return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
         #                               body=self.format_json({"data": data, "lastKey": lastEvaluatedKey}))
 

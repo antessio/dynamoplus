@@ -163,7 +163,7 @@ class TestHttpHandler(unittest.TestCase):
         self.fill_sytem_data()
         self.fill_data()
         origin="http://localhost"
-        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, body="{\"even\": \"1\"}",headers={"origin": origin})
+        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, body="{\"matches\":{\"even\": \"1\"}}",headers={"origin": origin})
         self.assertEqual(result["statusCode"],200)
         body=json.loads(result["body"])
         self.assertEqual(len(body["data"]),10)
@@ -178,7 +178,7 @@ class TestHttpHandler(unittest.TestCase):
         starting = 1574428691000/1000
         one_hour = 60*60
 
-        example = json.dumps({"starting": [datetime.utcfromtimestamp(starting).isoformat()[:-6], datetime.utcfromtimestamp(starting + (one_hour * 25)).isoformat()[:-6]]})
+        example = json.dumps({"matches":{"starting": [datetime.utcfromtimestamp(starting).isoformat()[:-6], datetime.utcfromtimestamp(starting + (one_hour * 25)).isoformat()[:-6]]}})
         result = self.httpHandler.query({"collection": "example", "queryId": "starting"}, body=example,
                                         headers={"origin": origin})
         self.assertEqual(result["statusCode"], 200)
@@ -187,11 +187,42 @@ class TestHttpHandler(unittest.TestCase):
         headers = result["headers"]
         self.assertIn("Access-Control-Allow-Origin", headers)
         self.assertEqual(origin, headers["Access-Control-Allow-Origin"])
+
+    def test_query_with_limit(self):
+        self.fill_sytem_data()
+        self.fill_data()
+        origin = "http://localhost"
+        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, query_string_parameters={}, body="{\"matches\":{\"even\": \"1\"},\"limit\": 2}",
+                                        headers={"origin": origin})
+        self.assertEqual(result["statusCode"], 200)
+        body = json.loads(result["body"])
+        self.assertEqual(len(body["data"]), 2)
+        self.assertIn("last_key",body)
+        self.assertEqual("eyJwayI6ICJleGFtcGxlIzMiLCAic2siOiAiZXhhbXBsZSNldmVuIn0=",body["last_key"])
+        headers = result["headers"]
+        self.assertIn("Access-Control-Allow-Origin", headers)
+        self.assertEqual(origin, headers["Access-Control-Allow-Origin"])
+
+    def test_query_with_pagination(self):
+        self.fill_sytem_data()
+        self.fill_data()
+        origin = "http://localhost"
+        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, query_string_parameters={}, body="{\"matches\":{\"even\": \"1\"},\"limit\": 2,\"last_key\": \"eyJwayI6ICJleGFtcGxlIzciLCAic2siOiAiZXhhbXBsZSNldmVuIn0=\" }",
+                                        headers={"origin": origin})
+        self.assertEqual(result["statusCode"], 200)
+        body = json.loads(result["body"])
+        self.assertEqual(len(body["data"]), 2)
+        self.assertIn("last_key",body)
+        self.assertEqual("eyJwayI6ICJleGFtcGxlIzMiLCAic2siOiAiZXhhbXBsZSNldmVuIn0=", body["last_key"])
+        headers = result["headers"]
+        self.assertIn("Access-Control-Allow-Origin", headers)
+        self.assertEqual(origin, headers["Access-Control-Allow-Origin"])
+
     def test_access_control_allow_origin(self):
         self.fill_sytem_data()
         self.fill_data()
         origin="http://localhost"
-        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, body="{\"even\": \"1\"}",headers={"origin": origin})
+        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, body="{\"matches\":{\"even\": \"1\"}}",headers={"origin": origin})
         self.assertEqual(result["statusCode"],200)
         body=json.loads(result["body"])
         self.assertEqual(len(body["data"]),10)
@@ -202,7 +233,7 @@ class TestHttpHandler(unittest.TestCase):
         self.fill_sytem_data()
         self.fill_data()
         origin="http://localhost:3000"
-        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, body="{\"even\": \"1\"}",headers={"origin": origin})
+        result = self.httpHandler.query({"collection": "example", "queryId": "even"}, body="{\"matches\":{\"even\": \"1\"}}",headers={"origin": origin})
         self.assertEqual(result["statusCode"],200)
         body=json.loads(result["body"])
         self.assertEqual(len(body["data"]),10)
@@ -218,7 +249,7 @@ class TestHttpHandler(unittest.TestCase):
 
     def test_query_not_handled(self):
         self.fill_data()
-        result = self.httpHandler.query({"collection": "example", "queryId": "whatever"}, body="{\"title\": \"data_1\"}",headers={"Origin": "http://localhost:3000"})
+        result = self.httpHandler.query({"collection": "example", "queryId": "whatever"}, body="{\"query\":{\"title\": \"data_1\"}}",headers={"Origin": "http://localhost:3000"})
         self.assertEqual(result["statusCode"],400)
 
     def assertDictEqualsIgnoringFields(self, d1: dict, d2: dict, fields: List[str] = []):
