@@ -2,7 +2,6 @@ service: dynamoplus
 
 plugins:
   - serverless-python-requirements
-  - serverless-localstack
   - serverless-dynamodb-local
   - serverless-offline
 
