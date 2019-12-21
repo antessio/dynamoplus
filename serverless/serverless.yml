@@ -71,9 +71,9 @@ functions:
           path: dynamoplus/{collection}
           method: post
           cors: true
-          #authorizer: 
-          #  name: auth
-          #  type: request
+          authorizer:
+            name: auth
+            type: request
 
   query:
     handler: dynamoplus/http/query.query
@@ -82,9 +82,9 @@ functions:
           path: dynamoplus/{collection}/query/{queryId}
           method: post
           cors: true
-          #authorizer: 
-          #  name: auth
-          #  type: request
+          authorizer:
+            name: auth
+            type: request
   queryAll:
     handler: dynamoplus/http/query.query
     events:
@@ -92,9 +92,9 @@ functions:
           path: dynamoplus/{collection}/query
           method: post
           cors: true
-          #authorizer: 
-          #  name: auth
-          #  type: request
+          authorizer:
+            name: auth
+            type: request
 
   get:
     handler: dynamoplus/http/get.get
@@ -103,9 +103,9 @@ functions:
           path: dynamoplus/{collection}/{id}
           method: get
           cors: true
-          #authorizer: 
-          #  name: auth
-          #  type: request
+          authorizer:
+            name: auth
+            type: request
 
   update:
     handler: dynamoplus/http/update.update
@@ -114,9 +114,9 @@ functions:
           path: dynamoplus/{collection}/{id}
           method: put
           cors: true
-          #authorizer: 
-          #  name: auth
-          #  type: request
+          authorizer:
+            name: auth
+            type: request
 
   delete:
     handler: dynamoplus/http/delete.delete
@@ -125,9 +125,9 @@ functions:
           path: dynamoplus/{collection}/{id}
           method: delete
           cors: true
-          #authorizer: 
-          #  name: auth
-          #  type: request
+          authorizer:
+            name: auth
+            type: request
 
 resources:
   Resources:
