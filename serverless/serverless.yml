@@ -17,9 +17,7 @@ custom:
     start:
       port: 9898
       migrate: true
-  system_indexes: "collection#name,index#name,index#collection.name,collection#active"
-  #system_collections: "collection#id#creation_date_time,index#id#creation_date_time"
-  system_collections: "collection,index"
+  system_collections: "collection,index,client_authorization"
   allowed_origins: "http://localhost:3000,https://dynamoplus-dashboard.firebaseapp.com" ## to change in production
 frameworkVersion: ">=1.1.0 <2.0.0"
 
@@ -31,13 +29,10 @@ provider:
 
   environment:
     ALLOWED_ORIGINS: ${self:custom.allowed_origins}
-    DYNAMODB_DOMAIN_TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}-domain
-    DYNAMODB_SYSTEM_TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}-system
     DYNAMODB_DOMAIN_TABLE: ${self:service}-${opt:stage, self:provider.stage}-domain
     DYNAMODB_SYSTEM_TABLE: ${self:service}-${opt:stage, self:provider.stage}-system
     STAGE: ${opt:stage, self:provider.stage}
     REGION: ${self:provider.region}
-    INDEXES: ${self:custom.system_indexes}
     ENTITIES: ${self:custom.system_collections}
     
   iamRoleStatements:
@@ -176,7 +171,7 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_SYSTEM_TABLE_NAME}
+        TableName: ${self:provider.environment.DYNAMODB_SYSTEM_TABLE}
         GlobalSecondaryIndexes:
         - IndexName: sk-data-index
           KeySchema:
@@ -210,7 +205,7 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_DOMAIN_TABLE_NAME}
+        TableName: ${self:provider.environment.DYNAMODB_DOMAIN_TABLE}
         GlobalSecondaryIndexes:
         - IndexName: sk-data-index
           KeySchema:

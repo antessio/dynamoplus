@@ -6,9 +6,12 @@ from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamo
 from dynamoplus.repository.models import Model, QueryResult
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
 from dynamoplus.models.system.index.index import Index
+from dynamoplus.models.system.client_authorization.client_authorization import  ClientAuthorization,ClientAuthorizationApiKey,ClientAuthorizationHttpSignature, Scope,ScopesType
 
 collectionMetadata = Collection("collection", "name")
 indexMetadata = Collection("index", "uid")
+client_authorization_metadata = Collection("client_authorization","client_id")
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -59,9 +62,36 @@ def from_dict_to_collection(d: dict):
     return Collection(d["name"], d["id_key"], d["ordering"] if "ordering" in d else None)
 
 
+def from_dict_to_client_authorization_http_signature(d: dict):
+    client_scopes = list(map(lambda c:  Scope(c["collection_name"],ScopesType[c["scope"]]) ,d["client_scopes"]))
+    return ClientAuthorizationHttpSignature(d["client_id"],client_scopes,d["public_key"])
+
+def from_dict_to_client_authorization_api_key(d: dict):
+    client_scopes = list(map(lambda c:  Scope(c["collection_name"],ScopesType[c["scope"]]) ,d["client_scopes"]))
+    return ClientAuthorizationApiKey(d["client_id"],client_scopes,d["api_key"], d["whitelist_hosts"])
+
+from_dict_to_client_authorization_factory = {
+    "api_key": from_dict_to_client_authorization_api_key,
+    "http_signature": from_dict_to_client_authorization_http_signature
+}
+
+def from_dict_to_client_authorization(d: dict):
+    return from_dict_to_client_authorization_factory[d["type"]](d)
+
+
 class SystemService:
+
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def get_client_authorization(client_id: str):
+        repository = DynamoPlusRepository(client_authorization_metadata,True)
+        model = repository.get(client_id)
+        if model:
+            return from_dict_to_client_authorization(model.document)
+
 
     @staticmethod
     def create_collection(metadata: Collection):
