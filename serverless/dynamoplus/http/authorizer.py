@@ -1,7 +1,7 @@
 import os
 from dynamoplus.service.authorization.authorization import AuthorizationService
 
-AUTHORIZATION_FEATURE_ENABLED = bool(os.getenvb("AUTHORIZATION_FEATURE_ENABLED","False"))
+AUTHORIZATION_FEATURE_ENABLED = True # bool(os.getenvb("AUTHORIZATION_FEATURE_ENABLED","False"))
 ROOT_ACCOUNT = os.getenv("ROOT_ACCOUNT")
 ROOT_PASSWORD = os.getenv("ROOT_PASSWORD")
 
@@ -14,7 +14,7 @@ def authorize(event, context):
     if AUTHORIZATION_FEATURE_ENABLED:
         try:
             if AuthorizationService.is_basic_auth(headers):
-                username = AuthorizationService.is_basic_auth_authorized()
+                username = AuthorizationService.get_basic_auth_authorized(headers)
                 if username:
                     return generate_policy(username, "Allow", "*")
             elif AuthorizationService.is_api_key(headers):
