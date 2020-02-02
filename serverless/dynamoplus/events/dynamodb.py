@@ -4,7 +4,7 @@ import os
 import boto3
 import json
 from boto3.dynamodb.types import TypeDeserializer
-from decimal import Decimal
+
 from dynamoplus.http.handler.dynamoPlusHandler import DynamoPlusHandler, DynamoPlusHandlerInterface
 from dynamoplus.repository.models import IndexModel
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
@@ -47,7 +47,7 @@ def dynamoStreamHandler(event, context):
                 if record.get('eventName') == 'INSERT':
                     new_record = deserialize(record['dynamodb']['NewImage'])
                     logger.info("creating index for {}".format(str(new_record)))
-                    document = json.loads(new_record["document"],parse_float=Decimal)
+                    document = json.loads(new_record["document"])
                     indexing(lambda r: r.create(document), system_service, sk,
                              collection_metadata, document)
 
@@ -55,14 +55,14 @@ def dynamoStreamHandler(event, context):
                     new_record = deserialize(record['dynamodb']['NewImage'])
                     # document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], new_record.items()))
                     logger.info("updating index for {}".format(str(new_record)))
-                    document = json.loads(new_record["document"],parse_float=Decimal)
+                    document = json.loads(new_record["document"])
                     indexing(lambda r: r.update(document), system_service, sk,
                              collection_metadata, document)
 
                 elif record.get('eventName') == 'REMOVE':
                     old_record = deserialize(record['dynamodb']['OldImage'])
                     logger.info('removing index on record  {}'.format(str(old_record)))
-                    document = json.loads(old_record["document"],parse_float=Decimal)
+                    document = json.loads(old_record["document"])
                     id = document[collection_metadata.id_key]
                     indexing(lambda r: r.delete(id), system_service, sk,
                              collection_metadata, document)
@@ -77,8 +77,7 @@ def indexing(repository_action: Callable[[DynamoPlusRepository],None], system_se
 
     is_system = DynamoPlusHandler.is_system(collection_name)
     if not is_system:
-        indexes_by_collection_name,last_evaluated_key = system_service.find_indexes_from_collection_name(collection_name)
-        for index in indexes_by_collection_name:
+        for index in system_service.find_indexes_from_collection_name(collection_name):
             repository = IndexDynamoPlusRepository(collection_metadata,index,False)
             index_model = IndexModel(collection_metadata, new_record,index)
             if index_model.data():
