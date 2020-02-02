@@ -1,13 +1,13 @@
 import json
 from typing import *
 import logging
-import base64
 from dynamoplus.models.system.collection.collection import Collection
-from decimal import Decimal
+from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.models.query.query import Index
-from dynamoplus.utils.decimalencoder import DecimalEncoder
 from dynamoplus.utils.utils import convertToString, find_value, get_values_by_key_recursive
-
+## pynamodb
+##
+import os
 
 logging.basicConfig(level=logging.INFO)
 
@@ -81,12 +81,12 @@ class Model(object):
         return getOrderValue(self.document, self.ordering_key)
 
     def to_dynamo_db_item(self):
-        return {"document": json.dumps(self.document,cls=DecimalEncoder), "pk": self.pk(), "sk": self.sk(), "data": self.data()}
+        return {"document": json.dumps(self.document), "pk": self.pk(), "sk": self.sk(), "data": self.data()}
 
     @staticmethod
     def from_dynamo_db_item(dynamo_db_item: dict, collection: Collection):
         if "document" in dynamo_db_item:
-            return Model(collection,json.loads(dynamo_db_item["document"], parse_float=Decimal))
+            return Model(collection,json.loads(dynamo_db_item["document"]))
 
     def __str__(self) -> str:
         return "Model => collection_name = {} id_key = {} ordering_key = {} document = {}".format(self.collectionName,self.idKey,self.ordering_key,self.document)
@@ -97,22 +97,9 @@ class IndexModel(Model):
         self.index = index
         super().__init__(collection, document)
 
-    def use_begins_with(self):
-        return len(self.index.conditions) < len(get_values_by_key_recursive(self.document, self.index.conditions))
-
-    def start_from(self, start_from:str):
-        return json.loads(base64.b64decode(start_from))
-        #return {"sk": self.sk(), "data": self.data(), "pk": "{}#{}".format(self.collectionName,start_from)}
-
-    def last_evaluated_key(self, dynamo_last_evaluated_key:dict):
-        return str(base64.b64encode(bytes(json.dumps(dynamo_last_evaluated_key),"utf-8")),"utf-8")
-        #return dynamo_last_evaluated_key["pk"].replace(self.collectionName+"#", "")
-
     def sk(self):
         if self.index is None:
             return self.collectionName
-        if self.index.range_condition:
-            return "{}#{}".format(self.collectionName, self.index.range_condition)
         return self.collectionName + "#" + "#".join(
             map(lambda x: x, self.index.conditions)) if self.index.conditions else self.collectionName
 
@@ -127,10 +114,7 @@ class IndexModel(Model):
             logging.debug("ordering key missing")
         logging.debug("orderingPart {}".format(order_value))
         logging.info("Entity {}".format(str(self.document)))
-        if self.index.range_condition:
-            v1,v2 = find_value(self.document, self.index.range_condition.split("."))
-            return v1,v2
-        elif self.index.conditions:
+        if self.index.conditions:
             logging.info("Index keys {}".format(self.index.conditions))
             '''
                 attr1#attr2#attr3#attr4#orderValue
