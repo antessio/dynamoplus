@@ -6,9 +6,12 @@ from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamo
 from dynamoplus.repository.models import Model, QueryResult
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
 from dynamoplus.models.system.index.index import Index
+from dynamoplus.models.system.client_authorization.client_authorization import  ClientAuthorization,ClientAuthorizationApiKey,ClientAuthorizationHttpSignature, Scope,ScopesType
 
 collectionMetadata = Collection("collection", "name")
 indexMetadata = Collection("index", "uid")
+client_authorization_metadata = Collection("client_authorization","client_id")
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -59,9 +62,36 @@ def from_dict_to_collection(d: dict):
     return Collection(d["name"], d["id_key"], d["ordering"] if "ordering" in d else None)
 
 
+def from_dict_to_client_authorization_http_signature(d: dict):
+    client_scopes = list(map(lambda c:  Scope(c["collection_name"],ScopesType[c["scope"]]) ,d["client_scopes"]))
+    return ClientAuthorizationHttpSignature(d["client_id"],client_scopes,d["public_key"])
+
+def from_dict_to_client_authorization_api_key(d: dict):
+    client_scopes = list(map(lambda c:  Scope(c["collection_name"],ScopesType[c["scope"]]) ,d["client_scopes"]))
+    return ClientAuthorizationApiKey(d["client_id"],client_scopes,d["api_key"], d["whitelist_hosts"])
+
+from_dict_to_client_authorization_factory = {
+    "api_key": from_dict_to_client_authorization_api_key,
+    "http_signature": from_dict_to_client_authorization_http_signature
+}
+
+def from_dict_to_client_authorization(d: dict):
+    return from_dict_to_client_authorization_factory[d["type"]](d)
+
+
 class SystemService:
+
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def get_client_authorization(client_id: str):
+        repository = DynamoPlusRepository(client_authorization_metadata,True)
+        model = repository.get(client_id)
+        if model:
+            return from_dict_to_client_authorization(model.document)
+
 
     @staticmethod
     def create_collection(metadata: Collection):
@@ -79,6 +109,15 @@ class SystemService:
     def delete_collection(name: str):
         DynamoPlusRepository(collectionMetadata, True).delete(name)
 
+
+    @staticmethod
+    def get_all_collections(limit:int = None, start_from: str = None):
+        index_metadata=Index(None, "collection", [])
+        query = Query({}, index_metadata, limit, start_from)
+        result = IndexDynamoPlusRepository(collectionMetadata, True, index_metadata).find(query)
+        if result:
+            return list(map(lambda m: from_dict_to_collection(m.document), result.data)), result.lastEvaluatedKey
+
     @staticmethod
     def get_collection_by_name(name: str):
         model = DynamoPlusRepository(collectionMetadata, True).get(name)
@@ -95,27 +134,37 @@ class SystemService:
             logger.info("index created {}".format(created_index.__str__()))
             index_by_collection_name = IndexDynamoPlusRepository(indexMetadata,Index(None,"index",["collection.name"]),True).create(model.document)
             logger.info("{} has been indexed {}".format(created_index.collection_name,index_by_collection_name.document))
+            index_by_name = IndexDynamoPlusRepository(indexMetadata,Index(None,"index",["collection.name","name"]),True).create(model.document)
+            logger.info("{} has been indexed {}".format(created_index.collection_name, index_by_name.document))
             return created_index
 
     @staticmethod
-    def get_index(name: str):
-        model = DynamoPlusRepository(indexMetadata, True).get(name)
-        if model:
-            return from_dict_to_index(model.document)
+    def get_index(name: str, collection_name:str):
+        # model = DynamoPlusRepository(indexMetadata, True).get(name)
+        # if model:
+        #     return from_dict_to_index(model.document)
+        index = Index(None, "index", ["collection.name","name"])
+        query = Query({"name": name, "collection": {"name": collection_name}}, index)
+        result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
+        indexes = list(map(lambda m: from_dict_to_index(m.document), result.data))
+        if len(indexes) == 0:
+            return None
+        else:
+            return indexes[0]
 
     @staticmethod
     def delete_index(name: str):
         DynamoPlusRepository(indexMetadata, True).delete(name)
 
     @staticmethod
-    def find_indexes_from_collection_name(collection_name: str):
+    def find_indexes_from_collection_name(collection_name: str, limit:int = None, start_from:str = None):
         index = Index(None, "index", ["collection.name"])
-        query = Query({"collection": {"name": collection_name}}, index)
+        query = Query({"collection": {"name": collection_name}}, index, limit, start_from)
         result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
-        return list(map(lambda m: from_dict_to_index(m.document), result.data))
+        return list(map(lambda m: from_dict_to_index(m.document), result.data)), result.lastEvaluatedKey
 
     @staticmethod
-    def find_collection_by_example(example: Collection):
+    def find_collections_by_example(example: Collection):
         index = Index(None, "collection", ["name"])
         query = Query({"name": example.name}, index)
         result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
