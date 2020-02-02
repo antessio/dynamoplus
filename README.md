@@ -16,51 +16,38 @@ A serverless back-end to create REST endpoint in python
 
 ## Configuration
 
-1. You must have Python 3! Once you do, run `pip install -r requirements.txt` to install Python dependencies
+1. You must have Python 3! Once you do, run `pip install -r requirements.txt` to install Python web token dependencies
 
 2. Install Docker. Why Docker? Because it's the only way to ensure that the Python package that is
    created on your local machine and uploaded to AWS will actually run in AWS's lambda containers. 
 
-*NOTE: no authentication check is performed, the authorizer lambda is skipped 
+2. Setup an [auth0 client](https://auth0.com/docs/clients) and get your `client id` and `client secrets` from auth0.
 
+3. Plugin your `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET` and `AUDIENCE` in a new file called `secrets.json`. These will be used by the JSON web token decoder to validate private api access.
 
-## Installation
-
-1. Configure your AWS credentials (see [Serverless framework AWS credentials](https://serverless.com/framework/docs/providers/aws/guide/credentials/))
-
-2. Create a new file named secrets.json (you can copy `secrets-example.json` and edit accordingly with your configuration). 
-
-3. run `sls deploy`
-
-Once completed, you'll get the API gateway endpoint to call the API. 
-
-By default you can access to all the API using the root account and password with basic authentication, then create a client_authorization (see documentation below) to create other clients.
-
+4. Copy the `public_key_example` file to a new file named `public_key` and follow the instructions in that file
 
 # How it works
 
-There are mainly two special entities:
+There are two special entities:
 
 - `collection`
     ```
     //example
     {
         "name": "example",
-        "id_key": "id",
-        "ordering": "creation_date_time"
+        "idKey": "id",
+        "orderingKey": "creation_date_time"
     }
     ```
 - `index`
     ```
     //example
     {
-        "uid": <UUID>,
-        "name": "field1__field2__ORDER_BY__field3",
         "collection": {
             "name": "example
         },
-        "conditions":["field1","field2"],
-        "ordering_key": "field2"
+        "name": "address.country__address.region__address.province__address.city__ORDER_BY__creation_date_time"
     }
     ```
 
@@ -70,8 +57,8 @@ To create a new collection:
 POST /dynamoplus/collection
 {
     "name": "my-collection",
-    "id_key": "objectId",
-    "ordering": "custom_attribute"
+    "idKey": "objectId",
+    "orderingKey": "custom_attribute"
 }
 ```
 
@@ -84,146 +71,39 @@ POST /dynamoplus/index
     "collection": {
         "name": "example
         },
-    "name": "field1__field2__ORDER_BY__field3",
-    "conditions": ["field1","field2"],
-    "ordering_key": "field3"
+    "name": "address.country__address.region__address.province__address.city__ORDER_BY__creation_date_time"
 }
 ```
 
 Once created some new endpoints will be available:
 - `POST /dynamoplus/<collection-name>` to create a new document
-- `GET /dynamoplus/<collection-name>/<id>` to get a document by its id
-- `PUT /dynamoplus/<collection-name>/<id>` to update an existing document
-- `DELETE /dynamoplus/<collection-name>/<id>` to delete a document by its id
-- `POST /dynamoplus/<collection-name>/query` to query all documents in `collection-name`
-- `POST /dynamoplus/<collection-name>/query/<index-name>` to query all documents in `collection-name` by `index-name`
-
-## System collections
-
-- **collection**: contains collections metadata
-- **index**: contains indexes metadata
-- **client_authorization**: contains all the authorized clients (used in authorization)
-
-
-System collections have some special rules: 
-
-- a system collection cannot be updated
-- it is possibile to query the indexes only by collection name and queryAll
-- it is not possible to execute queries on collections (except for queryAll)
-
-
-## Queries
-
-The query should match an index name, then accordingly with the fields declared in the index metadata, it will generate a key that identificates the dynamodb item. (see [DynamoDb query doc](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html) and [GSI overloading](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-gsi-overloading.html) for further info)
-
-## Authorization
-
-There are three authorization methods:
-
-- basic auth : used with root username and password
-
-- API key : used for trusted clients (it only checks an header and the client scope)
-
-- http signature (raccomended): see [http-signature](https://tools.ietf.org/id/draft-cavage-http-signatures-08.html)
-
-
-To create a client with API key:
-```
-POST /dynamoplus/client_authorization
-{
-    "client_id": "my-client-id",
-    "client_scopes": [
-        {
-            "collection_name: "example",
-            "scope_types": ["CREATE","UPDATE", "DELETE"]
-        },
-        {
-            "collection_name: "person",
-            "scope_types": ["QUERY", "GET"]
-        }
-        ],
-        "api_key" : "secret"
-}
-```
-
-
-To create a client with http signature:
-```
-POST /dynamoplus/client_authorization
-{
-    "client_id": "my-client-id",
-    "client_scopes": [
-        {
-            "collection_name: "example",
-            "scope_types": ["CREATE","UPDATE", "DELETE"]
-        },
-        {
-            "collection_name: "person",
-            "scope_types": ["QUERY", "GET"]
-        }
-        ],
-        "client_public_key" : "-----BEGIN CERTIFICATE-----\nMIIDFTCCAf2gAwIBAgIJL5bSonccfwENMA0GCSqGSIb3DQEBCwUAMCgxJjAkBgNVBAMTHXdoaXRlbWFya2V0cGxhY2UuZXUuYXV0aDAuY29tMB4XDTE5MDkzMDE3MTU0OFoXDTMzMDYwODE3MTU0OFowKDEmMCQGA1UEAxMdd2hpdGVtYXJrZXRwbGFjZS5ldS5hdXRoMC5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDBPIF8fgB7dpj6lVVOH2IYUKv02S54OztaaNIzjLrUfAQrzQAW4DmuZFkqWKxgyi5zINsEm9qxgj8uYOVhaWUWve7QaREjSPF5vNZonsLswfCci9U1JqEUdbDJQmoWPKXav0olMwXQV8W9hTnI2Gmi+8qBVIi18jUpXY/0OApsOTyQo51wd+EvRkDYeOIeqY7A/qbWEvNK9xWO1ainmZV5jc4vEsH2wMfpdXA+28LFhg/VeLKk7Zzaa46T5AdRRUm3V6DWLvujwh5Tfo3KjWnPq8KGWsJuOyMevqe5ESNfEIfiL33n0XJC8oAcfoqfVvYbyzjGjC40OXXoN48wTAgMBAAGjQjBAMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFG6Hul2iHizqBE6BHJ8/ldZQAu8+MA4GA1UdDwEB/wQEAwIChDANBgkqhkiG9w0BAQsFAAOCAQEAEXuc0uxGXS/NVfc22O3wWT9m0GGogMPpmZae7BXtM6D5wkwBdElOlZky6QePfyv73HzdibkjinnA174xNyqiVSS3mr0bmgyhv78undBFgN0Bsx4m3Bm4nwMWvNRsR0IZeNAM8Kx469YOBtkzmeNf8SqHdwApUx7vceZNIywvzB2doihvuSvs3kOreBCMp72hpLwZ646LyLuqD2B7Ll3huZtdJ8tbjRqiCtrBmDfv9BSo81VlyA4yDIq8PTcFGkvrU0mLkiliU5lrLcGgxNFcL5TnJ1dtvHualIu6s2L091aKlOMNMMyMsw+wzhRTkaqFqYaw9P8an9C0D/e3g==\n-----END CERTIFICATE-----"
-}
-```
-
 
 ## Examples
 
 ### Creating a book store
 
-- Create a client book-store-client (ADMIN)
-```
-POST /dynamoplus/client_authorization
-Headers:
-    Authorization: base64(username:password)
-Body:
-{
-    "client_id": "book-store-client",
-    "client_scopes": [
-        {
-            "collection_name: "book",
-            "scope_types": [
-                "CREATE",
-                "UPDATE", 
-                "DELETE",
-                "QUERY", 
-                "GET"]
-        },
-        {
-            "collection_name: "category",
-            "scope_types": [
-                "CREATE",
-                "UPDATE", 
-                "DELETE",
-                "QUERY", 
-                "GET"]
-        }],
-        "api_key" : "secret1234"
-}
-```
-
-- Create a book category collection (ADMIN)
+- Create a book category document type
 
     ```
     POST /dynamoplus/collection
     {
         "name": "category",
-        "id_key": "id",
-        "ordering": "ordering"
+        "idKey": "id",
+        "orderingKey": "ordering"
     }
     ```
 
-- Create a book collection (ADMIN)
+- Create a book document type
 
     ```
     POST /dynamoplus/collection
     {
         "name": "book",
-        "id_key": "id",
-        "ordering": "rating"
+        "idKey": "id",
+        "orderingKey": "rating"
     }
     ```
-- Create a some indexes on book (ADMIN)
+- Create a some indexes on book
     
     ```
     POST /dynamoplus/index (book by title)
@@ -240,8 +120,7 @@ Body:
         "collection": {
             "name": "book"
         },
-        "name": "isbn",
-        "fields": ["isbn"]
+        "name": "isbn"
     }
     ```
     ```
@@ -250,8 +129,7 @@ Body:
         "collection": {
             "name": "book"
         },
-        "name": "category.name",
-        "fields": ["category.name"]
+        "name": "category.name"
     }
     ```
     ```
@@ -260,25 +138,16 @@ Body:
         "collection": {
             "name": "book"
         },
-        "name": "author",
-        "fields": ["author"]
+        "name": "author"
     }
     ```
-
-- For CLIENT request use the following headers:
-    ```
-    Authorization: dynamoplus-api-key secret1234
-    dynamoplus-client-id: book-store-client
-    ``` 
-- Query the indexes just created (CLIENT)
+- Query the indexes just created
     ```
     POST /dynamoplus/index/query/collection.name
     {
-        "matches":{
-            "collection":{
-                "name": "book"
-            }
-        }
+	    "collection":{
+		    "name": "book"
+	    }
     }
     ```
     **Response**
@@ -322,7 +191,7 @@ Body:
         }
     ```
 
-- Create a new category (CLIENT)
+- Create a new category
     ```
     POST /dynamoplus/category
     {
@@ -330,7 +199,7 @@ Body:
         "ordering": "1"
     }
     ```
-- Create some books (CLIENT)
+- Create some books
     ```
     POST /dynamoplus/book
     {
@@ -370,32 +239,26 @@ Body:
         "rating": "8"
     }
     ```
-- Query books by author (CLIENT)
+- Query books by author
     ```
     POST /dynamoplus/book/query/author
     {
-        "matches":{
-            "author": "Chuck Palhaniuk"
-        }
+        "author": "Chuck Palhaniuk"
     }
     ```
-- Query books by category name (CLIENT)
+- Query books by category name
     ```
     POST /dynamoplus/book/query/category.name
     {
-        "matches": {
-            "category": {
-                "name": "Pulp"
-            }
+        "category": {
+            "name": "Pulp"
         }
     }
     ```
-- Query books by title (CLIENT)
+- Query books by title
     ```
     POST /dynamoplus/book/query/title
     {
-        "matches: {
-            "title": "Fight Club"
-        }
+        "title": "Fight Club"
     }
     ```
