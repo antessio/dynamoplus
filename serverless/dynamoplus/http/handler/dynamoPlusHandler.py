@@ -158,6 +158,8 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
                                            "{} not found with name {}".format(collection_name, id))
                 logger.info("Found index {}".format(index_metadata.__str__))
                 return index_metadata.__dict__
+            #elif collection_name == 'client_authorization':
+
         else:
             logger.info("Get {} document".format(collection_name))
             collection_metadata = SystemService.get_collection_by_name(collection_name)

@@ -22,7 +22,6 @@ class TestHttpHandler(unittest.TestCase):
         os.environ["DYNAMODB_SYSTEM_TABLE"] = "example-system"
         self.dynamodb = boto3.resource("dynamodb", region_name='eu-west-1')
         os.environ["ENTITIES"] = "collection#id#creation_date_time,index#id#creation_date_time"
-        os.environ["INDEXES"] = "collection#name,index#name,index#collection.name"
         self.httpHandler = HttpHandler()
         self.systemTable = self.getMockTable("example-system")
         self.table = self.getMockTable("example-domain")
