@@ -1,18 +1,12 @@
-from typing import *
 import logging
-import os
 import boto3
 import json
 from boto3.dynamodb.types import TypeDeserializer
 from decimal import Decimal
-from dynamoplus.http.handler.dynamoPlusHandler import DynamoPlusHandler, DynamoPlusHandlerInterface
-from dynamoplus.repository.models import IndexModel
-from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
-from dynamoplus.service.system.system import SystemService
+from dynamoplus.service.indexing_service import create_indexes, update_indexes, delete_indexes
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
 
 serializer = TypeDeserializer()
 dynamodb = boto3.resource("dynamodb")
@@ -31,7 +25,7 @@ def deserialize(data):
         return data
 
 
-def dynamoStreamHandler(event, context):
+def dynamo_stream_handler(event, context):
     logger.info("Events on dynamo {} ".format(str(event)))
 
     for record in event.get('Records'):
@@ -40,46 +34,29 @@ def dynamoStreamHandler(event, context):
         pk = keys['pk']['S']
         sk = keys['sk']['S']
         if "#" not in sk:
-            system_service = SystemService()
-            collection_metadata = system_service.get_collection_by_name(sk)
 
-            if collection_metadata:
-                if record.get('eventName') == 'INSERT':
-                    new_record = deserialize(record['dynamodb']['NewImage'])
-                    logger.info("creating index for {}".format(str(new_record)))
-                    document = json.loads(new_record["document"],parse_float=Decimal)
-                    indexing(lambda r: r.create(document), system_service, sk,
-                             collection_metadata, document)
+            if record.get('eventName') == 'INSERT':
+                new_record = deserialize(record['dynamodb']['NewImage'])
+                logger.info("creating index for {}".format(str(new_record)))
+                document = json.loads(new_record["document"], parse_float=Decimal)
+                create_indexes(sk, document)
+                # create_indexes_for_collection(sk,document, lambda r: r.create(document))
 
-                elif record.get('eventName') == 'MODIFY':
-                    new_record = deserialize(record['dynamodb']['NewImage'])
-                    # document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], new_record.items()))
-                    logger.info("updating index for {}".format(str(new_record)))
-                    document = json.loads(new_record["document"],parse_float=Decimal)
-                    indexing(lambda r: r.update(document), system_service, sk,
-                             collection_metadata, document)
+            elif record.get('eventName') == 'MODIFY':
+                new_record = deserialize(record['dynamodb']['NewImage'])
+                # document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], new_record.items()))
+                logger.info("updating index for {}".format(str(new_record)))
+                document = json.loads(new_record["document"], parse_float=Decimal)
+                update_indexes(sk, document)
+                # create_indexes_for_collection(sk, document, lambda r: r.update(document))
 
-                elif record.get('eventName') == 'REMOVE':
-                    old_record = deserialize(record['dynamodb']['OldImage'])
-                    logger.info('removing index on record  {}'.format(str(old_record)))
-                    document = json.loads(old_record["document"],parse_float=Decimal)
-                    id = document[collection_metadata.id_key]
-                    indexing(lambda r: r.delete(id), system_service, sk,
-                             collection_metadata, document)
-            else:
-                logger.debug('Skipping indexing on record {} - {}: entity not found'.format(pk, sk))
+            elif record.get('eventName') == 'REMOVE':
+                old_record = deserialize(record['dynamodb']['OldImage'])
+                logger.info('removing index on record  {}'.format(str(old_record)))
+                document = json.loads(old_record["document"], parse_float=Decimal)
+                delete_indexes(sk, document)
+                # id = document[collection_metadata.id_key]
+                # indexing(lambda r: r.delete(id), system_service, sk,
+                #          collection_metadata, document)
         else:
             logger.debug('Skipping indexing on record {} - {}'.format(pk, sk))
-
-
-def indexing(repository_action: Callable[[DynamoPlusRepository],None], system_service: SystemService, collection_name: str,
-             collection_metadata: Collection, new_record: dict):
-
-    is_system = DynamoPlusHandler.is_system(collection_name)
-    if not is_system:
-        indexes_by_collection_name,last_evaluated_key = system_service.find_indexes_from_collection_name(collection_name)
-        for index in indexes_by_collection_name:
-            repository = IndexDynamoPlusRepository(collection_metadata,index,False)
-            index_model = IndexModel(collection_metadata, new_record,index)
-            if index_model.data():
-                repository_action(repository)
