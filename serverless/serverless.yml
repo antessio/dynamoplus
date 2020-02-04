@@ -3,44 +3,21 @@ service: dynamoplus
 plugins:
   - serverless-python-requirements
   - serverless-localstack
-#  - serverless-dynamodb-local
-#  - serverless-offline
+  - serverless-dynamodb-local
+  - serverless-offline
 
 custom:
-  localstack:
-    stages:
-      # list of stages for which the plugin should be enabled
-      - local
-    host: http://localhost  # optional - LocalStack host to connect to
-    autostart: true  # optional - start LocalStack in Docker on Serverless deploy
-    endpoints:
-      # This section is optional - can be used for customizing the target endpoints
-      S3: http://localhost:4572
-      DynamoDB: http://localhost:4570
-      CloudFormation: http://localhost:4581
-      Elasticsearch: http://localhost:4571
-      ES: http://localhost:4578
-      SNS: http://localhost:4575
-      SQS: http://localhost:4576
-      Lambda: http://localhost:4574
-      Kinesis: http://localhost:4568
-    lambda:
-      # Enable this flag to improve performance
-      mountCode: False
-    docker:
-      # Enable this flag to run "docker ..." commands as sudo
-      sudo: False
   pythonRequirements:
     dockerizePip: false
-#  serverless-offline:
-#    host: 0.0.0.0
-#  dynamodb:
-#    # If you only want to use DynamoDB Local in some stages, declare them here
-#    stages:
-#      - local
-#    start:
-#      port: 9898
-#      migrate: true
+  serverless-offline:
+    host: 0.0.0.0
+  dynamodb:
+    # If you only want to use DynamoDB Local in some stages, declare them here
+    stages:
+      - local
+    start:
+      port: 9898
+      migrate: true
   system_indexes: "collection#name,index#name,index#collection.name,collection#active"
   #system_collections: "collection#id#creation_date_time,index#id#creation_date_time"
   system_collections: "collection,index"
@@ -87,7 +64,7 @@ functions:
     handler: dynamoplus/http/authorizer.authorize
     cors: true
   handleStream:
-    handler: dynamoplus/events/dynamodb.dynamoStreamHandler
+    handler: dynamoplus/events/dynamodb.dynamo_stream_handler
     events:
       - stream:
           type: dynamodb

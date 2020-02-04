@@ -1,10 +1,11 @@
 import abc
 import logging
-import os
+
 import uuid
 from datetime import datetime
 from enum import Enum
 
+from dynamoplus.service.dynamoplus import DynamoPlusService
 from dynamoplus.service.domain.domain import DomainService
 from dynamoplus.service.system.system import SystemService, from_dict_to_collection, from_dict_to_index, \
     from_collection_to_dict, from_index_to_dict
@@ -134,8 +135,7 @@ class DynamoPlusHandlerInterface(abc.ABC):
 
     @staticmethod
     def is_system(collection_name):
-        SYSTEM_ENTITIES = os.environ['ENTITIES']
-        return collection_name in SYSTEM_ENTITIES.split(",")
+        return DynamoPlusService.is_system(collection_name)
 
 
 class DynamoPlusHandler(DynamoPlusHandlerInterface):
