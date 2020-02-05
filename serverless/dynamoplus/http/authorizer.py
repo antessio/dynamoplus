@@ -1,7 +1,7 @@
 import os
 from dynamoplus.service.authorization.authorization import AuthorizationService
 
-AUTHORIZATION_FEATURE_ENABLED = bool(os.getenvb("AUTHORIZATION_FEATURE_ENABLED","False"))
+AUTHORIZATION_FEATURE_ENABLED = True # bool(os.getenvb("AUTHORIZATION_FEATURE_ENABLED","False"))
 ROOT_ACCOUNT = os.getenv("ROOT_ACCOUNT")
 ROOT_PASSWORD = os.getenv("ROOT_PASSWORD")
 
