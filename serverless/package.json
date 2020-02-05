@@ -1,6 +1,6 @@
 {
     "name": "dynamoplus",
-    "version": "0.3",
+    "version": "0.3.0",
     "description": "A serverless back-end to create REST endpoint in python",
     "author": "antessio",
     "license": "GPL v3.0",
