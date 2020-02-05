@@ -11,11 +11,12 @@ custom:
   serverless-offline:
     host: 0.0.0.0
   dynamodb:
+
     # If you only want to use DynamoDB Local in some stages, declare them here
     stages:
       - local
     start:
-      port: 9898
+      port: 8000
       migrate: true
   system_collections: "collection,index,client_authorization"
   allowed_origins: ${file(./secrets.json):ALLOWED_ORIGINS}
