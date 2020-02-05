@@ -2,13 +2,20 @@ service: dynamoplus
 
 plugins:
   - serverless-python-requirements
+  - serverless-dynamodb-local
+  - serverless-offline
+
 custom:
   pythonRequirements:
-    dockerizePip: true
+    dockerizePip: false
   serverless-offline:
     host: 0.0.0.0
   dynamodb:
+    # If you only want to use DynamoDB Local in some stages, declare them here
+    stages:
+      - local
     start:
+      port: 9898
       migrate: true
   system_collections: "collection,index,client_authorization"
   allowed_origins: ${file(./secrets.json):ALLOWED_ORIGINS}
@@ -24,11 +31,11 @@ provider:
     ALLOWED_ORIGINS: ${self:custom.allowed_origins}
     DYNAMODB_DOMAIN_TABLE: ${self:service}-${opt:stage, self:provider.stage}-domain
     DYNAMODB_SYSTEM_TABLE: ${self:service}-${opt:stage, self:provider.stage}-system
+    STAGE: ${opt:stage, self:provider.stage}
     REGION: ${self:provider.region}
     ENTITIES: ${self:custom.system_collections}
     ROOT_ACCOUNT: ${file(./secrets.json):ROOT_ACCOUNT}
     ROOT_PASSWORD: ${file(./secrets.json):ROOT_PASSWORD}
-
     
   iamRoleStatements:
     - Effect: Allow
@@ -53,7 +60,7 @@ functions:
     handler: dynamoplus/http/authorizer.authorize
     cors: true
   handleStream:
-    handler: dynamoplus/events/dynamodb.dynamoStreamHandler
+    handler: dynamoplus/events/dynamodb.dynamo_stream_handler
     events:
       - stream:
           type: dynamodb

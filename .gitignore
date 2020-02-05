@@ -1,5 +1,6 @@
 .firebase/
 .serverless
+.dynamodb
 secrets.json
 public_key
 .vscode/

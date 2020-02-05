@@ -2,14 +2,13 @@ from typing import *
 
 from dynamoplus.models.query.query import Query
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
-# from dynamoplus.repository.models import Model
-from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
 
+from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
+from dynamoplus.service.indexing_decorator import create_document, update_document, delete_document
 from dynamoplus.models.system.index.index import Index
 
 
-# collectionMetadata = Collection("collection","name")
-# indexMetadata = Collection("index","name")
+
 class DomainService:
     def __init__(self, collection: Collection):
         self.collection = collection
@@ -19,16 +18,19 @@ class DomainService:
         if data_model:
             return data_model.document
 
+    @create_document
     def create_document(self, document: dict):
         created_data_model = DynamoPlusRepository(self.collection).create(document)
         if created_data_model:
             return created_data_model.document
 
+    @update_document
     def update_document(self, document: dict):
         updated_data_model = DynamoPlusRepository(self.collection).update(document)
         if updated_data_model:
             return updated_data_model.document
 
+    @delete_document
     def delete_document(self, id: str):
         DynamoPlusRepository(self.collection).delete(id)
 

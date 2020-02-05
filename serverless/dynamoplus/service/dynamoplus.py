@@ -1,5 +1,5 @@
+import os
 from typing import *
-
 from dynamoplus.models.system.collection.collection import Collection
 
 from dynamoplus.models.query.query import Query, Index
@@ -16,6 +16,10 @@ class DynamoPlusService(object):
     def __init__(self):
         pass
 
+    @staticmethod
+    def is_system(collection_name):
+        SYSTEM_ENTITIES = os.environ['ENTITIES']
+        return collection_name in SYSTEM_ENTITIES.split(",")
 
     @staticmethod
     def build_index(index_str: str):

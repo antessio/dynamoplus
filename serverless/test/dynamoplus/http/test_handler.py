@@ -16,6 +16,7 @@ from dynamoplus.http.handler.handler import HttpHandler
 class TestHttpHandler(unittest.TestCase):
 
     def setUp(self):
+        os.environ["STAGE"] = "local"
         os.environ["TEST_FLAG"] = "true"
         os.environ["ALLOWED_ORIGINS"] = "http://localhost"
         os.environ["DYNAMODB_DOMAIN_TABLE"] = "example-domain"
