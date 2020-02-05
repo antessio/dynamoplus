@@ -34,6 +34,8 @@ provider:
     STAGE: ${opt:stage, self:provider.stage}
     REGION: ${self:provider.region}
     ENTITIES: ${self:custom.system_collections}
+    ROOT_ACCOUNT: ${file(./secrets.json):ROOT_ACCOUNT}
+    ROOT_PASSWORD: ${file(./secrets.json):ROOT_PASSWORD}
     
   iamRoleStatements:
     - Effect: Allow
