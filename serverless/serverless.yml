@@ -36,6 +36,8 @@ provider:
     ENTITIES: ${self:custom.system_collections}
     ROOT_ACCOUNT: ${file(./secrets.json):ROOT_ACCOUNT}
     ROOT_PASSWORD: ${file(./secrets.json):ROOT_PASSWORD}
+    DYNAMODB_HOST: http://localhost
+    DYNAMODB_PORT: 8000
     
   iamRoleStatements:
     - Effect: Allow
