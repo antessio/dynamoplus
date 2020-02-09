@@ -17,7 +17,10 @@ logging.getLogger("boto3").setLevel(logging.DEBUG)
 connection = None
 try:
     if os.environ["STAGE"] and "local" == os.environ["STAGE"]:
-        connection = boto3.resource('dynamodb', endpoint_url='http://localhost:8000/')
+        host = os.environ["DYNAMODB_HOST"]
+        port = os.environ["DYNAMODB_PORT"]
+        endpoint_url = "{}:{}/".format(host,port) if host else "http://localhost:8000/"
+        connection = boto3.resource('dynamodb', endpoint_url=endpoint_url)
     elif not os.environ["TEST_FLAG"]:
         connection = boto3.resource('dynamodb')
 except:
