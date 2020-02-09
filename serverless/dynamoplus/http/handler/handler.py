@@ -97,8 +97,13 @@ class HttpHandler(object):
         logger.debug("last_key = {}".format(last_key))
         logger.debug("limit = {}".format(limit))
         try:
-            documents,last_evaluated_key = self.dynamoPlusHandler.query(collection, query_id, document, last_key,limit)
-            return self.get_http_response(body=self.format_json({"data":documents,"last_key":last_evaluated_key}),headers=self.get_response_headers(headers), statusCode=200)
+            documents, last_evaluated_key = self.dynamoPlusHandler.query(collection, query_id, document, last_key,
+                                                                         limit)
+            result = {"data": documents}
+            if last_evaluated_key:
+                result["last_key"] = last_evaluated_key
+            return self.get_http_response(body=self.format_json(result), headers=self.get_response_headers(headers),
+                                          statusCode=200)
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
                                           body=self.format_json({"msg": e.message}))
@@ -155,4 +160,3 @@ class HttpHandler(object):
     def get_document_type_from_path_parameters(path_parameters: dict) -> str:
         if "collection" in path_parameters:
             return path_parameters['collection']
-
