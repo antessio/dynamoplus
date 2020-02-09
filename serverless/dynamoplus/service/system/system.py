@@ -30,7 +30,7 @@ def from_index_to_dict(index_metadata: Index):
 
 def from_dict_to_index(d: dict):
     return Index(d["uid"], d["collection"]["name"], d["conditions"], d["ordering_key"] if "ordering_key" in d else None,
-                 d["index_name"] if "index_name" in d else None)
+                 d["name"] if "name" in d else None)
 
 
 def from_index_to_dict(index_metadata: Index):
