@@ -50,6 +50,55 @@ class Repository(abc.ABC):
         pass
 
 
+def create_tables():
+    dynamo_db = connection if connection is not None else boto3.resource('dynamodb')
+    try:
+        domain_table = dynamo_db.create_table(TableName=os.environ['DYNAMODB_DOMAIN_TABLE'],
+                                   KeySchema=[
+                                       {'AttributeName': 'pk', 'KeyType': 'HASH'},
+                                       {'AttributeName': 'sk', 'KeyType': 'RANGE'}
+                                   ],
+                                   AttributeDefinitions=[
+                                       {'AttributeName': 'pk', 'AttributeType': 'S'},
+                                       {'AttributeName': 'sk', 'AttributeType': 'S'},
+                                       {'AttributeName': 'data', 'AttributeType': 'S'}
+                                   ],
+                                   GlobalSecondaryIndexes=[
+                                       {
+                                           'IndexName': 'sk-data-index',
+                                           'KeySchema': [{'AttributeName': 'sk', 'KeyType': 'HASH'},
+                                                         {'AttributeName': 'data', 'KeyType': 'RANGE'}],
+                                           "Projection": {"ProjectionType": "ALL"}
+                                       }
+                                   ]
+                                   )
+        logging.info("Table status: {}".format(domain_table.table_status))
+    except dynamo_db.exceptions.ResourceInUseException as e:
+        logging.error("Unable to create the table {} ".format("domain"),e)
+    try:
+        system_table = dynamo_db.create_table(TableName=os.environ['DYNAMODB_SYSTEM_TABLE'],
+                                      KeySchema=[
+                                          {'AttributeName': 'pk', 'KeyType': 'HASH'},
+                                          {'AttributeName': 'sk', 'KeyType': 'RANGE'}
+                                      ],
+                                      AttributeDefinitions=[
+                                          {'AttributeName': 'pk', 'AttributeType': 'S'},
+                                          {'AttributeName': 'sk', 'AttributeType': 'S'},
+                                          {'AttributeName': 'data', 'AttributeType': 'S'}
+                                      ],
+                                      GlobalSecondaryIndexes=[
+                                          {
+                                              'IndexName': 'sk-data-index',
+                                              'KeySchema': [{'AttributeName': 'sk', 'KeyType': 'HASH'},
+                                                            {'AttributeName': 'data', 'KeyType': 'RANGE'}],
+                                              "Projection": {"ProjectionType": "ALL"}
+                                          }
+                                      ]
+                                      )
+        logging.info("Table status: {}".format(system_table.table_status))
+    except dynamo_db.exceptions.ResourceInUseException as e:
+        logging.error("Unable to create the table {} ".format("system"),e)
+
 class DynamoPlusRepository(Repository):
     def __init__(self, collection: Collection, is_system=False):
         self.collection = collection
