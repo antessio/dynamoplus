@@ -21,7 +21,7 @@ class TestHttpHandler(unittest.TestCase):
         os.environ["DYNAMODB_DOMAIN_TABLE"] = "example-domain"
         os.environ["DYNAMODB_SYSTEM_TABLE"] = "example-system"
         self.dynamodb = boto3.resource("dynamodb", region_name='eu-west-1')
-        os.environ["ENTITIES"] = "collection#id#creation_date_time,index#id#creation_date_time"
+        os.environ["ENTITIES"] = "collection,index,client_authorization"
         self.httpHandler = HttpHandler()
         self.systemTable = self.getMockTable("example-system")
         self.table = self.getMockTable("example-domain")
@@ -102,6 +102,13 @@ class TestHttpHandler(unittest.TestCase):
             self.table.put_item(Item={"pk": "example#" + str(i), "sk": "example#ending", "data": datetime.utcfromtimestamp(ending).isoformat(),
                                       "document": json.dumps(document)})
 
+    def test_create_client_authorization(self):
+        path_parameters = {"collection": "client_authorization"}
+        body = {"type":"api_key","client_id":"test","api_key":"test-api-key","client_scopes":[{"collection_name":"example","scope_type":"GET"}]}
+        result = self.httpHandler.create(path_parameters=path_parameters,body=json.dumps(body))
+        self.assertEqual(result["statusCode"],201)
+        self.assertDictEqual(json.loads(result["body"]), body)
+
     def test_getTargetEntity(self):
         path_parameters = {"collection": "example", "query": "name"}
         result = self.httpHandler.get_document_type_from_path_parameters(path_parameters)
@@ -112,7 +119,7 @@ class TestHttpHandler(unittest.TestCase):
         self.fill_data()
         result = self.httpHandler.get({"collection":"whatever", "id":"1"})
         self.assertEqual(result["statusCode"],400)
-        #self.assertEqual(result["body"], self.httpHandler.formatJson(expectedResult))
+
 
     def test_get_found(self):
         self.fill_sytem_data()

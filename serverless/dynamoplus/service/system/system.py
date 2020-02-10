@@ -48,20 +48,27 @@ def from_dict_to_index(d: dict):
 
 def from_client_authorization_http_signature_to_dict(client_authorization: ClientAuthorizationHttpSignature):
     return {
-        "type": "api-key",
+        "type": "http_signature",
         "client_id": client_authorization.client_id,
-        "scopes": list( map(lambda s: {"collection_name": s.collection_name, "scope_type": s.scope_type},client_authorization.client_scopes)),
+        "client_scopes": list(map(lambda s: {"collection_name": s.collection_name, "scope_type": s.scope_type.name},
+                           client_authorization.client_scopes)),
         "public_key": client_authorization.client_public_key
     }
 
+
 def from_client_authorization_api_key_to_dict(client_authorization: ClientAuthorizationApiKey):
     result = {
-        "type": "api-key",
+        "type": "api_key",
         "client_id": client_authorization.client_id,
-        "scopes": list(map(lambda s: {"collection_name": s.collection_name, "scope_type": s.scope_type},
+        "client_scopes": list(map(lambda s: {"collection_name": s.collection_name, "scope_type": s.scope_type.name},
                            client_authorization.client_scopes)),
         "api_key": client_authorization.api_key,
     }
+    if client_authorization.whitelist_hosts:
+        result["whitelist_hosts"] = client_authorization.whitelist_hosts
+    return result
+
+
 #     if client_authorization.whitelist_hosts:
 #         result["whitelist_hosts"] = client_authorization.whitelist_hosts
 #     return result
@@ -97,19 +104,27 @@ def from_dict_to_collection(d: dict):
 
 
 def from_dict_to_client_authorization_http_signature(d: dict):
-    client_scopes = list(map(lambda c: Scope(c["collection_name"], ScopesType[c["scope"]]), d["client_scopes"]))
+    client_scopes = list(map(lambda c: Scope(c["collection_name"], ScopesType[c["scope_type"]]), d["client_scopes"]))
     return ClientAuthorizationHttpSignature(d["client_id"], client_scopes, d["public_key"])
 
 
 def from_dict_to_client_authorization_api_key(d: dict):
-    client_scopes = list(map(lambda c: Scope(c["collection_name"], ScopesType[c["scope"]]), d["client_scopes"]))
-    return ClientAuthorizationApiKey(d["client_id"], client_scopes, d["api_key"], d["whitelist_hosts"])
+    client_scopes = list(map(lambda c: Scope(c["collection_name"], ScopesType[c["scope_type"]]), d["client_scopes"]))
+    return ClientAuthorizationApiKey(d["client_id"], client_scopes, d["api_key"], d["whitelist_hosts"] if "whitelist_hosts" in d else None)
 
 
 from_dict_to_client_authorization_factory = {
     "api_key": from_dict_to_client_authorization_api_key,
     "http_signature": from_dict_to_client_authorization_http_signature
 }
+
+def from_client_authorization_to_dict(client_authorization: ClientAuthorization):
+    if isinstance(client_authorization, ClientAuthorizationApiKey):
+        return from_client_authorization_api_key_to_dict(client_authorization)
+    elif isinstance(client_authorization, ClientAuthorizationHttpSignature):
+        return from_client_authorization_http_signature_to_dict(client_authorization)
+    else:
+        raise NotImplementedError("client_authorization not implemented")
 
 
 def from_dict_to_client_authorization(d: dict):
@@ -207,3 +222,11 @@ class SystemService:
         query = Query({"name": example.name}, index)
         result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
         return list(map(lambda m: from_dict_to_collection(m.document), result.data))
+
+    @staticmethod
+    def create_client_authorization(client_authorization: ClientAuthorization):
+        client_authorization_document = from_client_authorization_to_dict(client_authorization)
+        logging.info("creating client authorization {}".format(str(client_authorization)))
+        model = DynamoPlusRepository(client_authorization_metadata, True).create(client_authorization_document)
+        if model:
+            return from_dict_to_client_authorization(model.document)
