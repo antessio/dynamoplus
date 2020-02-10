@@ -107,12 +107,13 @@ Once created some new endpoints will be available:
 
 System collections have some special rules: 
 
-- a system collection cannot be updated
+- a system collection cannot be updated (unless otherwise specified)
+- only the root account can create (or update, if supported) system collections
 - it is possibile to query the indexes only by collection name and queryAll
 - it is not possible to execute queries on collections (except for queryAll)
 
 
-## Queries
+## Queries
 
 The query should match an index name, then accordingly with the fields declared in the index metadata, it will generate a key that identificates the dynamodb item. (see [DynamoDb query doc](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html) and [GSI overloading](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-gsi-overloading.html) for further info)
 
@@ -166,8 +167,8 @@ POST /dynamoplus/client_authorization
 }
 ```
 
+## Examples
 
-## Examples
 
 ### Creating a book store
 
