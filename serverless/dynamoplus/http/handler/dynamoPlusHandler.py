@@ -7,7 +7,7 @@ from enum import Enum
 
 from dynamoplus.service.domain.domain import DomainService
 from dynamoplus.service.system.system import SystemService, from_dict_to_collection, from_dict_to_index, \
-    from_collection_to_dict, from_index_to_dict
+    from_collection_to_dict, from_index_to_dict, from_dict_to_client_authorization
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -186,6 +186,11 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
                 index_metadata = SystemService.create_index(index_metadata)
                 logger.info("Created index {}".format(index_metadata.__str__))
                 return from_index_to_dict(index_metadata)
+            elif collection_name == 'client_authorization':
+                client_authorization = from_dict_to_client_authorization(document)
+                client_authorization = SystemService.create_client_authorization(client_authorization)
+                logging.info("created client_authorization {}".format(client_authorization.__str__))
+                return
         else:
             logger.info("Create {} document {}".format(collection_name, document))
             collection_metadata = SystemService.get_collection_by_name(collection_name)
