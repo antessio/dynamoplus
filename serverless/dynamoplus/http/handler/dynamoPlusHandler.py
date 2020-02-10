@@ -227,8 +227,14 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
         """
         is_system = DynamoPlusHandlerInterface.is_system(collection_name)
         if is_system:
-            raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
-                                   "updating {} is not supported ".format(collection_name))
+            if collection_name == "client_authorization":
+                client_authorization = from_dict_to_client_authorization(document)
+                client_authorization = SystemService.update_authorization(client_authorization)
+                logging.info("updated client_authorization {}".format(client_authorization.__str__))
+                return from_client_authorization_to_dict(client_authorization)
+            else:
+                raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
+                                       "updating {} is not supported ".format(collection_name))
         else:
             logger.info("update {} document {}".format(collection_name, document))
             collection_metadata = SystemService.get_collection_by_name(collection_name)
@@ -249,6 +255,10 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
                 SystemService.delete_collection(id)
             elif collection_name == 'index':
                 index_metadata = SystemService.delete_index(id)
+            elif collection_name == 'client_authorization':
+                SystemService.delete_authorization(id)
+            else:
+                raise NotImplementedError("collection_name {} not handled".format(collection_name))
         else:
             logger.info("delete {} document {}".format(collection_name, id))
             collection_metadata = SystemService.get_collection_by_name(collection_name)

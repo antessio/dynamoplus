@@ -230,3 +230,18 @@ class SystemService:
         model = DynamoPlusRepository(client_authorization_metadata, True).create(client_authorization_document)
         if model:
             return from_dict_to_client_authorization(model.document)
+
+    @staticmethod
+    def update_authorization(client_authorization: ClientAuthorization):
+        client_authorization_document = from_client_authorization_to_dict(client_authorization)
+        logging.info("updating client authorization {}".format(str(client_authorization)))
+        model = DynamoPlusRepository(client_authorization_metadata, True).update(client_authorization_document)
+        if model:
+            return from_dict_to_client_authorization(model.document)
+
+    @staticmethod
+    def delete_authorization(client_id: str):
+        logging.info("deleting client authorization {}".format(client_id))
+        DynamoPlusRepository(client_authorization_metadata, True).delete(client_id)
+
+

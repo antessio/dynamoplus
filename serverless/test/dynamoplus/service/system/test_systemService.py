@@ -19,6 +19,42 @@ class TestSystemService(unittest.TestCase):
     def setUp(self):
         self.systemService = SystemService()
 
+    @patch.object(DynamoPlusRepository, "update")
+    @patch.object(DynamoPlusRepository, "__init__")
+    def test_update_authorization_http_signature(self, mock_repository, mock_update):
+        expected_client_id = "test"
+        client_authorization = ClientAuthorizationHttpSignature(expected_client_id,
+                                                                [Scope("example", ScopesType.CREATE)], "my-public-key")
+        client_authorization_metadata = Collection("client_authorization", "client_id")
+        mock_repository.return_value = None
+        document = {
+            "type": "http_signature",
+            "client_id": expected_client_id,
+            "client_scopes": [{"collection_name": "example", "scope_type": "CREATE"}],
+            "public_key": "my-public-key"
+        }
+        mock_update.return_value = Model(client_authorization_metadata, document)
+        result = self.systemService.update_authorization(client_authorization)
+        self.assertEqual(result.client_id, client_authorization.client_id)
+        self.assertTrue(isinstance(result, ClientAuthorizationHttpSignature))
+        self.assertEqual(call(document), mock_update.call_args_list[0])
+
+    @patch.object(DynamoPlusRepository, "delete")
+    @patch.object(DynamoPlusRepository, "__init__")
+    def test_delete_authorization_http_signature(self, mock_repository, mock_delete):
+        expected_client_id = "test"
+        client_authorization_metadata = Collection("client_authorization", "client_id")
+        mock_repository.return_value = None
+        document = {
+            "type": "http_signature",
+            "client_id": expected_client_id,
+            "client_scopes": [{"collection_name": "example", "scope_type": "CREATE"}],
+            "public_key": "my-public-key"
+        }
+        mock_delete.return_value = Model(client_authorization_metadata, document)
+        self.systemService.delete_authorization(expected_client_id)
+        self.assertEqual(call(expected_client_id), mock_delete.call_args_list[0])
+
     @patch.object(DynamoPlusRepository, "create")
     @patch.object(DynamoPlusRepository, "__init__")
     def test_create_authorization_http_signature(self,mock_repository,mock_create):

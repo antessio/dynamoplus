@@ -56,6 +56,8 @@ class TestHttpHandler(unittest.TestCase):
     def fill_sytem_data(self):
         self.systemTable.put_item(Item={"pk": "collection#example", "sk": "collection", "data": "example",
                                         "document": "{\"id_key\":\"id\",\"name\":\"example\",\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
+        self.systemTable.put_item(Item={"pk": "client_authorization#example-client-id","sk":"client_authorization", "data":"example-client-id",
+                                        "document":"{\"type\":\"api_key\",\"client_id\":\"example-client-id\",\"api_key\":\"test-api-key\",\"client_scopes\":[{\"collection_name\":\"example\",\"scope_type\":\"GET\"}]}"})
         ## index 1 - field1__field2.field21
         self.systemTable.put_item(Item={"pk": "index#1", "sk": "index", "data": "1",
                                         "document": "{\"uid\": \"1\",\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
@@ -101,6 +103,19 @@ class TestHttpHandler(unittest.TestCase):
                                       "document": json.dumps(document)})
             self.table.put_item(Item={"pk": "example#" + str(i), "sk": "example#ending", "data": datetime.utcfromtimestamp(ending).isoformat(),
                                       "document": json.dumps(document)})
+
+    def test_update_client_authorization(self):
+        path_parameters = {"collection": "client_authorization"}
+        body = {"type":"api_key","client_id":"example-client-id","api_key":"test-api-key-2","client_scopes":[{"collection_name":"example","scope_type":"GET"}]}
+        result = self.httpHandler.update(path_parameters=path_parameters,body=json.dumps(body))
+        self.assertEqual(result["statusCode"],200)
+        self.assertDictEqual(json.loads(result["body"]), body)
+
+    def test_delete_client_authorization(self):
+        path_parameters = {"collection": "client_authorization", "id":"example-client-id"}
+        body = {"type":"api_key","client_id":"example-client-id","api_key":"test-api-key-2","client_scopes":[{"collection_name":"example","scope_type":"GET"}]}
+        result = self.httpHandler.delete(path_parameters=path_parameters)
+        self.assertEqual(result["statusCode"],200)
 
     def test_create_client_authorization(self):
         path_parameters = {"collection": "client_authorization"}
