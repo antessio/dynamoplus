@@ -72,7 +72,9 @@ def create_tables():
                                            'IndexName': 'sk-data-index',
                                            'KeySchema': [{'AttributeName': 'sk', 'KeyType': 'HASH'},
                                                          {'AttributeName': 'data', 'KeyType': 'RANGE'}],
-                                           "Projection": {"ProjectionType": "ALL"}
+                                           "Projection": {"ProjectionType": "ALL"},
+                                           "ProvisionedThroughput": {'WriteCapacityUnits': 1,
+                                                                     'ReadCapacityUnits': 1}
                                        }
                                    ],
                                   ProvisionedThroughput={'ReadCapacityUnits': 1,'WriteCapacityUnits': 1}
@@ -96,7 +98,9 @@ def create_tables():
                                               'IndexName': 'sk-data-index',
                                               'KeySchema': [{'AttributeName': 'sk', 'KeyType': 'HASH'},
                                                             {'AttributeName': 'data', 'KeyType': 'RANGE'}],
-                                              "Projection": {"ProjectionType": "ALL"}
+                                              "Projection": {"ProjectionType": "ALL"},
+                                              "ProvisionedThroughput": {'WriteCapacityUnits': 1,
+                                                                        'ReadCapacityUnits': 1}
                                           }
                                       ],
                                       ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
