@@ -14,10 +14,12 @@ from unittest.mock import patch
 class TestDynamoPlusHandler(unittest.TestCase):
 
     def setUp(self):
-        os.environ['ENTITIES'] = 'index,collection'
+        os.environ['ENTITIES'] = 'index,collection,client_authorization'
 
     def tearDown(self):
         del os.environ['ENTITIES']
+
+
 
     @patch.object(SystemService, "get_collection_by_name")
     @patch.object(SystemService, "__init__")
