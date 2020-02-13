@@ -4,3 +4,4 @@ logging.basicConfig(level=logging.INFO)
 
 def admin(event, context):
         create_tables()
+        return {"statusCode":200}
