@@ -74,8 +74,9 @@ def create_tables():
                                                          {'AttributeName': 'data', 'KeyType': 'RANGE'}],
                                            "Projection": {"ProjectionType": "ALL"}
                                        }
-                                   ]
-                                   )
+                                   ],
+                                  ProvisionedThroughput={'ReadCapacityUnits': 1,'WriteCapacityUnits': 1}
+                                )
         logging.info("Table status: {}".format(domain_table.table_status))
     except Exception as e:
         logging.error("Unable to create the table {} ".format("domain"),e)
@@ -97,7 +98,8 @@ def create_tables():
                                                             {'AttributeName': 'data', 'KeyType': 'RANGE'}],
                                               "Projection": {"ProjectionType": "ALL"}
                                           }
-                                      ]
+                                      ],
+                                      ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
                                       )
         logging.info("Table status: {}".format(system_table.table_status))
     except Exception as e:
