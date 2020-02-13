@@ -76,7 +76,7 @@ def create_tables():
                                    ]
                                    )
         logging.info("Table status: {}".format(domain_table.table_status))
-    except dynamo_db.exceptions.ResourceInUseException as e:
+    except Exception as e:
         logging.error("Unable to create the table {} ".format("domain"),e)
     try:
         system_table = dynamo_db.create_table(TableName=os.environ['DYNAMODB_SYSTEM_TABLE'],
@@ -99,7 +99,7 @@ def create_tables():
                                       ]
                                       )
         logging.info("Table status: {}".format(system_table.table_status))
-    except dynamo_db.exceptions.ResourceInUseException as e:
+    except Exception as e:
         logging.error("Unable to create the table {} ".format("system"),e)
 
 class DynamoPlusRepository(Repository):
