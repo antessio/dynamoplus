@@ -7,7 +7,8 @@ from dynamoplus.repository.models import Model, QueryResult
 from dynamoplus.service.system.system import SystemService
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
 from dynamoplus.models.system.index.index import Index
-from dynamoplus.models.system.client_authorization.client_authorization import  ClientAuthorization, ClientAuthorizationHttpSignature,ClientAuthorizationApiKey
+from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
+    ClientAuthorizationHttpSignature, ClientAuthorizationApiKey, Scope, ScopesType
 
 from mock import call
 from unittest.mock import patch
@@ -18,13 +19,88 @@ class TestSystemService(unittest.TestCase):
     def setUp(self):
         self.systemService = SystemService()
 
+    @patch.object(DynamoPlusRepository, "update")
+    @patch.object(DynamoPlusRepository, "__init__")
+    def test_update_authorization_http_signature(self, mock_repository, mock_update):
+        expected_client_id = "test"
+        client_authorization = ClientAuthorizationHttpSignature(expected_client_id,
+                                                                [Scope("example", ScopesType.CREATE)], "my-public-key")
+        client_authorization_metadata = Collection("client_authorization", "client_id")
+        mock_repository.return_value = None
+        document = {
+            "type": "http_signature",
+            "client_id": expected_client_id,
+            "client_scopes": [{"collection_name": "example", "scope_type": "CREATE"}],
+            "public_key": "my-public-key"
+        }
+        mock_update.return_value = Model(client_authorization_metadata, document)
+        result = self.systemService.update_authorization(client_authorization)
+        self.assertEqual(result.client_id, client_authorization.client_id)
+        self.assertTrue(isinstance(result, ClientAuthorizationHttpSignature))
+        self.assertEqual(call(document), mock_update.call_args_list[0])
+
+    @patch.object(DynamoPlusRepository, "delete")
+    @patch.object(DynamoPlusRepository, "__init__")
+    def test_delete_authorization_http_signature(self, mock_repository, mock_delete):
+        expected_client_id = "test"
+        client_authorization_metadata = Collection("client_authorization", "client_id")
+        mock_repository.return_value = None
+        document = {
+            "type": "http_signature",
+            "client_id": expected_client_id,
+            "client_scopes": [{"collection_name": "example", "scope_type": "CREATE"}],
+            "public_key": "my-public-key"
+        }
+        mock_delete.return_value = Model(client_authorization_metadata, document)
+        self.systemService.delete_authorization(expected_client_id)
+        self.assertEqual(call(expected_client_id), mock_delete.call_args_list[0])
+
+    @patch.object(DynamoPlusRepository, "create")
+    @patch.object(DynamoPlusRepository, "__init__")
+    def test_create_authorization_http_signature(self,mock_repository,mock_create):
+        expected_client_id = "test"
+        client_authorization = ClientAuthorizationHttpSignature(expected_client_id,[Scope("example",ScopesType.CREATE)], "my-public-key")
+        client_authorization_metadata = Collection("client_authorization", "client_id")
+        mock_repository.return_value = None
+        document = {
+            "type": "http_signature",
+            "client_id": expected_client_id,
+            "client_scopes": [{"collection_name": "example", "scope_type": "CREATE"}],
+            "public_key": "my-public-key"
+        }
+        mock_create.return_value = Model(client_authorization_metadata,document)
+        result = self.systemService.create_client_authorization(client_authorization)
+        self.assertEqual(result.client_id,client_authorization.client_id)
+        self.assertTrue(isinstance(result,ClientAuthorizationHttpSignature))
+        self.assertEqual(call(document), mock_create.call_args_list[0])
+
+    @patch.object(DynamoPlusRepository, "create")
+    @patch.object(DynamoPlusRepository, "__init__")
+    def test_create_authorization_api_key(self, mock_repository, mock_create):
+        expected_client_id = "test"
+        client_authorization = ClientAuthorizationApiKey(expected_client_id,
+                                                                [Scope("example", ScopesType.CREATE)],"my-api-key",[])
+        client_authorization_metadata = Collection("client_authorization", "client_id")
+        mock_repository.return_value = None
+        document = {
+            "type": "api_key",
+            "client_id": expected_client_id,
+            "client_scopes": [{"collection_name": "example", "scope_type": "CREATE"}],
+            "api_key": "my-api-key"
+        }
+        mock_create.return_value = Model(client_authorization_metadata, document)
+        result = self.systemService.create_client_authorization(client_authorization)
+        self.assertEqual(result.client_id, client_authorization.client_id)
+        self.assertTrue(isinstance(result, ClientAuthorizationApiKey))
+        self.assertEqual(call(document), mock_create.call_args_list[0])
+
     @patch.object(DynamoPlusRepository, "get")
     @patch.object(DynamoPlusRepository, "__init__")
     def test_get_client_authorization_http_signature(self, mock_repository, mock_get):
         expected_client_id = 'my-client-id'
         mock_repository.return_value = None
         client_authorization_metadata = Collection("client_authorization", "client_id")
-        document = {"client_id": expected_client_id, "type":"http_signature", "public_key": "my-public-key", "client_scopes": [{"collection_name": "example", "scope": "GET"}]}
+        document = {"client_id": expected_client_id, "type":"http_signature", "public_key": "my-public-key", "client_scopes": [{"collection_name": "example", "scope_type": "GET"}]}
         expected_model = Model(client_authorization_metadata, document)
         mock_get.return_value = expected_model
         result = self.systemService.get_client_authorization(expected_client_id)
@@ -45,7 +121,7 @@ class TestSystemService(unittest.TestCase):
         document = {"client_id": expected_client_id, "type": "api_key",
                     "api_key": "my_api_key",
                     "whitelist_hosts": ["*"],
-                    "client_scopes": [{"collection_name": "example", "scope": "GET"}]}
+                    "client_scopes": [{"collection_name": "example", "scope_type": "GET"}]}
         expected_model = Model(client_authorization_metadata, document)
         mock_get.return_value = expected_model
         result = self.systemService.get_client_authorization(expected_client_id)
