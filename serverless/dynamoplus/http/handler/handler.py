@@ -40,6 +40,7 @@ class HttpHandler(object):
         logger.info("Creating " + data.__str__())
         try:
             dto = self.dynamoPlusHandler.create(collection, data)
+            logger.info("dto = {}".format(dto))
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=201,
                                           body=self.format_json(dto))
         except HandlerException as e:
