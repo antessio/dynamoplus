@@ -1,7 +1,10 @@
 import uuid
 from typing import *
 
+from dynamoplus.utils.utils import auto_str
 
+
+@auto_str
 class Index(object):
     def __init__(self, uid:str, collection_name: str, conditions: List[str], ordering_key: str = None, index_name:str = None):
         self._collection_name = collection_name
@@ -75,7 +78,3 @@ class Index(object):
                        and self._conditions.__eq__(o.conditions) \
                        and self._ordering_key.__eq__(o.ordering_key)
         return super().__eq__(o)
-
-    def __str__(self):
-        return "uid={} name={} collection_name={} conditions={} ordering_key={}".format(self._uid, self._index_name,self._collection_name, self._conditions,
-                                                                         self._ordering_key)

@@ -158,7 +158,15 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
                                            "{} not found with name {}".format(collection_name, id))
                 logger.info("Found index {}".format(index_metadata.__str__))
                 return index_metadata.__dict__
-            #elif collection_name == 'client_authorization':
+            elif collection_name == 'client_authorization':
+                client_authorization = SystemService.get_client_authorization(id)
+                if client_authorization is None:
+                    raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
+                                           "{} not found with name {}".format(collection_name, id))
+                logger.info("Found client_authorization {}".format(client_authorization.__str__))
+                return from_client_authorization_to_dict(client_authorization)
+            else:
+                raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "{} not valid",collection_name)
 
         else:
             logger.info("Get {} document".format(collection_name))
@@ -189,7 +197,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
             elif collection_name == 'client_authorization':
                 client_authorization = from_dict_to_client_authorization(document)
                 client_authorization = SystemService.create_client_authorization(client_authorization)
-                logging.info("created client_authorization {}".format(client_authorization.__str__))
+                logging.info("created client_authorization {}".format(client_authorization.__str__()))
                 return from_client_authorization_to_dict(client_authorization)
         else:
             logger.info("Create {} document {}".format(collection_name, document))

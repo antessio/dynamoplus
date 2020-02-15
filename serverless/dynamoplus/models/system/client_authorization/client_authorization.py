@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import *
 
+from dynamoplus.utils.utils import auto_str
+
 class ScopesType(Enum):
     QUERY = "query",
     CREATE = "create",
@@ -8,7 +10,7 @@ class ScopesType(Enum):
     UPDATE = "update",
     DELETE = "delete"
 
-
+@auto_str
 class Scope(object):
     _scope_type: ScopesType
     _collection_name: str
@@ -33,7 +35,7 @@ class Scope(object):
     def scope_type(self, value: ScopesType):
         self._scope_type = value
 
-
+@auto_str
 class ClientAuthorization(object):
     _client_id: str
     _client_scopes: List[Scope]
@@ -58,7 +60,7 @@ class ClientAuthorization(object):
     def client_scopes(self, value: List[Scope]):
         self._client_scopes = value
 
-
+@auto_str
 class ClientAuthorizationApiKey(ClientAuthorization):
     _api_key: str
     _whitelist_hosts: List[str]
@@ -84,7 +86,7 @@ class ClientAuthorizationApiKey(ClientAuthorization):
     def whitelist_hosts(self, value:List[str]):
         self._whitelist_hosts = value
 
-
+@auto_str
 class ClientAuthorizationHttpSignature(ClientAuthorization):
     _client_public_key: str
 
@@ -99,3 +101,8 @@ class ClientAuthorizationHttpSignature(ClientAuthorization):
     @client_public_key.setter
     def client_public_key(self, value: str):
         self._client_public_key = value
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+

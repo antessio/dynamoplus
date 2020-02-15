@@ -17,7 +17,11 @@ logging.getLogger("boto3").setLevel(logging.DEBUG)
 connection = None
 try:
     if os.environ["STAGE"] and "local" == os.environ["STAGE"]:
-        connection = boto3.resource('dynamodb', endpoint_url='http://localhost:8000/')
+        host = os.environ["DYNAMODB_HOST"]
+        port = os.environ["DYNAMODB_PORT"]
+        logging.info("using dynamolocal")
+        endpoint_url = "{}:{}/".format(host,port) if host else "http://localhost:8000/"
+        connection = boto3.resource('dynamodb', endpoint_url=endpoint_url)
     elif not os.environ["TEST_FLAG"]:
         connection = boto3.resource('dynamodb')
 except:
@@ -49,6 +53,61 @@ class Repository(abc.ABC):
     def find(self, query: Query):
         pass
 
+
+def create_tables():
+    dynamo_db = connection if connection is not None else boto3.resource('dynamodb')
+    try:
+        domain_table = dynamo_db.create_table(TableName=os.environ['DYNAMODB_DOMAIN_TABLE'],
+                                   KeySchema=[
+                                       {'AttributeName': 'pk', 'KeyType': 'HASH'},
+                                       {'AttributeName': 'sk', 'KeyType': 'RANGE'}
+                                   ],
+                                   AttributeDefinitions=[
+                                       {'AttributeName': 'pk', 'AttributeType': 'S'},
+                                       {'AttributeName': 'sk', 'AttributeType': 'S'},
+                                       {'AttributeName': 'data', 'AttributeType': 'S'}
+                                   ],
+                                   GlobalSecondaryIndexes=[
+                                       {
+                                           'IndexName': 'sk-data-index',
+                                           'KeySchema': [{'AttributeName': 'sk', 'KeyType': 'HASH'},
+                                                         {'AttributeName': 'data', 'KeyType': 'RANGE'}],
+                                           "Projection": {"ProjectionType": "ALL"},
+                                           "ProvisionedThroughput": {'WriteCapacityUnits': 1,
+                                                                     'ReadCapacityUnits': 1}
+                                       }
+                                   ],
+                                  ProvisionedThroughput={'ReadCapacityUnits': 1,'WriteCapacityUnits': 1}
+                                )
+        logging.info("Table status: {}".format(domain_table.table_status))
+    except Exception as e:
+        logging.error("Unable to create the table {} ".format("domain"),e)
+    try:
+        system_table = dynamo_db.create_table(TableName=os.environ['DYNAMODB_SYSTEM_TABLE'],
+                                      KeySchema=[
+                                          {'AttributeName': 'pk', 'KeyType': 'HASH'},
+                                          {'AttributeName': 'sk', 'KeyType': 'RANGE'}
+                                      ],
+                                      AttributeDefinitions=[
+                                          {'AttributeName': 'pk', 'AttributeType': 'S'},
+                                          {'AttributeName': 'sk', 'AttributeType': 'S'},
+                                          {'AttributeName': 'data', 'AttributeType': 'S'}
+                                      ],
+                                      GlobalSecondaryIndexes=[
+                                          {
+                                              'IndexName': 'sk-data-index',
+                                              'KeySchema': [{'AttributeName': 'sk', 'KeyType': 'HASH'},
+                                                            {'AttributeName': 'data', 'KeyType': 'RANGE'}],
+                                              "Projection": {"ProjectionType": "ALL"},
+                                              "ProvisionedThroughput": {'WriteCapacityUnits': 1,
+                                                                        'ReadCapacityUnits': 1}
+                                          }
+                                      ],
+                                      ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
+                                      )
+        logging.info("Table status: {}".format(system_table.table_status))
+    except Exception as e:
+        logging.error("Unable to create the table {} ".format("system"),e)
 
 class DynamoPlusRepository(Repository):
     def __init__(self, collection: Collection, is_system=False):
