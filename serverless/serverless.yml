@@ -36,6 +36,8 @@ provider:
     ENTITIES: ${self:custom.system_collections}
     ROOT_ACCOUNT: ${file(./secrets.json):ROOT_ACCOUNT}
     ROOT_PASSWORD: ${file(./secrets.json):ROOT_PASSWORD}
+    DYNAMODB_HOST: http://localhost
+    DYNAMODB_PORT: 8000
     
   iamRoleStatements:
     - Effect: Allow
@@ -46,6 +48,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+        - dynamodb:CreateTable
         # New permissions needed for stream
         - dynamodb:GetRecords
         - dynamodb:GetShardIterator
@@ -66,6 +69,16 @@ functions:
           type: dynamodb
           arn: { Fn::GetAtt: [ DomainDynamoDbTable, StreamArn ] }
           batchSize: 1
+  admin:
+    handler: dynamoplus/http/admin.admin
+    events:
+      - http:
+          path: admin/setup
+          method: post
+          cors: true
+          authorizer:
+            name: auth
+            type: request
   create:
     handler: dynamoplus/http/create.create
     events:
