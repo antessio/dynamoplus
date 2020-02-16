@@ -9,6 +9,8 @@ from dynamoplus.models.system.index.index import Index
 from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
     ClientAuthorizationApiKey, ClientAuthorizationHttpSignature, Scope, ScopesType
 
+CLIENT_AUTHORIZATION_BY_API_KEY_INDEX = Index(None, "client_authorization", ["api_key"])
+
 collectionMetadata = Collection("collection", "name")
 indexMetadata = Collection("index", "uid")
 client_authorization_metadata = Collection("client_authorization", "client_id")
@@ -144,6 +146,16 @@ class SystemService:
             return from_dict_to_client_authorization(model.document)
 
     @staticmethod
+    def get_api_key_client_authorization(api_key: str):
+        query = Query({"api_key": api_key}, CLIENT_AUTHORIZATION_BY_API_KEY_INDEX)
+        result: QueryResult = IndexDynamoPlusRepository(client_authorization_metadata, CLIENT_AUTHORIZATION_BY_API_KEY_INDEX,True).find(query)
+        client_authorization_results = list(map(lambda m: from_dict_to_client_authorization(m.document), result.data))
+        if len(client_authorization_results) == 0:
+            return None
+        else:
+            return client_authorization_results[0]
+
+    @staticmethod
     def create_collection(metadata: Collection):
         collection = from_collection_to_dict(metadata)
         repository = DynamoPlusRepository(collectionMetadata, True)
@@ -229,7 +241,12 @@ class SystemService:
         logging.info("creating client authorization {}".format(str(client_authorization)))
         model = DynamoPlusRepository(client_authorization_metadata, True).create(client_authorization_document)
         if model:
-            return from_dict_to_client_authorization(model.document)
+            client_authorization = from_dict_to_client_authorization(model.document)
+            if isinstance(client_authorization,ClientAuthorizationApiKey):
+                index_repository = IndexDynamoPlusRepository(client_authorization_metadata,
+                                                       CLIENT_AUTHORIZATION_BY_API_KEY_INDEX, True)
+                client_authorizaton_enabled_by_api_key = index_repository.create(model.document)
+            return client_authorization
 
     @staticmethod
     def update_authorization(client_authorization: ClientAuthorization):
