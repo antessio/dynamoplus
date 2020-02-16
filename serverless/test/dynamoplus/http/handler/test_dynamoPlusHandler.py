@@ -14,10 +14,12 @@ from unittest.mock import patch
 class TestDynamoPlusHandler(unittest.TestCase):
 
     def setUp(self):
-        os.environ['ENTITIES'] = 'index,collection'
+        os.environ['ENTITIES'] = 'index,collection,client_authorization'
 
     def tearDown(self):
         del os.environ['ENTITIES']
+
+
 
     @patch.object(SystemService, "get_collection_by_name")
     @patch.object(SystemService, "__init__")
@@ -75,4 +77,4 @@ class TestDynamoPlusHandler(unittest.TestCase):
         self.assertEqual(len(documents), len(expected_documents))
         self.assertTrue(mock_get_collection_by_name.called_with("example"))
         self.assertTrue(mock_get_index.called_with("attribute1"))
-        self.assertEqual(call(expected_index,expected_document_example),mock_find_by_index.call_args_list[0])
+        self.assertEqual(call(expected_index,expected_document_example,None,None),mock_find_by_index.call_args_list[0])
