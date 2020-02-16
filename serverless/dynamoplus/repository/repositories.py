@@ -13,7 +13,7 @@ import os
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logging.getLogger("botocore").setLevel(logging.WARNING)
-logging.getLogger("boto3").setLevel(logging.DEBUG)
+logging.getLogger("boto3").setLevel(logging.WARNING)
 connection = None
 try:
     if os.environ["STAGE"] and "local" == os.environ["STAGE"]:
@@ -206,28 +206,20 @@ class IndexDynamoPlusRepository(DynamoPlusRepository):
         ordering_key = query.index.ordering_key if query.index else None
         logger.info("order by is {} ".format(ordering_key))
         limit = query.limit
-        start_from = index_model.start_from(query.start_from) if query.start_from else None
-        #start_from = query.start_from
-        logging.info("query starts from {}".format(start_from))
-        if query.index.range_condition:
-            v_1, v_2 = index_model.data()
-            key = Key('sk').eq(index_model.sk()) & Key('data').between(v_1,v_2)
-            logger.info("the key that will be used is sk={} and data between {} and {}".format(index_model.sk(),v_1,v_2))
-        else:
-            if index_model.data() is not None:
-                if not index_model.use_begins_with() or ordering_key is not None:
-                    key = Key('sk').eq(index_model.sk()) & Key('data').begins_with(index_model.data())
-                    logger.info(
-                        "The key that will be used is sk={} begins with data={}".format(index_model.sk(),
-                                                                                        index_model.data()))
-                else:
-                    key = Key('sk').eq(index_model.sk()) & Key('data').eq(index_model.data())
-                    logger.info(
-                        "The key that will be used is sk={} is equal data={}".format(index_model.sk(), index_model.data()))
-
+        start_from = query.start_from
+        if index_model.data() is not None:
+            if ordering_key is None:
+                key = Key('sk').eq(index_model.sk()) & Key('data').eq(index_model.data())
+                logger.info(
+                    "The key that will be used is sk={} is equal data={}".format(index_model.sk(), index_model.data()))
             else:
-                key = Key('sk').eq(index_model.sk())
-                logger.info("The key that will be used is sk={} with no data".format(index_model.sk()))
+                key = Key('sk').eq(index_model.sk()) & Key('data').begins_with(index_model.data())
+                logger.info(
+                    "The key that will be used is sk={} begins with data={}".format(index_model.sk(),
+                                                                                    index_model.data()))
+        else:
+            key = Key('sk').eq(index_model.sk())
+            logger.info("The key that will be used is sk={} with no data".format(index_model.sk()))
 
         dynamo_query = dict(
             IndexName="sk-data-index",
@@ -242,5 +234,5 @@ class IndexDynamoPlusRepository(DynamoPlusRepository):
         last_key = None
 
         if 'LastEvaluatedKey' in response:
-            last_key = index_model.last_evaluated_key(response['LastEvaluatedKey'])
+            last_key = response['LastEvaluatedKey']
         return QueryResult(list(map(lambda i: Model.from_dynamo_db_item(i, self.collection), response[u'Items'])), last_key)

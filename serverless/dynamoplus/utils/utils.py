@@ -38,8 +38,6 @@ def find_value(d: dict, keys: List[str]):
         v = d[k]
         if isinstance(v, dict):
             return find_value(v, keys[1:])
-        elif isinstance(v,List):
-            return v
         else:
             return convertToString(v)
     else:
