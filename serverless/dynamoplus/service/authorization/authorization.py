@@ -2,6 +2,9 @@ from typing import *
 from base64 import b64decode, b64encode
 import os
 import re
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA256
@@ -51,19 +54,30 @@ class AuthorizationService:
                         key,value = v.split("=",1)
                         signature_components[key.strip()]=value.replace("\"","")
                     if "keyId" in signature_components:
-                        client_authorization = SystemService.get_client_authorization(signature_components["keyId"])
-                        signatory_message = "(request-target): {} {}".format(method,path);
-                        for h in filter(lambda header: header.lower() != 'authorization', headers):
-                            signatory_message += "\n{}: {}".format(h.lower(),headers[h])
+                        key_id = signature_components["keyId"]
+                        logging.info("client {}".format(key_id))
+                        client_authorization = SystemService.get_client_authorization(key_id)
+                        if client_authorization:
+                            signatory_message = "(request-target): {} {}".format(method,path);
+                            for h in filter(lambda header: header.lower() != 'authorization', headers):
+                                signatory_message += "\n{}: {}".format(h.lower(),headers[h])
 
-                        rsakey = RSA.importKey(client_authorization.client_public_key)
-                        signer = PKCS1_v1_5.new(rsakey)
-                        ## digest = SHA256.new()
-                        signature = signature_components["signature"].replace("\"", "")
-                        ## digest.update(b64decode(signatory_message))
-                        hash = SHA256.new(signatory_message.encode("utf-8"))
-                        if signer.verify(hash, b64decode(signature)):
-                            return client_authorization
+                            rsakey = RSA.importKey(client_authorization.client_public_key)
+                            signer = PKCS1_v1_5.new(rsakey)
+                            ## digest = SHA256.new()
+                            signature = signature_components["signature"].replace("\"", "")
+                            ## digest.update(b64decode(signatory_message))
+                            hash = SHA256.new(signatory_message.encode("utf-8"))
+                            if signer.verify(hash, b64decode(signature)):
+                                return client_authorization
+                            else:
+                                logging.error("signature not verified for key id {}".format(key_id))
+                        else:
+                            logging.error("client authorization not found for key {}".format(key_id))
+                    else:
+                        logging.error("missing key id")
+                else:
+                    logging.error("missing authorization value ")
 
 
     @staticmethod
@@ -76,9 +90,12 @@ class AuthorizationService:
     @staticmethod
     def get_client_authorization_by_api_key(headers: dict):
         authorization_value = AuthorizationService.get_authorization_value(headers, API_KEY_PREFIX)
-        client_id = headers[CLIENT_ID_HEADER]
-        if authorization_value:
+        logger.info("authorization value = {}".format(authorization_value))
+        if authorization_value and CLIENT_ID_HEADER in headers:
+            client_id = headers[CLIENT_ID_HEADER]
+            logger.info("client_id = {}".format(client_id))
             client_authorization = SystemService.get_client_authorization(client_id)
+            logger.info("found client authorization {}".format(client_authorization))
             if client_authorization.api_key == authorization_value:
                 return client_authorization
 
