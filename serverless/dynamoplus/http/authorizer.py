@@ -24,7 +24,8 @@ def authorize(event, context):
                     policy = generate_policy(username, "Allow", "*")
             elif AuthorizationService.is_api_key(headers):
                 client_authorization = AuthorizationService.get_client_authorization_by_api_key(headers)
-                if AuthorizationService.check_scope(path,http_method,client_authorization.client_scopes):
+                logger.info("client authorization = {}".format(client_authorization))
+                if client_authorization and AuthorizationService.check_scope(path,http_method,client_authorization.client_scopes):
                     policy = generate_policy(client_authorization.client_id, "Allow", "*")
             elif AuthorizationService.is_http_signature(headers):
                 client_authorization = AuthorizationService.get_client_authorization_using_http_signature_authorized(headers, http_method,path)
@@ -32,7 +33,8 @@ def authorize(event, context):
                     policy = generate_policy(client_authorization.client_id, "Allow", "*")
         except Exception as e:
             print(f'Exception encountered: {e}')
-            raise Exception('Unauthorized')
+            logging.error("exception encountered",e)
+            policy = generate_policy("anonymous_client","Deny","*")
     else:
         policy = generate_policy("anonymous_client", "Allow", "*")
 
