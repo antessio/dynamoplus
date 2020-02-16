@@ -1,15 +1,30 @@
 import uuid
 from typing import *
 
+from dynamoplus.utils.utils import auto_str
 
+
+@auto_str
 class Index(object):
     def __init__(self, uid:str, collection_name: str, conditions: List[str], ordering_key: str = None, index_name:str = None):
         self._collection_name = collection_name
         self._conditions = conditions
+        conditions_set = set(self._conditions)
+        condition_set_length = len(conditions_set)
+        self._range_condition = None
+        if condition_set_length != len(self._conditions) and condition_set_length == 1:
+            self._range_condition = conditions_set.pop()
         self._ordering_key = ordering_key
         self._index_name = index_name if index_name else Index.index_name_generator(self._conditions,self._ordering_key)
         self._uid = uid
 
+    @property
+    def range_condition(self):
+        return self._range_condition
+
+    @range_condition.setter
+    def range_condition(self,value):
+        self.range_condition = value
 
     @staticmethod
     def index_name_generator(conditions:List[str], ordering_key:str=None):
@@ -63,7 +78,3 @@ class Index(object):
                        and self._conditions.__eq__(o.conditions) \
                        and self._ordering_key.__eq__(o.ordering_key)
         return super().__eq__(o)
-
-    def __str__(self):
-        return "uid={} name={} collection_name={} conditions={} ordering_key={}".format(self._uid, self._index_name,self._collection_name, self._conditions,
-                                                                         self._ordering_key)

@@ -13,10 +13,16 @@ import os
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logging.getLogger("botocore").setLevel(logging.WARNING)
-logging.getLogger("boto3").setLevel(logging.WARNING)
+logging.getLogger("boto3").setLevel(logging.DEBUG)
 connection = None
 try:
-    if not os.environ["TEST_FLAG"]:
+    if os.environ["STAGE"] and "local" == os.environ["STAGE"]:
+        host = os.environ["DYNAMODB_HOST"]
+        port = os.environ["DYNAMODB_PORT"]
+        logging.info("using dynamolocal")
+        endpoint_url = "{}:{}/".format(host,port) if host else "http://localhost:8000/"
+        connection = boto3.resource('dynamodb', endpoint_url=endpoint_url)
+    elif not os.environ["TEST_FLAG"]:
         connection = boto3.resource('dynamodb')
 except:
     logger.info("Unable to instantiate")
@@ -47,6 +53,61 @@ class Repository(abc.ABC):
     def find(self, query: Query):
         pass
 
+
+def create_tables():
+    dynamo_db = connection if connection is not None else boto3.resource('dynamodb')
+    try:
+        domain_table = dynamo_db.create_table(TableName=os.environ['DYNAMODB_DOMAIN_TABLE'],
+                                   KeySchema=[
+                                       {'AttributeName': 'pk', 'KeyType': 'HASH'},
+                                       {'AttributeName': 'sk', 'KeyType': 'RANGE'}
+                                   ],
+                                   AttributeDefinitions=[
+                                       {'AttributeName': 'pk', 'AttributeType': 'S'},
+                                       {'AttributeName': 'sk', 'AttributeType': 'S'},
+                                       {'AttributeName': 'data', 'AttributeType': 'S'}
+                                   ],
+                                   GlobalSecondaryIndexes=[
+                                       {
+                                           'IndexName': 'sk-data-index',
+                                           'KeySchema': [{'AttributeName': 'sk', 'KeyType': 'HASH'},
+                                                         {'AttributeName': 'data', 'KeyType': 'RANGE'}],
+                                           "Projection": {"ProjectionType": "ALL"},
+                                           "ProvisionedThroughput": {'WriteCapacityUnits': 1,
+                                                                     'ReadCapacityUnits': 1}
+                                       }
+                                   ],
+                                  ProvisionedThroughput={'ReadCapacityUnits': 1,'WriteCapacityUnits': 1}
+                                )
+        logging.info("Table status: {}".format(domain_table.table_status))
+    except Exception as e:
+        logging.error("Unable to create the table {} ".format("domain"),e)
+    try:
+        system_table = dynamo_db.create_table(TableName=os.environ['DYNAMODB_SYSTEM_TABLE'],
+                                      KeySchema=[
+                                          {'AttributeName': 'pk', 'KeyType': 'HASH'},
+                                          {'AttributeName': 'sk', 'KeyType': 'RANGE'}
+                                      ],
+                                      AttributeDefinitions=[
+                                          {'AttributeName': 'pk', 'AttributeType': 'S'},
+                                          {'AttributeName': 'sk', 'AttributeType': 'S'},
+                                          {'AttributeName': 'data', 'AttributeType': 'S'}
+                                      ],
+                                      GlobalSecondaryIndexes=[
+                                          {
+                                              'IndexName': 'sk-data-index',
+                                              'KeySchema': [{'AttributeName': 'sk', 'KeyType': 'HASH'},
+                                                            {'AttributeName': 'data', 'KeyType': 'RANGE'}],
+                                              "Projection": {"ProjectionType": "ALL"},
+                                              "ProvisionedThroughput": {'WriteCapacityUnits': 1,
+                                                                        'ReadCapacityUnits': 1}
+                                          }
+                                      ],
+                                      ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
+                                      )
+        logging.info("Table status: {}".format(system_table.table_status))
+    except Exception as e:
+        logging.error("Unable to create the table {} ".format("system"),e)
 
 class DynamoPlusRepository(Repository):
     def __init__(self, collection: Collection, is_system=False):
@@ -145,20 +206,28 @@ class IndexDynamoPlusRepository(DynamoPlusRepository):
         ordering_key = query.index.ordering_key if query.index else None
         logger.info("order by is {} ".format(ordering_key))
         limit = query.limit
-        start_from = query.start_from
-        if index_model.data() is not None:
-            if ordering_key is None:
-                key = Key('sk').eq(index_model.sk()) & Key('data').eq(index_model.data())
-                logger.info(
-                    "The key that will be used is sk={} is equal data={}".format(index_model.sk(), index_model.data()))
-            else:
-                key = Key('sk').eq(index_model.sk()) & Key('data').begins_with(index_model.data())
-                logger.info(
-                    "The key that will be used is sk={} begins with data={}".format(index_model.sk(),
-                                                                                    index_model.data()))
+        start_from = index_model.start_from(query.start_from) if query.start_from else None
+        #start_from = query.start_from
+        logging.info("query starts from {}".format(start_from))
+        if query.index.range_condition:
+            v_1, v_2 = index_model.data()
+            key = Key('sk').eq(index_model.sk()) & Key('data').between(v_1,v_2)
+            logger.info("the key that will be used is sk={} and data between {} and {}".format(index_model.sk(),v_1,v_2))
         else:
-            key = Key('sk').eq(index_model.sk())
-            logger.info("The key that will be used is sk={} with no data".format(index_model.sk()))
+            if index_model.data() is not None:
+                if not index_model.use_begins_with() or ordering_key is not None:
+                    key = Key('sk').eq(index_model.sk()) & Key('data').begins_with(index_model.data())
+                    logger.info(
+                        "The key that will be used is sk={} begins with data={}".format(index_model.sk(),
+                                                                                        index_model.data()))
+                else:
+                    key = Key('sk').eq(index_model.sk()) & Key('data').eq(index_model.data())
+                    logger.info(
+                        "The key that will be used is sk={} is equal data={}".format(index_model.sk(), index_model.data()))
+
+            else:
+                key = Key('sk').eq(index_model.sk())
+                logger.info("The key that will be used is sk={} with no data".format(index_model.sk()))
 
         dynamo_query = dict(
             IndexName="sk-data-index",
@@ -173,5 +242,5 @@ class IndexDynamoPlusRepository(DynamoPlusRepository):
         last_key = None
 
         if 'LastEvaluatedKey' in response:
-            last_key = response['LastEvaluatedKey']
+            last_key = index_model.last_evaluated_key(response['LastEvaluatedKey'])
         return QueryResult(list(map(lambda i: Model.from_dynamo_db_item(i, self.collection), response[u'Items'])), last_key)

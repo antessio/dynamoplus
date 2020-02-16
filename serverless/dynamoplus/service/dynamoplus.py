@@ -1,11 +1,8 @@
+import os
 from typing import *
-from dynamoplus.models.query.query import Index
 from dynamoplus.models.system.collection.collection import Collection
-from dynamoplus.service.indexes import IndexService
-from dynamoplus.repository.repositories import DynamoPlusRepository
-from dynamoplus.models.query.query import Query, Index
 
-# from dynamoplus.repository.models import QueryResult, Document
+from dynamoplus.models.query.query import Query, Index
 
 collectionMetadata = Collection("collection", "name")
 indexMetadata = Collection("index", "uid")
@@ -19,6 +16,10 @@ class DynamoPlusService(object):
     def __init__(self):
         pass
 
+    @staticmethod
+    def is_system(collection_name):
+        SYSTEM_ENTITIES = os.environ['ENTITIES']
+        return collection_name in SYSTEM_ENTITIES.split(",")
 
     @staticmethod
     def build_index(index_str: str):

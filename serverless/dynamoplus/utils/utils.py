@@ -8,6 +8,14 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
+def auto_str(cls):
+    def __str__(self):
+        return '%s(%s)' % (
+            type(self).__name__,
+            ', '.join('%s=%s' % item for item in vars(self).items())
+        )
+    cls.__str__ = __str__
+    return cls
 
 def convertToString(val):
     if isinstance(val, datetime):
@@ -30,6 +38,8 @@ def find_value(d: dict, keys: List[str]):
         v = d[k]
         if isinstance(v, dict):
             return find_value(v, keys[1:])
+        elif isinstance(v,List):
+            return v
         else:
             return convertToString(v)
     else:

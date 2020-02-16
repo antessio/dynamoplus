@@ -2,18 +2,23 @@ service: dynamoplus
 
 plugins:
   - serverless-python-requirements
+  - serverless-dynamodb-local
+  - serverless-offline
+
 custom:
   pythonRequirements:
-    dockerizePip: true
+    dockerizePip: false
   serverless-offline:
     host: 0.0.0.0
   dynamodb:
+    # If you only want to use DynamoDB Local in some stages, declare them here
+    stages:
+      - local
     start:
+      port: 8000
       migrate: true
-  system_indexes: "collection#name,index#name,index#collection.name,collection#active"
-  #system_collections: "collection#id#creation_date_time,index#id#creation_date_time"
-  system_collections: "collection,index"
-  allowed_origins: "http://localhost:3000,https://dynamoplus-dashboard.firebaseapp.com" ## to change in production
+  system_collections: "collection,index,client_authorization"
+  allowed_origins: ${file(./secrets.json):ALLOWED_ORIGINS}
 frameworkVersion: ">=1.1.0 <2.0.0"
 
 provider:
@@ -24,16 +29,15 @@ provider:
 
   environment:
     ALLOWED_ORIGINS: ${self:custom.allowed_origins}
-    DYNAMODB_DOMAIN_TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}-domain
-    DYNAMODB_SYSTEM_TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}-system
     DYNAMODB_DOMAIN_TABLE: ${self:service}-${opt:stage, self:provider.stage}-domain
     DYNAMODB_SYSTEM_TABLE: ${self:service}-${opt:stage, self:provider.stage}-system
+    STAGE: ${opt:stage, self:provider.stage}
     REGION: ${self:provider.region}
-    INDEXES: ${self:custom.system_indexes}
     ENTITIES: ${self:custom.system_collections}
-    AUTH0_CLIENT_ID: ${file(./secrets.json):AUTH0_CLIENT_ID}
-    AUTH0_CLIENT_PUBLIC_KEY: ${file(./public_key)}
-    AUDIENCE: ${file(./secrets.json):AUDIENCE}
+    ROOT_ACCOUNT: ${file(./secrets.json):ROOT_ACCOUNT}
+    ROOT_PASSWORD: ${file(./secrets.json):ROOT_PASSWORD}
+    DYNAMODB_HOST: http://localhost
+    DYNAMODB_PORT: 8000
     
   iamRoleStatements:
     - Effect: Allow
@@ -44,6 +48,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+        - dynamodb:CreateTable
         # New permissions needed for stream
         - dynamodb:GetRecords
         - dynamodb:GetShardIterator
@@ -58,12 +63,30 @@ functions:
     handler: dynamoplus/http/authorizer.authorize
     cors: true
   handleStream:
-    handler: dynamoplus/events/dynamodb.dynamoStreamHandler
+    handler: dynamoplus/events/dynamodb.dynamo_stream_handler
     events:
       - stream:
           type: dynamodb
           arn: { Fn::GetAtt: [ DomainDynamoDbTable, StreamArn ] }
           batchSize: 1
+  admin:
+    handler: dynamoplus/http/system.create_tables
+    events:
+      - http:
+          path: admin/setup
+          method: post
+          cors: true
+          authorizer:
+            name: auth
+            type: request
+  info:
+    handler: dynamoplus/http/system.info
+    events:
+      - http:
+          path: system/info
+          method: get
+          cors: true
+
   create:
     handler: dynamoplus/http/create.create
     events:
@@ -71,9 +94,9 @@ functions:
           path: dynamoplus/{collection}
           method: post
           cors: true
-          #authorizer: 
-          #  name: auth
-          #  type: request
+          authorizer:
+            name: auth
+            type: request
 
   query:
     handler: dynamoplus/http/query.query
@@ -82,9 +105,9 @@ functions:
           path: dynamoplus/{collection}/query/{queryId}
           method: post
           cors: true
-          #authorizer: 
-          #  name: auth
-          #  type: request
+          authorizer:
+            name: auth
+            type: request
   queryAll:
     handler: dynamoplus/http/query.query
     events:
@@ -92,9 +115,9 @@ functions:
           path: dynamoplus/{collection}/query
           method: post
           cors: true
-          #authorizer: 
-          #  name: auth
-          #  type: request
+          authorizer:
+            name: auth
+            type: request
 
   get:
     handler: dynamoplus/http/get.get
@@ -103,9 +126,9 @@ functions:
           path: dynamoplus/{collection}/{id}
           method: get
           cors: true
-          #authorizer: 
-          #  name: auth
-          #  type: request
+          authorizer:
+            name: auth
+            type: request
 
   update:
     handler: dynamoplus/http/update.update
@@ -114,9 +137,9 @@ functions:
           path: dynamoplus/{collection}/{id}
           method: put
           cors: true
-          #authorizer: 
-          #  name: auth
-          #  type: request
+          authorizer:
+            name: auth
+            type: request
 
   delete:
     handler: dynamoplus/http/delete.delete
@@ -125,9 +148,9 @@ functions:
           path: dynamoplus/{collection}/{id}
           method: delete
           cors: true
-          #authorizer: 
-          #  name: auth
-          #  type: request
+          authorizer:
+            name: auth
+            type: request
 
 resources:
   Resources:
@@ -171,7 +194,7 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_SYSTEM_TABLE_NAME}
+        TableName: ${self:provider.environment.DYNAMODB_SYSTEM_TABLE}
         GlobalSecondaryIndexes:
         - IndexName: sk-data-index
           KeySchema:
@@ -205,7 +228,7 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_DOMAIN_TABLE_NAME}
+        TableName: ${self:provider.environment.DYNAMODB_DOMAIN_TABLE}
         GlobalSecondaryIndexes:
         - IndexName: sk-data-index
           KeySchema:

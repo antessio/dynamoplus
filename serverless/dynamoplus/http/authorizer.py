@@ -1,48 +1,45 @@
-import jwt
-import json
 import os
+import logging
+from dynamoplus.service.authorization.authorization import AuthorizationService
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.x509 import load_pem_x509_certificate
+AUTHORIZATION_FEATURE_ENABLED = True # bool(os.getenvb("AUTHORIZATION_FEATURE_ENABLED","False"))
+ROOT_ACCOUNT = os.getenv("ROOT_ACCOUNT")
+ROOT_PASSWORD = os.getenv("ROOT_PASSWORD")
 
-
-# Set by serverless.yml
-AUTH0_CLIENT_ID = os.getenv('AUTH0_CLIENT_ID')
-AUTH0_CLIENT_PUBLIC_KEY = os.getenv('AUTH0_CLIENT_PUBLIC_KEY')
-AUDIENCE = os.getenv('AUDIENCE')
 
 def authorize(event, context):
-    whole_auth_token = event["headers"]["Authorization"]
-    if not whole_auth_token:
-        raise Exception('Unauthorized')
+    headers = event["headers"]
+    http_method = event["httpMethod"]
+    path = event["path"]
+    method_arn = event["methodArn"]
+    policy = generate_policy("anonymous_client","Deny","*")
+    if AUTHORIZATION_FEATURE_ENABLED:
+        try:
+            if AuthorizationService.is_basic_auth(headers):
+                username = AuthorizationService.get_basic_auth_authorized(headers)
+                logging.info("Found {} in credentials".format(username))
+                if username:
+                    policy = generate_policy(username, "Allow", "*")
+            elif AuthorizationService.is_api_key(headers):
+                client_authorization = AuthorizationService.get_client_authorization_by_api_key(headers)
+                logger.info("client authorization = {}".format(client_authorization))
+                if client_authorization and AuthorizationService.check_scope(path,http_method,client_authorization.client_scopes):
+                    policy = generate_policy(client_authorization.client_id, "Allow", "*")
+            elif AuthorizationService.is_http_signature(headers):
+                client_authorization = AuthorizationService.get_client_authorization_using_http_signature_authorized(headers, http_method,path)
+                if AuthorizationService.check_scope(path, http_method, client_authorization.client_scopes):
+                    policy = generate_policy(client_authorization.client_id, "Allow", "*")
+        except Exception as e:
+            print(f'Exception encountered: {e}')
+            logging.error("exception encountered",e)
+            policy = generate_policy("anonymous_client","Deny","*")
+    else:
+        policy = generate_policy("anonymous_client", "Allow", "*")
 
-    print('Client token: ' + whole_auth_token)
-    print('Method ARN: ' + event['methodArn'])
-    collection = event["pathParameters"]["collection"]
-    print("collection {}".format(collection))
-    token_parts = whole_auth_token.split(' ')
-    auth_token = token_parts[1]
-    token_method = token_parts[0]
+    return policy
 
-    if not (token_method.lower() == 'bearer' and auth_token):
-        print("Failing due to invalid token_method or missing auth_token")
-        raise Exception('Unauthorized')
-
-    try:
-        payload = jwt_verify(auth_token, AUTH0_CLIENT_PUBLIC_KEY)
-        print("Auth0 payload "+str(payload))
-        principal_id = payload['sub']
-        ## TODO: given the principal_id (and its scopes) and a request path, check authorization
-        policy = generate_policy(principal_id, 'Allow', "*")
-        return policy
-    except Exception as e:
-        print(f'Exception encountered: {e}')
-        raise Exception('Unauthorized')
-def jwt_verify(auth_token,public_key):
-    public_key = format_public_key(public_key)
-    pub_key = convert_certificate_to_pem(public_key)
-    payload = jwt.decode(auth_token, pub_key, algorithms=['RS256'], audience=AUDIENCE)
-    return payload
 
 def generate_policy(principal_id, effect, resource):
     return {
@@ -59,17 +56,3 @@ def generate_policy(principal_id, effect, resource):
             ]
         }
     }
-
-
-def convert_certificate_to_pem(public_key):
-    cert_str = public_key.encode()
-    cert_obj = load_pem_x509_certificate(cert_str, default_backend())
-    pub_key = cert_obj.public_key()
-    return pub_key
-
-
-def format_public_key(public_key):
-    public_key = public_key.replace('\n', ' ').replace('\r', '')
-    public_key = public_key.replace('-----BEGIN CERTIFICATE-----', '-----BEGIN CERTIFICATE-----\n')
-    public_key = public_key.replace('-----END CERTIFICATE-----', '\n-----END CERTIFICATE-----')
-    return public_key
