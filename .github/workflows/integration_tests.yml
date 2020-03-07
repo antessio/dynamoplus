@@ -15,12 +15,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-      with:
-        repository: antessio/dynamoplus-e2e-tests
     - name: Set up JDK 1.8
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
+    - uses: actions/checkout@v2
+        with:
+          repository: antessio/dynamoplus-java-sdk
+          path: dynamoplus-java-sdk
     - name: Build with Maven
-      run: mvn -B clean test --file pom.xml
+        run: mvn -B clean install --file dynamoplus-java-sdk/pom.xml
+    - uses: actions/checkout@v2
+      with:
+        repository: antessio/dynamoplus-e2e-tests
+        path: dynamoplus-e2e-tests
+    - name: Build with Maven
+      run: mvn -B clean test --file dynamoplus-e2e-tests/pom.xml
