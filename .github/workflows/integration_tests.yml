@@ -10,7 +10,7 @@ on:
     branches: [ master, develop ]
 
 jobs:
-  build:
+  e2e-tests:
     runs-on: ubuntu-latest
     steps:
     - name: Set up JDK 1.8
@@ -30,6 +30,23 @@ jobs:
       run: ls -lart
     - name: Running localhost environment
       run: docker-compose -f docker-compose-localhost.yml up -d
+    - name: Wait for server up
+      run: |
+        URL=http://localhost:3000/system/info
+        MAX_TRIES=10
+        SECONDS_BETWEEN_CHECKS=3
+        while [ $MAX_TRIES -gt 0 ]
+        do
+          STATUS=$(curl -L --max-time 1 -s -o /dev/null -w '%{http_code}' $URL)
+          if [ $STATUS -eq 200 ]; then
+            exit 0
+          else
+            MAX_TRIES=$((MAX_TRIES - 1))
+          fi
+          sleep $SECONDS_BETWEEN_CHECKS
+        done
+    - name: Creating tables
+      run: curl -X POST http://localhost:3000/admin/setup
     - name: Checkout e2e tests
       uses: actions/checkout@v2
       with:
