@@ -7,7 +7,7 @@ echo "MAX_TRIES: $MAX_TRIES"
 echo "SECONDS_BETWEEN_CHECKS: $SECONDS_BETWEEN_CHECKS"
 while [ $MAX_TRIES -gt 0 ]
 do
-  STATUS=$(curl -L --max-time 1 -s -o /dev/null -w '%{http_code}' $URL)
+  STATUS=$(curl -L --max-time 10 -s -o /dev/null -w '%{http_code}' $URL)
   echo "Status $STATUS"
   if [ $STATUS -eq 200 ]; then
     exit 0
