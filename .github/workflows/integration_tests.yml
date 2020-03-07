@@ -40,6 +40,6 @@ jobs:
         repository: antessio/dynamoplus-e2e-tests
         path: dynamoplus-e2e-tests
     - name: Running e2e tests on localhost
-      run: mvn -B clean test --file dynamoplus-e2e-tests/pom.xml
+      run: mvn -B clean test -DrunSuite=**/SlowTestSuite.class --file dynamoplus-e2e-tests/pom.xml
     - name: Shutting down docker containers
       run: docker-compose -f docker-compose-localhost.yml kill
