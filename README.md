@@ -11,6 +11,9 @@ master
 develop
 [![Coverage Status](https://coveralls.io/repos/github/antessio/dynamoplus/badge.svg?branch=develop)](https://coveralls.io/github/antessio/dynamoplus?branch=develop)
 
+![Integration tests develop](https://github.com/antessio/dynamoplus/workflows/Integration%20tests/badge.svg?branch=develop![Integration tests](https://github.com/antessio/dynamoplus/workflows/Integration%20tests/badge.svg?branch=develop)
+
+
 # dyamoplus
 A serverless back-end to create REST endpoint in python
 
