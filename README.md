@@ -1,14 +1,11 @@
 master
 [![Build Status](https://travis-ci.com/antessio/dynamoplus.svg?branch=master)](https://travis-ci.com/antessio/dynamoplus)
 
+[![Coverage Status](https://coveralls.io/repos/github/antessio/dynamoplus/badge.svg?branch=master)](https://coveralls.io/github/antessio/dynamoplus?branch=master)
 
 develop
 [![Build Status](https://travis-ci.com/antessio/dynamoplus.svg?branch=develop)](https://travis-ci.com/antessio/dynamoplus)
 
-master
-[![Coverage Status](https://coveralls.io/repos/github/antessio/dynamoplus/badge.svg?branch=master)](https://coveralls.io/github/antessio/dynamoplus?branch=master)
-
-develop
 [![Coverage Status](https://coveralls.io/repos/github/antessio/dynamoplus/badge.svg?branch=develop)](https://coveralls.io/github/antessio/dynamoplus?branch=develop)
 
 ![Integration tests ](https://github.com/antessio/dynamoplus/workflows/Integration%20tests/badge.svg?branch=develop)
