@@ -33,7 +33,7 @@ jobs:
     - name: Wait for server up
       run: ./wait-for.sh http://localhost:3000/system/info 10 3
     - name: Creating tables
-      run: curl -X POST http://localhost:3000/admin/setup
+      run: curl -X POST --max-time 30 http://localhost:3000/admin/setup
     - name: Checkout e2e tests
       uses: actions/checkout@v2
       with:
