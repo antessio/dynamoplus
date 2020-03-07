@@ -70,7 +70,7 @@ functions:
           arn: { Fn::GetAtt: [ DomainDynamoDbTable, StreamArn ] }
           batchSize: 1
   admin:
-    handler: dynamoplus/http/system.create_tables
+    handler: dynamoplus/http/system.setup
     events:
       - http:
           path: admin/setup
