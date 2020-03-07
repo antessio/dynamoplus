@@ -10,7 +10,7 @@ on:
     branches: [ master, develop ]
 
 jobs:
-  build:
+  build-dependencies:
     runs-on: ubuntu-latest
     steps:
     - name: Set up JDK 1.8
@@ -24,10 +24,11 @@ jobs:
         path: dynamoplus-java-sdk
     - name: Install sdk
       run: mvn -B clean install --file dynamoplus-java-sdk/pom.xml
+  running-tests:
     - name: Checkout main project
       uses: actions/checkout@v2
-    - name: List
-      run: ls -lart
+    - name: List workspace
+      run: ls -lart $GITHUB_WORKSPACE
     - name: Running localhost environment
       run: docker-compose -f docker-compose-localhost.yml up -d
     - name: Checkout e2e tests
@@ -37,5 +38,6 @@ jobs:
         path: dynamoplus-e2e-tests
     - name: Running e2e tests on localhost
       run: mvn -B clean test --file dynamoplus-e2e-tests/pom.xml
+  shutting-down-containers:
     - name: Shutting down docker containers
       run: docker-compose -f docker-compose-localhost.yml kill
