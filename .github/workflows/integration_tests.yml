@@ -23,7 +23,7 @@ jobs:
         repository: antessio/dynamoplus-java-sdk
         path: dynamoplus-java-sdk
     - name: Install sdk
-        run: mvn -B clean install --file dynamoplus-java-sdk/pom.xml
+      run: mvn -B clean install --file dynamoplus-java-sdk/pom.xml
     - name: Checkout e2e tests
       uses: actions/checkout@v2
       with:
