@@ -1,0 +1,45 @@
+# This workflow will build a Java project with Maven
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: Integration tests
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - name: Checkout SDK
+      uses: actions/checkout@v2
+      with:
+        repository: antessio/dynamoplus-java-sdk
+        path: dynamoplus-java-sdk
+    - name: Install sdk
+      run: mvn -B clean install --file dynamoplus-java-sdk/pom.xml
+    - name: Checkout main project
+      uses: actions/checkout@v2
+    - name: List $GITHUB_WORKSPACE
+      run: ls -lart
+    - name: Running localhost environment
+      run: docker-compose -f docker-compose-localhost.yml up -d
+    - name: Wait for server up
+      run: ./scripts/wait-for.sh http://localhost:3000/system/info 10 3
+    - name: Creating tables
+      run: ./scripts/create-tables.sh
+    - name: Checkout e2e tests
+      uses: actions/checkout@v2
+      with:
+        repository: antessio/dynamoplus-e2e-tests
+        path: dynamoplus-e2e-tests
+    - name: Running e2e tests on localhost
+      run: mvn -B clean test -DrunSuite=**/SlowTestSuite.class --file dynamoplus-e2e-tests/pom.xml
+    - name: Shutting down docker containers
+      run: docker-compose -f docker-compose-localhost.yml kill
