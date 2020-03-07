@@ -43,5 +43,5 @@ jobs:
   shutting-down-containers:
     runs-on: ubuntu-latest
       steps:
-      - name: Shutting down docker containers
-        run: docker-compose -f docker-compose-localhost.yml kill
+        - name: Shutting down docker containers
+          run: docker-compose -f docker-compose-localhost.yml kill
