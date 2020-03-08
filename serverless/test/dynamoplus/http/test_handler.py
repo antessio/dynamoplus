@@ -57,6 +57,7 @@ class TestHttpHandler(unittest.TestCase):
     def fill_sytem_data(self):
         self.systemTable.put_item(Item={"pk": "collection#example", "sk": "collection", "data": "example",
                                         "document": "{\"id_key\":\"id\",\"name\":\"example\",\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
+        ## client authorization
         self.systemTable.put_item(Item={"pk": "client_authorization#example-client-id","sk":"client_authorization", "data":"example-client-id",
                                         "document":"{\"type\":\"api_key\",\"client_id\":\"example-client-id\",\"api_key\":\"test-api-key\",\"client_scopes\":[{\"collection_name\":\"example\",\"scope_type\":\"GET\"}]}"})
         ## index 1 - field1__field2.field21
@@ -124,6 +125,12 @@ class TestHttpHandler(unittest.TestCase):
         result = self.httpHandler.create(path_parameters=path_parameters,body=json.dumps(body))
         self.assertEqual(result["statusCode"],201)
         self.assertDictEqual(json.loads(result["body"]), body)
+
+    def test_get_client_authorization(self):
+        self.fill_sytem_data()
+        self.fill_data()
+        result = self.httpHandler.get(path_parameters={"collection":"client_authorization","id":"example-client-id"},query_string_parameters=[])
+        self.assertEqual(result["statusCode"],200)
 
     def test_getTargetEntity(self):
         path_parameters = {"collection": "example", "query": "name"}
