@@ -35,6 +35,8 @@ class Scope(object):
     def scope_type(self, value: ScopesType):
         self._scope_type = value
 
+
+
 @auto_str
 class ClientAuthorization(object):
     _client_id: str
