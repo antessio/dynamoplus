@@ -13,9 +13,9 @@ class TestAuthorization(unittest.TestCase):
         os.environ['ROOT_ACCOUNT'] = 'root'
         os.environ['ROOT_PASSWORD'] = 'password'
         self.public_key = "-----BEGIN PUBLIC KEY-----\n" \
-                          "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDCFENGw33yGihy92pDjZQhl0C3" \
-                          "6rPJj+CvfSC8+q28hxA161QFNUd13wuCTUcq0Qd2qsBe/2hFyc2DCJJg0h1L78+6" \
-                          "Z4UMR7EOcpfdUE9Hf3m/hs+FUR45uBJeDK1HSFHD8bHKD6kv8FPGfJTotc+2xjJw" \
+                          "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDCFENGw33yGihy92pDjZQhl0C3\n" \
+                          "6rPJj+CvfSC8+q28hxA161QFNUd13wuCTUcq0Qd2qsBe/2hFyc2DCJJg0h1L78+6\n" \
+                          "Z4UMR7EOcpfdUE9Hf3m/hs+FUR45uBJeDK1HSFHD8bHKD6kv8FPGfJTotc+2xjJw\n" \
                           "oYi+1hqp1fIekaxsyQIDAQAB" \
                           "\n-----END PUBLIC KEY-----"
         self.client_authorization_http_signature = ClientAuthorizationHttpSignature("my-client-id",[Scope("foo","POST")],self.public_key)
@@ -67,6 +67,25 @@ class TestAuthorization(unittest.TestCase):
         self.assertIsNone(result)
 
     @patch.object(SystemService, "get_client_authorization")
+    def test_get_signature(self, get_client_authorization):
+        get_client_authorization.return_value = self.client_authorization_http_signature
+        headers = {'Content-Type': 'application/json; charset=utf-8',
+                   'Content-Length': '2',
+                   'Host': 'localhost',
+                   'Connection': 'Keep-Alive',
+                   'Accept-Encoding': 'gzip',
+                   'User-Agent': 'okhttp/3.0.0-RC1',
+                   'Digest': 'SHA-256=RBNvo1WzZ4oRRq0W9+hknpT7T8If536DEMBg9hyq/4o=',
+                   'Authorization': 'Signature keyId="client-id-category-readonly-1584047552748",algorithm="rsa-sha256",headers="(request-target) content-type content-length host connection accept-encoding user-agent digest",signature="fGn5ow1L5LalPHtSNs2B5hGz8R9TPSexE9p/ZtjgezeJYMuGzd8vPUeP248OX6mnDKqwMG/CEwM8gf16gY6y9BiDU8b1NLjqMpk8ekroO24hXDhePBo3WxSaxEG7v8EDWDRS0j9h3pMd0hZzHETcBcCJPK1hrKfyWnmNcgf1whw="'}
+
+        path = "/dynamoplus/category/query"
+        method = "post"
+        client_authorization = AuthorizationService.get_client_authorization_using_http_signature_authorized(headers,method,path)
+        self.assertIsNotNone(client_authorization)
+        self.assertEqual(self.client_authorization_http_signature, client_authorization)
+
+
+    @patch.object(SystemService, "get_client_authorization")
     def test_get_client_authorization_http_signature(self,get_client_authorization):
         get_client_authorization.return_value = self.client_authorization_http_signature
         headers = {"Host": "example.com",
@@ -101,6 +120,11 @@ class TestAuthorization(unittest.TestCase):
     def test_check_scope_authorized_query(self):
         client_scopes = [Scope("whatever", ScopesType.CREATE),Scope("example", ScopesType.QUERY)]
         result = AuthorizationService.check_scope("/dynamoplus/example/query/by_key","POST",client_scopes)
+        self.assertEqual(True, result)
+
+    def test_check_scope_authorized_query_all(self):
+        client_scopes = [Scope("example", ScopesType.QUERY),Scope("example", ScopesType.GET)]
+        result = AuthorizationService.check_scope("/dynamoplus/example/query","POST",client_scopes)
         self.assertEqual(True, result)
 
     def test_check_scope_not_authorized_query(self):

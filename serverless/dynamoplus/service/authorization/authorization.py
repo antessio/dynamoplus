@@ -14,7 +14,7 @@ from dynamoplus.models.system.client_authorization.client_authorization import S
 API_KEY_PREFIX = "dynamoplus-api-key"
 CLIENT_ID_HEADER = "dynamoplus-client-id"
 
-path_regex = r"dynamoplus\/(\w+)(\/query(\/.*))*"
+path_regex = r"dynamoplus\/(\w+)(\/query)*(\/.*)*"
 
 
 class AuthorizationService:
@@ -104,7 +104,7 @@ class AuthorizationService:
         match = re.search(path_regex, path)
         if match:
             collection_name = match.group(1)
-            is_query = len(match.groups()) > 1 and match.group(2) is not None and match.group(3) is not None
+            is_query = len(match.groups()) >= 1 and match.group(2) == '/query'
             for scope in filter(lambda cs: cs.collection_name == collection_name, client_scopes):
                 if method.lower() == 'post':
                     if (scope.scope_type == ScopesType.CREATE and not is_query) or (scope.scope_type == ScopesType.QUERY and is_query):

@@ -28,8 +28,8 @@ def authorize(event, context):
                 if client_authorization and AuthorizationService.check_scope(path,http_method,client_authorization.client_scopes):
                     policy = generate_policy(client_authorization.client_id, "Allow", "*")
             elif AuthorizationService.is_http_signature(headers):
-                client_authorization = AuthorizationService.get_client_authorization_using_http_signature_authorized(headers, http_method,path)
-                if AuthorizationService.check_scope(path, http_method, client_authorization.client_scopes):
+                client_authorization = AuthorizationService.get_client_authorization_using_http_signature_authorized(headers, http_method.lower(),path)
+                if client_authorization and AuthorizationService.check_scope(path, http_method, client_authorization.client_scopes):
                     policy = generate_policy(client_authorization.client_id, "Allow", "*")
         except Exception as e:
             print(f'Exception encountered: {e}')
