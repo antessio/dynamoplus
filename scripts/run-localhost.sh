@@ -41,4 +41,4 @@ sed -i "s/service: dynamoplus/service: $DYNAMOPLUS_SERVICE_NAME/g" serverless.ym
 sed -i 's/dockerizePip: true/dockerizePip: false/g' serverless.yml
 sed -i -E "s@(DYNAMODB_HOST:).*@\1 $DYNAMODB_HOST@" serverless.yml
 sed -i -E "s@(DYNAMODB_PORT:).*@\1 $DYNAMODB_PORT@" serverless.yml
-INTEGRATION_TEST_FLAG=true serverless offline --stage=local&
+#INTEGRATION_TEST_FLAG=true serverless offline --stage=local&

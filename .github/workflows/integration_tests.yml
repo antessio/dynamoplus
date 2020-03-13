@@ -37,8 +37,6 @@ jobs:
         node-version: '12.x'
     - name: Install serverless dependencies
       run: npm install -g serverless
-    - name: Install dependencies
-      run: npm install --prefix ./serverless
     - name: Running localhost environment
       run: ./scripts/run-localhost.sh
       env:
@@ -49,6 +47,18 @@ jobs:
         DYNAMODB_PORT: 8000
         ROOT_PASSWORD: 12345
         SERVICE_NAME: e2e-tests
+    - uses: actions/checkout@master
+    - name: npm install
+      uses: actions/npm@master
+      with:
+        args: install
+    - name: serverless offline
+      uses: serverless/github-action@master
+      with:
+        args: offline --stage=local
+      # or if using AWS creds directly
+      # AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      # AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     - name: Wait for server up
       run: ./scripts/wait-for.sh http://localhost:3000/system/info 10 3
     - name: Creating tables
