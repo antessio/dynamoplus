@@ -31,13 +31,12 @@ jobs:
     - name: Running DynamoDB Local
       run: docker-compose -f docker-compose-localhost.yml up -d
     - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Npm install
       uses: actions/setup-node@v1
       with:
         node-version: 12.x
     - run: npm install -g serverless
-    - name: Running localhost environment
-      run: ./scripts/run-localhost.sh
+    - run: ./scripts/run-localhost.sh
       env:
         BRANCH: ${github.ref}
         AWS_ACCESS_KEY_ID: foo
