@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
-echo "installing serverless framework"
-npm install -g serverless
+
 cd serverless
 echo "installing python dependencies"
 pip install -r requirements.txt
 #pip freeze > requirements.txt
-echo "installing node dependencies"
-npm install
 cp secrets-example.json secrets.json
 cat secrets.json
 export PYTHONPATH=/app/:$PYTHONPATH
