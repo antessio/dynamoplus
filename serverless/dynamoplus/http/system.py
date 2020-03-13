@@ -8,5 +8,5 @@ def setup(event, context):
         return {"statusCode":200}
 
 def info(event, context):
-        info = {"version": "0.3"}
+        info = {"version": "0.4"}
         return {"statusCode":200, "body": json.dumps(info)}
