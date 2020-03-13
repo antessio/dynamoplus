@@ -28,8 +28,18 @@ jobs:
       uses: actions/checkout@v2
     - name: List $GITHUB_WORKSPACE
       run: ls -lart
-    - name: Running localhost environment
+    - name: Running DynamoDB Local
       run: docker-compose -f docker-compose-localhost.yml up -d
+    - name: Running localhost environment
+      run: ./scripts/run-localhost.sh
+      env:
+        BRANCH: ${github.ref}
+        AWS_ACCESS_KEY_ID: foo
+        AWS_SECRET_ACCESS_KEY: bar
+        DYNAMODB_HOST: http://localhost
+        DYNAMODB_PORT: 8000
+        ROOT_PASSWORD: 12345
+        SERVICE_NAME: e2e-tests
     - name: Wait for server up
       run: ./scripts/wait-for.sh http://localhost:3000/system/info 10 3
     - name: Creating tables
@@ -41,5 +51,5 @@ jobs:
         path: dynamoplus-e2e-tests
     - name: Running e2e tests on localhost
       run: mvn -B clean test -DrunSuite=**/SlowTestSuite.class --file dynamoplus-e2e-tests/pom.xml
-    - name: Shutting down docker containers
-      run: docker-compose -f docker-compose-localhost.yml kill
+    - name: Check SLS status
+      run: ps aux | grep node
