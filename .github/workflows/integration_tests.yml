@@ -30,6 +30,15 @@ jobs:
       run: ls -lart
     - name: Running DynamoDB Local
       run: docker-compose -f docker-compose-localhost.yml up -d
+    - uses: actions/checkout@v2
+    - name: Use Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+    - name: Install serverless dependencies
+      run: npm install -g serverless
+    - name: Install dependencies
+      run: npm install --prefix ./serverless
     - name: Running localhost environment
       run: ./scripts/run-localhost.sh
       env:
