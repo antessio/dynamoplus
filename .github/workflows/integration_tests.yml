@@ -31,12 +31,11 @@ jobs:
     - name: Running DynamoDB Local
       run: docker-compose -f docker-compose-localhost.yml up -d
     - uses: actions/checkout@v2
-    - name: Use Node.js
+    - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
-        node-version: '12.x'
-    - name: Install serverless dependencies
-      run: npm install -g serverless
+        node-version: 12.x
+    - run: npm install -g serverless
     - name: Running localhost environment
       run: ./scripts/run-localhost.sh
       env:
@@ -47,28 +46,3 @@ jobs:
         DYNAMODB_PORT: 8000
         ROOT_PASSWORD: 12345
         SERVICE_NAME: e2e-tests
-    - uses: actions/checkout@master
-    - name: npm install
-      uses: actions/npm@master
-      with:
-        args: install
-    - name: serverless offline
-      uses: serverless/github-action@master
-      with:
-        args: offline --stage=local
-      # or if using AWS creds directly
-      # AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      # AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    - name: Wait for server up
-      run: ./scripts/wait-for.sh http://localhost:3000/system/info 10 3
-    - name: Creating tables
-      run: ./scripts/create-tables.sh
-    - name: Checkout e2e tests
-      uses: actions/checkout@v2
-      with:
-        repository: antessio/dynamoplus-e2e-tests
-        path: dynamoplus-e2e-tests
-    - name: Running e2e tests on localhost
-      run: mvn -B clean test -DrunSuite=**/SlowTestSuite.class --file dynamoplus-e2e-tests/pom.xml
-    - name: Check SLS status
-      run: ps aux | grep node
