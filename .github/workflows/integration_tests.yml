@@ -45,11 +45,11 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: 12.x
-    - name: install sls
-      run: npm install -g serverless
     - name: install dependencies
       run: npm install
       working-directory: ./serverless
+    - name: serverless run offline
+      uses: serverless/github-action@master
     - name: run offline sls
       run: sls offline --stage=local
       working-directory: ./serverless
