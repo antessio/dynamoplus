@@ -34,6 +34,7 @@ jobs:
     - uses: actions/checkout@master
     - name: npm install
       uses: actions/npm@master
+    - name: install dependencies
       run: npm install --prefix ./serverless
     - name: serverless deploy
       uses: serverless/github-action@master
