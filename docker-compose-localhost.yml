@@ -9,7 +9,7 @@ services:
             - ./dynamodb-docker-data:/dynamodb_local_db
 
     dynamoplus-local:
-        image: antessio/dynamoplus-deploy-helper:latest
+        image: antessio/dynamoplus-deploy-helper:develop
         environment:
             AWS_ACCESS_KEY_ID: foo
             AWS_SECRET_ACCESS_KEY: bar
