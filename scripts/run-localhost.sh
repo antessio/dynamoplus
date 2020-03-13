@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+echo "installing serverless framework"
+npm install -g serverless
 cd serverless
 echo "installing python dependencies"
 pip install -r requirements.txt
