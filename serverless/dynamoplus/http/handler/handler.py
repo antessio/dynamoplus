@@ -30,7 +30,7 @@ class HttpHandler(object):
             else:
                 return self.get_http_response(headers=self.get_response_headers(headers), statusCode=404)
         except HandlerException as e:
-            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
+            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
                                           body=self.format_json({"msg": e.message}))
 
     def create(self, path_parameters, query_string_parameters=[], body=None, headers=None):
@@ -44,7 +44,7 @@ class HttpHandler(object):
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=201,
                                           body=self.format_json(dto))
         except HandlerException as e:
-            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
+            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
                                           body=self.format_json({"msg": e.message}))
         except Exception as e:
             logger.error("Unable to create entity {} for body {}".format(collection, body))
@@ -64,7 +64,7 @@ class HttpHandler(object):
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
                                           body=self.format_json(dto))
         except HandlerException as e:
-            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
+            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
                                           body=self.format_json({"msg": e.message}))
         except Exception as e:
             logger.error("Unable to update entity {} for body {}".format(collection, body))
@@ -81,7 +81,7 @@ class HttpHandler(object):
             self.dynamoPlusHandler.delete(collection, id)
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200)
         except HandlerException as e:
-            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
+            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
                                           body=self.format_json({"msg": e.message}))
 
     def query(self, path_parameters, query_string_parameters={}, body=None, headers=None):
@@ -106,7 +106,7 @@ class HttpHandler(object):
             return self.get_http_response(body=self.format_json(result), headers=self.get_response_headers(headers),
                                           statusCode=200)
         except HandlerException as e:
-            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
+            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
                                           body=self.format_json({"msg": e.message}))
         # limit = None
         # startFrom = None
