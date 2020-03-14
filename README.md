@@ -4,6 +4,8 @@ master
 
 [![Coverage Status](https://coveralls.io/repos/github/antessio/dynamoplus/badge.svg?branch=master)](https://coveralls.io/github/antessio/dynamoplus?branch=master)
 
+![Integration tests ](https://github.com/antessio/dynamoplus/workflows/Integration%20tests/badge.svg?branch=master)
+
 develop
 
 [![Build Status](https://travis-ci.com/antessio/dynamoplus.svg?branch=develop)](https://travis-ci.com/antessio/dynamoplus)
