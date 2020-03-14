@@ -8,15 +8,14 @@ services:
         volumes:
             - ./dynamodb-docker-data:/dynamodb_local_db
 
-#    dynamoplus-local:
-#        image: antessio/dynamoplus-deploy-helper:${BRANCH:-master}
-#        environment:
-#            AWS_ACCESS_KEY_ID: foo
-#            AWS_SECRET_ACCESS_KEY: bar
-#            DYNAMODB_HOST: http://dynamolocal
-#            DYNAMODB_PORT: 8000
-#            ROOT_PASSWORD: 12345
-#            SERVICE_NAME: e2e-tests
-#        ports:
-#            - 3000:3000
-#        entrypoint: '/app/scripts/run-localhost.sh'
+    dynamoplus-local:
+        build: .
+        environment:
+            AWS_ACCESS_KEY_ID: foo
+            AWS_SECRET_ACCESS_KEY: bar
+            DYNAMODB_HOST: http://dynamolocal
+            DYNAMODB_PORT: 8000
+            ROOT_PASSWORD: 12345
+            SERVICE_NAME: e2e-tests
+        ports:
+            - 3000:3000

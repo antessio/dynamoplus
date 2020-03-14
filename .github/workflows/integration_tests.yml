@@ -29,34 +29,12 @@ jobs:
       uses: actions/checkout@v2
     - name: List $GITHUB_WORKSPACE
       run: ls -lart
-    - name: Running DynamoDB Local
+    - name: Running DynamoPlus locally
       run: docker-compose -f docker-compose-localhost.yml up -d
-    - uses: actions/checkout@master
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.7
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-      working-directory: ./serverless
-    - name: Use Node.js 12.x
-      uses: actions/setup-node@v1
-      with:
-        node-version: 12.x
-    - name: install dependencies
-      run: npm install
-      working-directory: ./serverless
-    - name: serverless run offline
-      uses: serverless/github-action@master
-    - name: run offline sls
-      run: sls offline --stage=local
-      working-directory: ./serverless
     - name: Wait for server up
-      run: ./scripts/wait-for.sh http://localhost:3000/system/info 10 3
+      run: ./github_actions_scripts/wait-for.sh http://localhost:3000/system/info 10 3
     - name: Creating tables
-      run: ./scripts/create-tables.sh
+      run: ./github_actions_scripts/create-tables.sh
     - name: Checkout e2e tests
       uses: actions/checkout@v2
       with:
@@ -64,4 +42,8 @@ jobs:
         path: dynamoplus-e2e-tests
     - name: Running e2e tests on localhost
       run: mvn -B clean test -DrunSuite=**/SlowTestSuite.class --file dynamoplus-e2e-tests/pom.xml
+    - name: Shutting down DynamoPlus locally
+      run: docker-compose -f docker-compose-localhost.yml kill
+    - name: Removing containers
+      run: docker-compose -f docker-compose-localhost.yml kill
 
