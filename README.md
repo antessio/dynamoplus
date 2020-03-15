@@ -1,22 +1,10 @@
-master
-
-[![Build Status](https://travis-ci.com/antessio/dynamoplus.svg?branch=master)](https://travis-ci.com/antessio/dynamoplus)
-
-[![Coverage Status](https://coveralls.io/repos/github/antessio/dynamoplus/badge.svg?branch=master)](https://coveralls.io/github/antessio/dynamoplus?branch=master)
-
-![Integration tests ](https://github.com/antessio/dynamoplus/workflows/Integration%20tests/badge.svg?branch=master)
-
-develop
-
-[![Build Status](https://travis-ci.com/antessio/dynamoplus.svg?branch=develop)](https://travis-ci.com/antessio/dynamoplus)
-
-[![Coverage Status](https://coveralls.io/repos/github/antessio/dynamoplus/badge.svg?branch=develop)](https://coveralls.io/github/antessio/dynamoplus?branch=develop)
-
-![Integration tests ](https://github.com/antessio/dynamoplus/workflows/Integration%20tests/badge.svg?branch=develop)
-
-
 # dyamoplus
-A serverless back-end to create REST endpoint in python
+
+[![Build Status](https://travis-ci.com/antessio/dynamoplus.svg?branch=master)](https://travis-ci.com/antessio/dynamoplus) [![Coverage Status](https://coveralls.io/repos/github/antessio/dynamoplus/badge.svg?branch=master)](https://coveralls.io/github/antessio/dynamoplus?branch=master) ![Integration tests ](https://github.com/antessio/dynamoplus/workflows/Integration%20tests/badge.svg?branch=master)
+
+
+
+A serverless back-end to create REST endpoint in python based on AWS Dynamo DB
 
 ## Configuration
 
@@ -50,7 +38,7 @@ There are mainly two special entities:
     //example
     {
         "name": "example",
-        "id_key": "id",
+        "id_key": "name",
         "ordering": "creation_date_time"
     }
     ```
