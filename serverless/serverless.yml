@@ -76,11 +76,21 @@ functions:
           path: admin/setup
           method: post
           cors: true
+          authorizer:
+            name: auth
+            type: request
   info:
     handler: dynamoplus/http/system.info
     events:
       - http:
           path: system/info
+          method: get
+          cors: true
+  documentation:
+    handler: dynamoplus/http/system.swagger_json
+    events:
+      - http:
+          path: system/documentation/swagger.json
           method: get
           cors: true
 
