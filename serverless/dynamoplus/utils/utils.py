@@ -8,14 +8,17 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
+
 def auto_str(cls):
     def __str__(self):
         return '%s(%s)' % (
             type(self).__name__,
             ', '.join('%s=%s' % item for item in vars(self).items())
         )
+
     cls.__str__ = __str__
     return cls
+
 
 def convertToString(val):
     if isinstance(val, datetime):
@@ -38,12 +41,55 @@ def find_value(d: dict, keys: List[str]):
         v = d[k]
         if isinstance(v, dict):
             return find_value(v, keys[1:])
-        elif isinstance(v,List):
+        elif isinstance(v, List):
             return v
         else:
             return convertToString(v)
     else:
         return None
+
+
+def get_schema_from_conditions(conditions: List[str]):
+    result = {}
+    for k in conditions:
+        sub_keys = k.split(".")
+        if len(sub_keys) == 1:
+            result[k] = {"type":"string"}
+        else:
+            k2 = ".".join(sub_keys[1:])
+            r = __spread(k2)
+            if sub_keys[0] not in result:
+                result[sub_keys[0]] = {"type": "object", "properties": r}
+            else:
+                __dict_merge(result[sub_keys[0]]["properties"], r)
+    return result
+
+
+def __dict_merge(dct:dict, merge_dct:dict):
+    """ Recursive dict merge. Inspired by :meth:``dict.update()``, instead of
+    updating only top-level keys, dict_merge recurses down into dicts nested
+    to an arbitrary depth, updating keys. The ``merge_dct`` is merged into
+    ``dct``.
+    :param dct: dict onto which the merge is executed
+    :param merge_dct: dct merged into dct
+    :return: None
+    """
+    for k, v in merge_dct.items():
+        if (k in dct and isinstance(dct[k], dict)
+                and isinstance(merge_dct[k], collections.Mapping)):
+            __dict_merge(dct[k], merge_dct[k])
+        else:
+            dct[k] = merge_dct[k]
+
+
+def __spread(s: str):
+    sub_keys = s.split(".")
+    if len(sub_keys) == 1:
+        return {sub_keys[0]: {"type": "string"}}
+    else:
+        k = ".".join(sub_keys[1:])
+        r = {sub_keys[0]: {"type": "object", "properties": __spread(k)}}
+        return r
 
 
 def get_values_by_key_recursive(data, keys, skip_if_not_found=True):
