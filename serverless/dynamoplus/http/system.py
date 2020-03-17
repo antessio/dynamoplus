@@ -394,14 +394,7 @@ def swagger_json(event, context):
     return {"statusCode": 200, "body": json.dumps(spec.to_dict())}
 
 
-def get_all_collections():
-    has_more = True
-    while has_more:
-        last_evaluated_key = None
-        collections, last_evaluated_key = SystemService.get_all_collections(10, last_evaluated_key)
-        has_more = last_evaluated_key is not None
-        for c in collections:
-            yield c
+
 
 
 def add_collection(c, spec):
@@ -497,7 +490,7 @@ def add_collection(c, spec):
             }
         }
     })
-    for i in get_indexes_by_collection_name(c.name):
+    for i in SystemService.get_indexes_from_collection_name_generator(c.name):
         add_query_to_spec(i,spec)
 
 
@@ -541,14 +534,3 @@ def add_query_to_spec(i: Index, spec):
                 "403": {"description": "Access forbidden for system API"}
             }
         }})
-
-
-def get_indexes_by_collection_name(collection_name: str):
-    has_more = True
-    while has_more:
-        last_evaluated_key = None
-        indexes, last_evaluated_key = SystemService.find_indexes_from_collection_name(collection_name, 10,
-                                                                                      last_evaluated_key)
-        has_more = last_evaluated_key is not None
-        for i in indexes:
-            yield i
