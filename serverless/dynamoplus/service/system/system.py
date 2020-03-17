@@ -210,6 +210,27 @@ class SystemService:
         DynamoPlusRepository(indexMetadata, True).delete(name)
 
     @staticmethod
+    def get_indexes_from_collection_name_generator(collection_name:str, limit=10):
+        has_more = True
+        while has_more:
+            last_evaluated_key = None
+            indexes, last_evaluated_key = SystemService.find_indexes_from_collection_name(collection_name, limit,last_evaluated_key)
+            has_more = last_evaluated_key is not None
+            for i in indexes:
+                yield i
+
+
+    @staticmethod
+    def get_all_collections_generator(limit=10):
+        has_more = True
+        while has_more:
+            last_evaluated_key = None
+            collections, last_evaluated_key = SystemService.get_all_collections(limit, last_evaluated_key)
+            has_more = last_evaluated_key is not None
+            for c in collections:
+                yield c
+
+    @staticmethod
     def find_indexes_from_collection_name(collection_name: str, limit: int = None, start_from: str = None):
         index = Index(None, "index", ["collection.name"])
         query = Query({"collection": {"name": collection_name}}, index, limit, start_from)
