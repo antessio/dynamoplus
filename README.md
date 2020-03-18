@@ -4,3 +4,5 @@
 
 
 Dynamoplus is a serverless back-end written in python and based on AWS DynamoDB. 
+
+![](dynamoplus.png)
