@@ -1,0 +1,11 @@
+import logging
+
+from dynamoplus.repository.repositories import create_tables
+
+
+logging.basicConfig(level=logging.INFO)
+
+
+def setup(event, context):
+    create_tables()
+    return {"statusCode": 200}

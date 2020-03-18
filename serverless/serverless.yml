@@ -70,7 +70,7 @@ functions:
           arn: { Fn::GetAtt: [ DomainDynamoDbTable, StreamArn ] }
           batchSize: 1
   admin:
-    handler: dynamoplus/http/system.setup
+    handler: dynamoplus/http/admin.setup
     events:
       - http:
           path: admin/setup
@@ -80,14 +80,14 @@ functions:
             name: auth
             type: request
   info:
-    handler: dynamoplus/http/system.info
+    handler: dynamoplus/http/info.info
     events:
       - http:
           path: system/info
           method: get
           cors: true
   documentation:
-    handler: dynamoplus/http/system.swagger_json
+    handler: dynamoplus/http/doc.swagger_json
     events:
       - http:
           path: system/documentation/swagger.json
@@ -95,7 +95,7 @@ functions:
           cors: true
 
   create:
-    handler: dynamoplus/http/create.create
+    handler: dynamoplus/http/http.create
     events:
       - http:
           path: dynamoplus/{collection}
@@ -106,7 +106,7 @@ functions:
             type: request
 
   query:
-    handler: dynamoplus/http/query.query
+    handler: dynamoplus/http/http.query
     events:
       - http:
           path: dynamoplus/{collection}/query/{queryId}
@@ -116,7 +116,7 @@ functions:
             name: auth
             type: request
   queryAll:
-    handler: dynamoplus/http/query.query
+    handler: dynamoplus/http/http.query
     events:
       - http:
           path: dynamoplus/{collection}/query
@@ -127,7 +127,7 @@ functions:
             type: request
 
   get:
-    handler: dynamoplus/http/get.get
+    handler: dynamoplus/http/http.get
     events:
       - http:
           path: dynamoplus/{collection}/{id}
@@ -138,7 +138,7 @@ functions:
             type: request
 
   update:
-    handler: dynamoplus/http/update.update
+    handler: dynamoplus/http/http.update
     events:
       - http:
           path: dynamoplus/{collection}/{id}
@@ -149,7 +149,7 @@ functions:
             type: request
 
   delete:
-    handler: dynamoplus/http/delete.delete
+    handler: dynamoplus/http/http.delete
     events:
       - http:
           path: dynamoplus/{collection}/{id}

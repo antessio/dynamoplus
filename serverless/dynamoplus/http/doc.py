@@ -3,7 +3,6 @@ import logging
 from apispec import APISpec
 
 from dynamoplus.models.system.index.index import Index
-from dynamoplus.repository.repositories import create_tables
 from dynamoplus.service.system.system import SystemService
 
 from dynamoplus.utils.utils import get_schema_from_conditions
@@ -12,24 +11,15 @@ VERSION = "0.4.0"
 logging.basicConfig(level=logging.INFO)
 
 
-def setup(event, context):
-    create_tables()
-    return {"statusCode": 200}
-
-
-def info(event, context):
-    info = {"version": VERSION}
-    return {"statusCode": 200, "body": json.dumps(info)}
-
-
 def swagger_json(event, context):
     query_parameters = event['queryStringParameters']
-    target_collection_name= query_parameters["collection_name"] if query_parameters and "collection_name" in query_parameters else None
+    target_collection_name = query_parameters[
+        "collection_name"] if query_parameters and "collection_name" in query_parameters else None
     api_description = "DynamoPlus API"
     if target_collection_name:
-        api_description = api_description+" - collection name: {}".format(target_collection_name)
+        api_description = api_description + " - collection name: {}".format(target_collection_name)
     else:
-        api_description = api_description+" - system collections"
+        api_description = api_description + " - system collections"
     spec = APISpec(
         title="DynamoPlus",
         version=VERSION,
@@ -307,7 +297,8 @@ def swagger_json(event, context):
                 'responses': {
                     "200": {
                         "description": "client authorization found",
-                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ClientAuthorization"}}}
+                        "content": {
+                            "application/json": {"schema": {"$ref": "#/components/schemas/ClientAuthorization"}}}
                     },
                     "404": {"description": "client authorization object found", "content": {}},
                     "403": {"description": "Access forbidden for system API"}
@@ -392,9 +383,6 @@ def swagger_json(event, context):
     #     collections, last_evaluted_key = SystemService.get_all_collections(10, last_evaluted_key)
     #     add_collections_to_spec(collections, spec)
     return {"statusCode": 200, "body": json.dumps(spec.to_dict())}
-
-
-
 
 
 def add_collection(c, spec):
@@ -491,7 +479,7 @@ def add_collection(c, spec):
         }
     })
     for i in SystemService.get_indexes_from_collection_name_generator(c.name):
-        add_query_to_spec(i,spec)
+        add_query_to_spec(i, spec)
 
 
 def add_query_to_spec(i: Index, spec):
@@ -508,7 +496,7 @@ def add_query_to_spec(i: Index, spec):
                         "type": "object",
                         "properties": {
                             "matches": {
-                                "type":"object",
+                                "type": "object",
                                 "properties": get_schema_from_conditions(i.conditions)
 
                             }
