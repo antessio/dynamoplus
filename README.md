@@ -5,7 +5,11 @@
 
 Dynamoplus is a serverless back-end written in python and based on AWS DynamoDB. 
 
+Get started reading the [wiki](https://github.com/antessio/dynamoplus/wiki) 
+
+
 ![](dynamoplus.png)
+
 
 
 ## Related Projects
