@@ -70,7 +70,7 @@ class HttpHandler(object):
                                               {"msg": "Error in create entity {}".format(collection)}))
 
     def delete(self, path_parameters, queryStringParameters=[], body=None, headers=None):
-        document_id = path_parameters['document_id']
+        document_id = path_parameters['id']
         collection = self.get_document_type_from_path_parameters(path_parameters)
         logger.info("delete {} by document_id {}".format(collection, document_id))
         try:
