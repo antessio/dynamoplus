@@ -1,5 +1,5 @@
 # from jsonschema import ValidationError,SchemaError
-from dynamoplus.http.handler.handler import HttpHandler
+from aws.http.handler.handler import HttpHandler
 import logging
 
 logging.basicConfig(level=logging.INFO)

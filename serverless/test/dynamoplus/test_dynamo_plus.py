@@ -1,12 +1,11 @@
 import unittest
-import decimal
 import os
 
 from dynamoplus.service.domain.domain import DomainService
 from dynamoplus.service.system.system import SystemService
-from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
+from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.system.index.index import Index
-from dynamoplus.http.handler.dynamoPlusHandler import DynamoPlusHandler
+from dynamoplus.dynamo_plus import get,create,update,delete,query
 from mock import call
 from unittest.mock import patch
 
@@ -26,8 +25,7 @@ class TestDynamoPlusHandler(unittest.TestCase):
     def test_getSystemCollectionmetadata(self, mock_system_service, mock_get_system_collection):
         mock_system_service.return_value = None
         mock_get_system_collection.return_value = Collection("example", "id", "ordering")
-        dynamo_plus_handler = DynamoPlusHandler()
-        collection_metadata = dynamo_plus_handler.get("collection", "example")
+        collection_metadata = get("collection", "example")
         self.assertDictEqual(collection_metadata,
                              dict(id_key="id", name="example", ordering_key="ordering", attribute_definition=None))
         self.assertTrue(mock_get_system_collection.called_with("example"))
@@ -47,8 +45,7 @@ class TestDynamoPlusHandler(unittest.TestCase):
             {"id": "3", "attribute1": "2"}
         ]
         mock_find_all.return_value = expected_documents, None
-        dynamo_plus_handler = DynamoPlusHandler()
-        documents,last_key = dynamo_plus_handler.query("example")
+        documents,last_key = query("example")
         self.assertIsNone(last_key)
         self.assertEqual(len(documents), len(expected_documents))
         self.assertTrue(mock_get_collection_by_name.called_with("example"))
@@ -72,8 +69,7 @@ class TestDynamoPlusHandler(unittest.TestCase):
             {"id": "2", "attribute1": "1"}
         ]
         mock_find_by_index.return_value = expected_documents, None
-        dynamo_plus_handler = DynamoPlusHandler()
-        documents = dynamo_plus_handler.query("example", "attribute1", expected_document_example)
+        documents = query("example", "attribute1", expected_document_example)
         self.assertEqual(len(documents), len(expected_documents))
         self.assertTrue(mock_get_collection_by_name.called_with("example"))
         self.assertTrue(mock_get_index.called_with("attribute1"))
