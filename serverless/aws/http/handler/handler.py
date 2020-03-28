@@ -1,10 +1,9 @@
 import json
 import logging
 import os
-import base64
 
 from decimal import Decimal
-from dynamoplus.http.handler.dynamoPlusHandler import DynamoPlusHandler, HandlerException
+from dynamoplus.dynamo_plus import get,update,create,delete, query, HandlerException
 from dynamoplus.utils.decimalencoder import DecimalEncoder
 
 logger = logging.getLogger()
@@ -14,16 +13,13 @@ logger.setLevel(logging.DEBUG)
 ## TODO : it has to be converter in "Router"
 
 class HttpHandler(object):
-    def __init__(self):
-        # self.dynamoService = DynamoPlusService(os.environ["ENTITIES"],os.environ["INDEXES"])
-        self.dynamoPlusHandler = DynamoPlusHandler()
 
     def get(self, path_parameters, query_string_parameters=[], body=None, headers=None):
         id = path_parameters['id']
         collection = self.get_document_type_from_path_parameters(path_parameters)
         logger.info("get {} by id {}".format(collection, id))
         try:
-            result = self.dynamoPlusHandler.get(collection, id)
+            result = get(collection, id)
             if result:
                 return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
                                               body=self.format_json(result))
@@ -39,7 +35,7 @@ class HttpHandler(object):
         data = json.loads(body, parse_float=Decimal)
         logger.info("Creating " + data.__str__())
         try:
-            dto = self.dynamoPlusHandler.create(collection, data)
+            dto = create(collection, data)
             logger.info("dto = {}".format(dto))
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=201,
                                           body=self.format_json(dto))
@@ -60,7 +56,7 @@ class HttpHandler(object):
         data = json.loads(body, parse_float=Decimal)
         logger.info("Updating " + data.__str__())
         try:
-            dto = self.dynamoPlusHandler.update(collection, data)
+            dto = update(collection, data)
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
                                           body=self.format_json(dto))
         except HandlerException as e:
@@ -74,11 +70,11 @@ class HttpHandler(object):
                                               {"msg": "Error in create entity {}".format(collection)}))
 
     def delete(self, path_parameters, queryStringParameters=[], body=None, headers=None):
-        id = path_parameters['id']
+        document_id = path_parameters['id']
         collection = self.get_document_type_from_path_parameters(path_parameters)
-        logger.info("delete {} by id {}".format(collection, id))
+        logger.info("delete {} by document_id {}".format(collection, document_id))
         try:
-            self.dynamoPlusHandler.delete(collection, id)
+            delete(collection, document_id)
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200)
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
@@ -87,18 +83,18 @@ class HttpHandler(object):
     def query(self, path_parameters, query_string_parameters={}, body=None, headers=None):
         logger.info("headers received {}".format(str(headers)))
         collection = self.get_document_type_from_path_parameters(path_parameters)
-        logger.debug("query string parameters {}".format(query_string_parameters))
+        logger.debug("q string parameters {}".format(query_string_parameters))
         query_id = path_parameters['queryId'] if 'queryId' in path_parameters else None
         logger.info("Received {} as index".format(query_id))
-        query = json.loads(body, parse_float=Decimal)
-        logger.debug("example query {}".format(query))
-        last_key = query["start_from"] if "start_from" in query else None
-        limit = int(query["limit"]) if query and "limit" in query else None
-        document = query["matches"] if "matches" in query else {}
+        q = json.loads(body, parse_float=Decimal)
+        logger.debug("example q {}".format(q))
+        last_key = q["start_from"] if "start_from" in q else None
+        limit = int(q["limit"]) if q and "limit" in q else None
+        document = q["matches"] if "matches" in q else {}
         logger.debug("last_key = {}".format(last_key))
         logger.debug("limit = {}".format(limit))
         try:
-            documents, last_evaluated_key = self.dynamoPlusHandler.query(collection, query_id, document, last_key,
+            documents, last_evaluated_key = query(collection, query_id, document, last_key,
                                                                          limit)
             result = {"data": documents}
             if last_evaluated_key:
@@ -114,7 +110,7 @@ class HttpHandler(object):
         #     limit = query_string_parameters["limit"]
         # if "startFrom" in headers:
         #     startFrom = headers["startFrom"]
-        # data, lastEvaluatedKey = indexService.find_documents(query, startFrom, limit)
+        # data, lastEvaluatedKey = indexService.find_documents(q, startFrom, limit)
         # return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
         #                               body=self.format_json({"data": data, "lastKey": lastEvaluatedKey}))
 

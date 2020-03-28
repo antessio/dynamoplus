@@ -1,14 +1,14 @@
 import json
 import os
 import unittest
-import logging
 from datetime import datetime
 from typing import *
 
 import boto3
 from moto import mock_dynamodb2
 
-from dynamoplus.http.handler.handler import HttpHandler
+
+from aws.http.handler.handler import HttpHandler
 
 
 
