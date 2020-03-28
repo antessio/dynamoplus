@@ -1,5 +1,6 @@
 import logging
 
+## TODO: use an interface and not directly the repo
 from dynamoplus.repository.repositories import create_tables
 
 

@@ -60,17 +60,17 @@ provider:
 
 functions:
   auth:
-    handler: dynamoplus/http/authorizer.authorize
+    handler: aws/http/authorizer.authorize
     cors: true
   handleStream:
-    handler: dynamoplus/events/dynamodb.dynamo_stream_handler
+    handler: aws/events/dynamodb.dynamo_stream_handler
     events:
       - stream:
           type: dynamodb
           arn: { Fn::GetAtt: [ DomainDynamoDbTable, StreamArn ] }
           batchSize: 1
   admin:
-    handler: dynamoplus/http/admin.setup
+    handler: aws/http/admin.setup
     events:
       - http:
           path: admin/setup
@@ -80,14 +80,14 @@ functions:
             name: auth
             type: request
   info:
-    handler: dynamoplus/http/info.info
+    handler: aws/http/info.info
     events:
       - http:
           path: system/info
           method: get
           cors: true
   documentation:
-    handler: dynamoplus/http/doc.swagger_json
+    handler: aws/http/doc.swagger_json
     events:
       - http:
           path: system/documentation/swagger.json
@@ -95,7 +95,7 @@ functions:
           cors: true
 
   create:
-    handler: dynamoplus/http/http.create
+    handler: aws/http/http.create
     events:
       - http:
           path: dynamoplus/{collection}
@@ -106,7 +106,7 @@ functions:
             type: request
 
   query:
-    handler: dynamoplus/http/http.query
+    handler: aws/http/http.query
     events:
       - http:
           path: dynamoplus/{collection}/query/{queryId}
@@ -116,7 +116,7 @@ functions:
             name: auth
             type: request
   queryAll:
-    handler: dynamoplus/http/http.query
+    handler: aws/http/http.query
     events:
       - http:
           path: dynamoplus/{collection}/query
@@ -127,7 +127,7 @@ functions:
             type: request
 
   get:
-    handler: dynamoplus/http/http.get
+    handler: aws/http/http.get
     events:
       - http:
           path: dynamoplus/{collection}/{id}
@@ -138,7 +138,7 @@ functions:
             type: request
 
   update:
-    handler: dynamoplus/http/http.update
+    handler: aws/http/http.update
     events:
       - http:
           path: dynamoplus/{collection}/{id}
@@ -149,7 +149,7 @@ functions:
             type: request
 
   delete:
-    handler: dynamoplus/http/http.delete
+    handler: aws/http/http.delete
     events:
       - http:
           path: dynamoplus/{collection}/{id}
