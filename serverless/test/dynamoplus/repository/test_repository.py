@@ -9,7 +9,6 @@ import json
 import boto3
 import os
 
-from boto3.dynamodb.conditions import Key, Attr
 
 
 @mock_dynamodb2

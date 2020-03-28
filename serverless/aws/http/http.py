@@ -1,5 +1,5 @@
 # from jsonschema import ValidationError,SchemaError
-from dynamoplus.http.handler.handler import HttpHandler
+from aws.http.handler.handler import HttpHandler
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -7,20 +7,20 @@ handler = HttpHandler()
 
 
 def get(event, context):
-    return handler.get(event['pathParameters'])
+    return get(event['pathParameters'])
 
 
 def query(event, context):
-    return handler.query(event['pathParameters'], query_string_parameters=event['queryStringParameters'],
+    return query(event['pathParameters'], query_string_parameters=event['queryStringParameters'],
                          body=event["body"], headers=event['headers'])
 
 
 def create(event, context):
-    return handler.create(event["pathParameters"], body=event["body"])
+    return create(event["pathParameters"], body=event["body"])
 
 
 def update(event, context):
-    return handler.update(event["pathParameters"], body=event["body"])
+    return update(event["pathParameters"], body=event["body"])
 
 
 def delete(event, context):
