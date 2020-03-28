@@ -4,7 +4,7 @@ from typing import *
 from dynamoplus.models.query.query import Query
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
 from dynamoplus.repository.models import Model, QueryResult
-from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
+from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType, AttributeConstraint
 from dynamoplus.models.system.index.index import Index
 from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
     ClientAuthorizationApiKey, ClientAuthorizationHttpSignature, Scope, ScopesType
@@ -51,7 +51,7 @@ def from_client_authorization_http_signature_to_dict(client_authorization: Clien
         "type": "http_signature",
         "client_id": client_authorization.client_id,
         "client_scopes": list(map(lambda s: {"collection_name": s.collection_name, "scope_type": s.scope_type.name},
-                           client_authorization.client_scopes)),
+                                  client_authorization.client_scopes)),
         "public_key": client_authorization.client_public_key
     }
 
@@ -100,7 +100,34 @@ def from_collection_to_dict(collection: Collection):
 
 
 def from_dict_to_collection(d: dict):
+    attributes = list(map(from_dict_to_attribute_definition, d["attributes"]))
     return Collection(d["name"], d["id_key"], d["ordering"] if "ordering" in d else None)
+
+
+def from_dict_to_attribute_definition(d: dict):
+    return AttributeDefinition(d["name"], from_string_to_attribute_type(d["type"]),
+                               from_array_to_constraints_list(d["constraints"]))
+
+
+def from_array_to_constraints_list(constraints: List[dict]):
+    attribute_contraint_map = {
+        "NULLABLE": AttributeConstraint.NULLABLE,
+        "NOT_NULL": AttributeConstraint.NOT_NULL
+    }
+    return list(
+        map(lambda c: attribute_contraint_map[c] if c in attribute_contraint_map else AttributeConstraint.NULLABLE,
+            constraints))
+
+
+def from_string_to_attribute_type(attribute_type: str):
+    attribute_types_map = {
+        "STRING": AttributeType.STRING,
+        "OBJECT": AttributeType.OBJECT,
+        "NUMBER": AttributeType.NUMBER,
+        "DATE": AttributeType.DATE,
+        "ARRAY": AttributeType.ARRAY
+    }
+    return attribute_types_map[attribute_types_map] if attribute_type in attribute_types_map else AttributeType.STRING
 
 
 def from_dict_to_client_authorization_http_signature(d: dict):
@@ -110,13 +137,15 @@ def from_dict_to_client_authorization_http_signature(d: dict):
 
 def from_dict_to_client_authorization_api_key(d: dict):
     client_scopes = list(map(lambda c: Scope(c["collection_name"], ScopesType[c["scope_type"]]), d["client_scopes"]))
-    return ClientAuthorizationApiKey(d["client_id"], client_scopes, d["api_key"], d["whitelist_hosts"] if "whitelist_hosts" in d else None)
+    return ClientAuthorizationApiKey(d["client_id"], client_scopes, d["api_key"],
+                                     d["whitelist_hosts"] if "whitelist_hosts" in d else None)
 
 
 from_dict_to_client_authorization_factory = {
     "api_key": from_dict_to_client_authorization_api_key,
     "http_signature": from_dict_to_client_authorization_http_signature
 }
+
 
 def from_client_authorization_to_dict(client_authorization: ClientAuthorization):
     if isinstance(client_authorization, ClientAuthorizationApiKey):
@@ -210,15 +239,15 @@ class SystemService:
         DynamoPlusRepository(indexMetadata, True).delete(name)
 
     @staticmethod
-    def get_indexes_from_collection_name_generator(collection_name:str, limit=10):
+    def get_indexes_from_collection_name_generator(collection_name: str, limit=10):
         has_more = True
         while has_more:
             last_evaluated_key = None
-            indexes, last_evaluated_key = SystemService.find_indexes_from_collection_name(collection_name, limit,last_evaluated_key)
+            indexes, last_evaluated_key = SystemService.find_indexes_from_collection_name(collection_name, limit,
+                                                                                          last_evaluated_key)
             has_more = last_evaluated_key is not None
             for i in indexes:
                 yield i
-
 
     @staticmethod
     def get_all_collections_generator(limit=10):
@@ -264,5 +293,3 @@ class SystemService:
     def delete_authorization(client_id: str):
         logging.info("deleting client authorization {}".format(client_id))
         DynamoPlusRepository(client_authorization_metadata, True).delete(client_id)
-
-
