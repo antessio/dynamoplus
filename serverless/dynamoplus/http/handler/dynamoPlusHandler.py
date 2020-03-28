@@ -32,105 +32,22 @@ class DynamoPlusHandlerInterface(abc.ABC):
 
     @abc.abstractmethod
     def get(self, collection_name: str, id: str):
-        '''
-        1)
-        domain:
-            if collectioName not found system:
-                raise NotFoundException
-        system:
-            no check
-        2)
-        get collection metadata:
-            get from system
-        3)
-        create repository
-        4)
-        get by id
-        '''
         pass
 
     @abc.abstractmethod
     def create(self, collection_name: str, document: dict):
-        '''
-        1)
-        domain:
-            if collectioName not found system:
-                raise NotFoundException
-        system:
-            no check
-        2)
-        get collection metadata:
-            get from system
-        3)
-        validate
-        4)
-        create repository
-        5)
-        key generator
-        6) 
-        if exists => error
-        7)
-        create
-        '''
         pass
 
     @abc.abstractmethod
     def update(self, collection_name: str, id: str, document: dict):
-        '''
-        1)
-        domain:
-            if collectioName not found system:
-                raise NotFoundException
-        system:
-            no check
-        2)
-        get collection metadata:
-            get from system
-        3)
-        validate
-        4)
-        create repository
-        5)
-        update
-        '''
         pass
 
     @abc.abstractmethod
     def delete(self, collection_name: str, id: str):
-        '''
-        1)
-        domain:
-            if collectioName not found system:
-                raise NotFoundException
-        system:
-            no check
-        2)
-        get collection metadata:
-            get from system
-        3)
-        create repository
-        4)
-        delete
-        '''
         pass
 
     @abc.abstractmethod
     def query(self, collection_name: str, queryId: str, example: dict):
-        '''
-        1)
-        domain:
-            if collectioName not found system:
-                raise NotFoundException
-        system:
-            no check
-        2)
-        get collection metadata:
-            get from system
-        3)
-        create index service
-        4)
-        find by example
-        '''
         pass
 
     @staticmethod
@@ -186,6 +103,7 @@ class DynamoPlusHandler(DynamoPlusHandlerInterface):
             logger.info("Creating {} metadata {}".format(collection_name, document))
             if collection_name == 'collection':
                 collection_metadata = from_dict_to_collection(document)
+                #ValidationService.is_collectin_schema_valid()
                 collection_metadata = SystemService.create_collection(collection_metadata)
                 logger.info("Created collection {}".format(collection_metadata.__str__))
                 return from_collection_to_dict(collection_metadata)
