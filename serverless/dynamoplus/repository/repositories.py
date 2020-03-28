@@ -114,7 +114,7 @@ class DynamoPlusRepository(Repository):
         self.collection = collection
         self.tableName = os.environ['DYNAMODB_DOMAIN_TABLE'] if not is_system else os.environ['DYNAMODB_SYSTEM_TABLE']
         self.dynamoDB = connection if connection is not None else boto3.resource('dynamodb')
-        self.table = self.dynamoDB
+        self.table = self.dynamoDB.Table(self.tableName)
         self.isSystem = is_system
 
     def getModelFromDocument(self, document: dict):
