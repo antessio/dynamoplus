@@ -2,12 +2,15 @@ import json
 import logging
 from apispec import APISpec
 
+from aws.http.info import VERSION
 from dynamoplus.models.system.index.index import Index
 from dynamoplus.service.system.system import SystemService
+from dynamoplus.service.validation_service import COLLECTION_SCHEMA_DEFINITION, INDEX_SCHEMA_DEFINITION, \
+    CLIENT_AUTHORIZATION_SCHEMA_DEFINITION, CLIENT_AUTHORIZATION_HTTP_SIGNATURE_SCHEMA_DEFINITION, \
+    CLIENT_AUTHORIZATION_API_KEY_SCHEMA_DEFINITION, QUERY_SCHEMA_DEFINITION
 
 from dynamoplus.utils.utils import get_schema_from_conditions
 
-VERSION = "0.4.0"
 logging.basicConfig(level=logging.INFO)
 
 
@@ -29,17 +32,7 @@ def swagger_json(event, context):
     if target_collection_name is None:
         spec.components.schema(
             "Collection",
-            {
-                "properties": {
-                    "id_key": {"type": "string"},
-                    "name": {"type": "string"},
-                    "ordering": {"type": "string"}
-                },
-                "required": [
-                    "id_key",
-                    "name"
-                ]
-            }
+            COLLECTION_SCHEMA_DEFINITION
         )
         spec.path(path="/dynamoplus/collection/{collection_name}", operations={
             'get': {
@@ -110,20 +103,7 @@ def swagger_json(event, context):
 
         spec.components.schema(
             "Index",
-            {
-                "properties": {
-                    "uid": {"type": "string", "format": "uuid"},
-                    "name": {"type": "string"},
-                    "collection": {"$ref": "#/components/schemas/Collection"},
-                    "conditions": {"type": "array", "items": {"type": "string"}}
-                },
-                "required": [
-                    "uid",
-                    "name",
-                    "collection",
-                    "conditions"
-                ]
-            }
+            INDEX_SCHEMA_DEFINITION
         )
         spec.path(path="/dynamoplus/index/{index_id}", operations={
             'get': {
@@ -190,29 +170,7 @@ def swagger_json(event, context):
                 'requestBody': {
                     "required": True,
                     "content": {
-                        "application/json": {"schema": {
-                            "type": "object",
-                            "properties": {
-                                "matches": {
-                                    "type": "object",
-                                    "properties": {
-                                        "collection": {
-                                            "type": "object",
-                                            "properties": {
-                                                "name": {
-                                                    "type": "string",
-                                                    "description": "collection name"
-                                                }
-
-                                            },
-                                            "required": ["name"]
-                                        }
-                                    },
-                                    "required": ["collection"]
-                                }
-                            },
-                            "required": ["matches"]
-                        }}
+                        "application/json": {"schema": QUERY_SCHEMA_DEFINITION}
                     }
                 },
                 'responses': {
@@ -243,29 +201,14 @@ def swagger_json(event, context):
             })
         spec.components.schema(
             "ClientAuthorization",
-            {
-                "properties": {
-                    "client_id": {"type": "string"},
-                    "client_scopes": {"type": "array", "items": {"$ref": "#/components/schemas/ClientScope"}},
-                    "type": {"type": "string", "enum": ["http_signature", "api_key"]}
-                },
-                "required": [
-                    "client_id",
-                    "client_scopes"
-                ]
-            }
+            CLIENT_AUTHORIZATION_SCHEMA_DEFINITION
         )
         spec.components.schema(
             "ClientAuthorizationHttpSignature",
             {
                 "allOf": [
                     {"$ref": "#/components/schemas/ClientAuthorization"},
-                    {
-                        "properties": {
-                            "client_public_key": {"type": "string"}
-                        },
-                        "required": ["client_public_key"]
-                    }
+                    CLIENT_AUTHORIZATION_HTTP_SIGNATURE_SCHEMA_DEFINITION
                 ]
             }
         )
@@ -274,12 +217,7 @@ def swagger_json(event, context):
             {
                 "allOf": [
                     {"$ref": "#/components/schemas/ClientAuthorization"},
-                    {
-                        "properties": {
-                            "api_key": {"type": "string"}
-                        },
-                        "required": ["api_key"]
-                    }
+                    CLIENT_AUTHORIZATION_API_KEY_SCHEMA_DEFINITION
                 ]
             }
         )

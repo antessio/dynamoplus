@@ -2,22 +2,22 @@ import unittest
 
 from fastjsonschema import JsonSchemaException
 
-from dynamoplus.service.validation_service import ValidationService
+from dynamoplus.service.validation_service import is_collection_schema_valid, validate_document, validate_collection
 
 
 class TestValidationService(unittest.TestCase):
 
-    def test_invalid_collection_schema(self):
+    def test_invalid_schema(self):
         collection_schema = {"type": "notexistingtype"}
-        result = ValidationService.is_collection_schema_valid(collection_schema)
+        result = is_collection_schema_valid(collection_schema)
         self.assertFalse(result)
 
-    def test_valid_collection_schema_simple(self):
+    def test_valid_schema(self):
         collection_schema = {"type": "string"}
-        result = ValidationService.is_collection_schema_valid(collection_schema)
+        result = is_collection_schema_valid(collection_schema)
         self.assertTrue(result)
 
-    def test_valid_collection_schema_complex(self):
+    def test_valid_schema_complex(self):
         collection_schema = {
             "type": "object",
             "properties": {
@@ -35,7 +35,7 @@ class TestValidationService(unittest.TestCase):
                     "minimum": 0
                 }
             }}
-        result = ValidationService.is_collection_schema_valid(collection_schema)
+        result = is_collection_schema_valid(collection_schema)
         self.assertTrue(result)
 
     def test_validate_person_schema_success(self):
@@ -56,7 +56,7 @@ class TestValidationService(unittest.TestCase):
                     "minimum": 0
                 }
             }}
-        ValidationService.validate_document({"firstName": "Ambrogio", "lastName": "Fumagalli", "age": 20},
+        validate_document({"firstName": "Ambrogio", "lastName": "Fumagalli", "age": 20},
                                             collection_schema)
         ##no error
 
@@ -78,6 +78,29 @@ class TestValidationService(unittest.TestCase):
                     "minimum": 0
                 }
             }}
-        self.assertRaises(JsonSchemaException,ValidationService.validate_document, {"firstName": "Ambrogio", "lastName": "Fumagalli", "age": "twenty"},collection_schema)
+        self.assertRaises(JsonSchemaException, validate_document, {"firstName": "Ambrogio", "lastName": "Fumagalli", "age": "twenty"}, collection_schema)
 
-        ##no error
+    def test_validate_collection_success(self):
+        collection = {
+            "id_key": "x",
+            "name": "y",
+            "ordering": "z"
+        }
+        validate_collection(collection)
+        collection = {
+            "id_key": "x",
+            "name": "y"
+        }
+        validate_collection(collection)
+
+    def test_validate_collection_error(self):
+        collection = {
+            "id_key": "x",
+            "ordering": "z"
+        }
+        self.assertRaises(JsonSchemaException, validate_collection, collection)
+
+        collection = {
+            "name": "y"
+        }
+        self.assertRaises(JsonSchemaException, validate_collection, collection)
