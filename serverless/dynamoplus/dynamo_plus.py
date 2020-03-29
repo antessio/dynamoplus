@@ -75,6 +75,7 @@ def create(collection_name: str, document: dict) -> dict:
         logger.info("Creating {} metadata {}".format(collection_name, document))
         if collection_name == 'collection':
             collection_metadata = from_dict_to_collection(document)
+            ## TODO: validate schema
             collection_metadata = SystemService.create_collection(collection_metadata)
             logger.info("Created collection {}".format(collection_metadata.__str__))
             return from_collection_to_dict(collection_metadata)
