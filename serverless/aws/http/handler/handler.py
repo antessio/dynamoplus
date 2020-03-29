@@ -3,7 +3,8 @@ import logging
 import os
 
 from decimal import Decimal
-from dynamoplus.dynamo_plus import get,update,create,delete, query, HandlerException
+from dynamoplus.dynamo_plus import get as dynamoplus_get,update as dynamoplus_update,query as dynamoplus_query,create as dynamoplus_create,delete as dynamoplus_delete, HandlerException
+
 from dynamoplus.utils.decimalencoder import DecimalEncoder
 
 logger = logging.getLogger()
@@ -19,7 +20,7 @@ class HttpHandler(object):
         collection = self.get_document_type_from_path_parameters(path_parameters)
         logger.info("get {} by id {}".format(collection, id))
         try:
-            result = get(collection, id)
+            result = dynamoplus_get(collection, id)
             if result:
                 return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
                                               body=self.format_json(result))
@@ -35,7 +36,7 @@ class HttpHandler(object):
         data = json.loads(body, parse_float=Decimal)
         logger.info("Creating " + data.__str__())
         try:
-            dto = create(collection, data)
+            dto = dynamoplus_create(collection, data)
             logger.info("dto = {}".format(dto))
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=201,
                                           body=self.format_json(dto))
@@ -56,7 +57,7 @@ class HttpHandler(object):
         data = json.loads(body, parse_float=Decimal)
         logger.info("Updating " + data.__str__())
         try:
-            dto = update(collection, data)
+            dto = dynamoplus_update(collection, data)
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
                                           body=self.format_json(dto))
         except HandlerException as e:
@@ -74,7 +75,7 @@ class HttpHandler(object):
         collection = self.get_document_type_from_path_parameters(path_parameters)
         logger.info("delete {} by document_id {}".format(collection, document_id))
         try:
-            delete(collection, document_id)
+            dynamoplus_delete(collection, document_id)
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200)
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
@@ -94,7 +95,7 @@ class HttpHandler(object):
         logger.debug("last_key = {}".format(last_key))
         logger.debug("limit = {}".format(limit))
         try:
-            documents, last_evaluated_key = query(collection, query_id, document, last_key,
+            documents, last_evaluated_key = dynamoplus_query(collection, query_id, document, last_key,
                                                                          limit)
             result = {"data": documents}
             if last_evaluated_key:
