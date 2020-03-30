@@ -100,8 +100,8 @@ def from_collection_to_dict(collection: Collection):
 
 
 def from_dict_to_collection(d: dict):
-    attributes = list(map(from_dict_to_attribute_definition, d["attributes"]))
-    return Collection(d["name"], d["id_key"], d["ordering"] if "ordering" in d else None)
+    attributes = list(map(from_dict_to_attribute_definition, d["attributes"])) if "attributes" in d else None
+    return Collection(d["name"], d["id_key"], d["ordering"] if "ordering" in d else None,attributes)
 
 
 def from_dict_to_attribute_definition(d: dict):

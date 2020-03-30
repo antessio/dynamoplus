@@ -9,6 +9,7 @@ from dynamoplus.service.dynamoplus import DynamoPlusService
 from dynamoplus.service.domain.domain import DomainService
 from dynamoplus.service.system.system import SystemService, from_dict_to_collection, from_dict_to_index, \
     from_collection_to_dict, from_index_to_dict, from_dict_to_client_authorization, from_client_authorization_to_dict
+from dynamoplus.service.validation_service import validate_collection, validate_index,validate_document
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -74,17 +75,19 @@ def create(collection_name: str, document: dict) -> dict:
     if is_system:
         logger.info("Creating {} metadata {}".format(collection_name, document))
         if collection_name == 'collection':
+            validate_collection(document)
             collection_metadata = from_dict_to_collection(document)
-            ## TODO: validate schema
             collection_metadata = SystemService.create_collection(collection_metadata)
             logger.info("Created collection {}".format(collection_metadata.__str__))
             return from_collection_to_dict(collection_metadata)
         elif collection_name == 'index':
+            validate_index(document)
             index_metadata = from_dict_to_index(document)
             index_metadata = SystemService.create_index(index_metadata)
             logger.info("Created index {}".format(index_metadata.__str__))
             return from_index_to_dict(index_metadata)
         elif collection_name == 'client_authorization':
+
             client_authorization = from_dict_to_client_authorization(document)
             client_authorization = SystemService.create_client_authorization(client_authorization)
             logging.info("created client_authorization {}".format(client_authorization.__str__()))

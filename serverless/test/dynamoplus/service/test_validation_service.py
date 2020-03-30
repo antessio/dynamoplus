@@ -1,8 +1,10 @@
 import unittest
+import uuid
 
 from fastjsonschema import JsonSchemaException
 
-from dynamoplus.service.validation_service import is_collection_schema_valid, validate_document, validate_collection
+from dynamoplus.service.validation_service import is_collection_schema_valid, validate_document, validate_collection, \
+    validate_index, validate_client_authorization_api_key
 
 
 class TestValidationService(unittest.TestCase):
@@ -57,7 +59,7 @@ class TestValidationService(unittest.TestCase):
                 }
             }}
         validate_document({"firstName": "Ambrogio", "lastName": "Fumagalli", "age": 20},
-                                            collection_schema)
+                          collection_schema)
         ##no error
 
     def test_validate_person_schema_error(self):
@@ -78,13 +80,54 @@ class TestValidationService(unittest.TestCase):
                     "minimum": 0
                 }
             }}
-        self.assertRaises(JsonSchemaException, validate_document, {"firstName": "Ambrogio", "lastName": "Fumagalli", "age": "twenty"}, collection_schema)
+        self.assertRaises(JsonSchemaException, validate_document,
+                          {"firstName": "Ambrogio", "lastName": "Fumagalli", "age": "twenty"}, collection_schema)
 
     def test_validate_collection_success(self):
         collection = {
             "id_key": "x",
             "name": "y",
-            "ordering": "z"
+            "ordering": "z",
+        }
+        validate_collection(collection)
+        collection = {
+            "id_key": "x",
+            "name": "y"
+        }
+        validate_collection(collection)
+
+    def test_validate_collection_complex_success(self):
+        collection = {
+            "id_key": "x",
+            "name": "y",
+            "ordering": "z",
+            "attributes":[
+                {
+                    "type":"STRING",
+                    "name": "x"
+                },
+                {
+                    "type": "NUMBER",
+                    "name": "y",
+                    "constraint": "NOT_NULL"
+                },
+                {
+                    "type": "OBJECT",
+                    "name": "z",
+                    "attributes":[
+                        {"type":"STRING","name": "az"},
+                        {"type": "STRING", "name": "bz"}
+                    ]
+                },
+                {
+                    "type":"ARRAY",
+                    "name": "w",
+                    "attributes":[
+                        {"type": "STRING", "name": "aw"},
+                        {"type": "STRING", "name": "bw"}
+                    ]
+                }
+            ]
         }
         validate_collection(collection)
         collection = {
@@ -104,3 +147,97 @@ class TestValidationService(unittest.TestCase):
             "name": "y"
         }
         self.assertRaises(JsonSchemaException, validate_collection, collection)
+
+    def test_validate_index_success(self):
+        index = {
+            "uid": str(uuid.uuid4()),
+            "name": "index_name",
+            "collection": {
+                "id_key": "x",
+                "name": "y",
+                "ordering": "z"
+            },
+            "conditions":[
+                "c.1","c.2","c.3"
+            ]
+        }
+        validate_index(index)
+
+    def test_validate_index_error(self):
+        index = {
+            "uid": str(uuid.uuid4()),
+            "name": "index_name",
+            "collection": {
+                "id_key": "x",
+                "name": "y",
+                "ordering": "z"
+            }
+        }
+        self.assertRaises(JsonSchemaException, validate_index, index)
+        index = {
+            "uid": str(uuid.uuid4()),
+            "name": "index_name",
+            "conditions": [
+                "c.1", "c.2", "c.3"
+            ]
+        }
+        self.assertRaises(JsonSchemaException, validate_index, index)
+        index = {
+            "uid": str(uuid.uuid4()),
+            "collection": {
+                "id_key": "x",
+                "name": "y",
+                "ordering": "z"
+            },
+            "conditions": [
+                "c.1", "c.2", "c.3"
+            ]
+        }
+        self.assertRaises(JsonSchemaException, validate_index, index)
+
+    def test_validate_client_authorization_api_key_success(self):
+        client_authorization={
+            "client_id": "a",
+            "type":"api_key",
+            "client_scopes":[
+                {"collection_name":"a","scope_types":["GET"]}
+            ],
+            "api_key": "X"
+        }
+        validate_client_authorization_api_key(client_authorization)
+
+    def test_validate_client_authorization_api_key_error(self):
+        client_authorization = {
+            "type": "api_key",
+            "client_scopes": [
+                {"collection_name": "a", "scope_types": ["GET"]}
+            ],
+            "api_key": "X"
+        }
+        self.assertRaises(JsonSchemaException, validate_client_authorization_api_key, client_authorization)
+        client_authorization = {
+            "client_id": "a",
+            "type": "api_key",
+            "client_scopes": [
+                {"collection_name": "a", "scope_types": ["GET"]}
+            ]
+        }
+        self.assertRaises(JsonSchemaException, validate_client_authorization_api_key, client_authorization)
+        client_authorization = {
+            "client_id": "a",
+            "type": "api_key",
+            "client_scopes": [
+                {"collection_name": "a", "scope_types": ["x"]}
+            ],
+            "api_key": "X"
+        }
+        self.assertRaises(JsonSchemaException, validate_client_authorization_api_key, client_authorization)
+        client_authorization = {
+            "client_id": "a",
+            "type": "X",
+            "client_scopes": [
+                {"collection_name": "a", "scope_types": ["GET"]}
+            ],
+            "api_key": "X"
+        }
+        self.assertRaises(JsonSchemaException, validate_client_authorization_api_key, client_authorization)

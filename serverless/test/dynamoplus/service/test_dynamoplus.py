@@ -1,12 +1,5 @@
 import unittest
-import decimal
 import logging
-from dynamoplus.models.query.query import Index
-#from dynamoplus.models.documents.documentTypes import Collection
-from dynamoplus.models.system.collection.collection import Collection
-from dynamoplus.repository.repositories import DynamoPlusRepository
-from dynamoplus.models.query.query import Query, Index
-from dynamoplus.repository.models import QueryResult, Model
 from dynamoplus.service.dynamoplus import DynamoPlusService
 
 from moto import mock_dynamodb2
