@@ -7,7 +7,7 @@ from dynamoplus.models.system.index.index import Index
 from dynamoplus.service.system.system import SystemService
 from dynamoplus.service.validation_service import COLLECTION_SCHEMA_DEFINITION, INDEX_SCHEMA_DEFINITION, \
     CLIENT_AUTHORIZATION_SCHEMA_DEFINITION, CLIENT_AUTHORIZATION_HTTP_SIGNATURE_SCHEMA_DEFINITION, \
-    CLIENT_AUTHORIZATION_API_KEY_SCHEMA_DEFINITION, QUERY_SCHEMA_DEFINITION
+    CLIENT_AUTHORIZATION_API_KEY_SCHEMA_DEFINITION, QUERY_SCHEMA_DEFINITION, CLIENT_SCOPE_SCHEMA_DEFINITION
 
 from dynamoplus.utils.utils import get_schema_from_conditions
 
@@ -191,14 +191,7 @@ def swagger_json(event, context):
         })
         spec.components.schema(
             "ClientScope",
-            {
-                "properties": {
-                    "collection_name": {"type": "string"},
-                    "scope_types": {"type": "array",
-                                    "items": {"type": "string", "enum": ["CREATE", "UPDATE", "GET", "DELETE", "QUERY"]}}
-                },
-                "required": ["collection_name", "scope_types"]
-            })
+            CLIENT_SCOPE_SCHEMA_DEFINITION)
         spec.components.schema(
             "ClientAuthorization",
             CLIENT_AUTHORIZATION_SCHEMA_DEFINITION
