@@ -4,7 +4,7 @@ import uuid
 from fastjsonschema import JsonSchemaException
 
 from dynamoplus.service.validation_service import is_collection_schema_valid, validate_document, validate_collection, \
-    validate_index, validate_client_authorization_api_key, __validate as validate
+    validate_index, validate_client_authorization_api_key, __validate as validate, validate_client_authorization
 
 
 class TestValidationService(unittest.TestCase):
@@ -200,44 +200,49 @@ class TestValidationService(unittest.TestCase):
             "client_id": "a",
             "type":"api_key",
             "client_scopes":[
-                {"collection_name":"a","scope_types":["GET"]}
+                {"collection_name":"a","scope_type":"GET"}
             ],
             "api_key": "X"
         }
         validate_client_authorization_api_key(client_authorization)
+        validate_client_authorization(client_authorization)
 
     def test_validate_client_authorization_api_key_error(self):
         client_authorization = {
             "type": "api_key",
             "client_scopes": [
-                {"collection_name": "a", "scope_types": ["GET"]}
+                {"collection_name": "a", "scope_type": "GET"}
             ],
             "api_key": "X"
         }
         self.assertRaises(JsonSchemaException, validate_client_authorization_api_key, client_authorization)
+        self.assertRaises(JsonSchemaException, validate_client_authorization, client_authorization)
         client_authorization = {
             "client_id": "a",
             "type": "api_key",
             "client_scopes": [
-                {"collection_name": "a", "scope_types": ["GET"]}
+                {"collection_name": "a", "scope_type": "GET"}
             ]
         }
         self.assertRaises(JsonSchemaException, validate_client_authorization_api_key, client_authorization)
+        self.assertRaises(JsonSchemaException, validate_client_authorization, client_authorization)
         client_authorization = {
             "client_id": "a",
             "type": "api_key",
             "client_scopes": [
-                {"collection_name": "a", "scope_types": ["x"]}
+                {"collection_name": "a", "scope_type": "x"}
             ],
             "api_key": "X"
         }
         self.assertRaises(JsonSchemaException, validate_client_authorization_api_key, client_authorization)
+        self.assertRaises(JsonSchemaException, validate_client_authorization, client_authorization)
         client_authorization = {
             "client_id": "a",
             "type": "X",
             "client_scopes": [
-                {"collection_name": "a", "scope_types": ["GET"]}
+                {"collection_name": "a", "scope_type": "GET"}
             ],
             "api_key": "X"
         }
         self.assertRaises(JsonSchemaException, validate_client_authorization_api_key, client_authorization)
+        self.assertRaises(JsonSchemaException, validate_client_authorization, client_authorization)
