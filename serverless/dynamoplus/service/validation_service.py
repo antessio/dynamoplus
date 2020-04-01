@@ -2,7 +2,8 @@ import fastjsonschema
 import logging
 from fastjsonschema import JsonSchemaDefinitionException, JsonSchemaException
 
-from dynamoplus.models.system.collection.collection import Collection, AttributeConstraint, AttributeType,AttributeDefinition
+from dynamoplus.models.system.collection.collection import Collection, AttributeConstraint, AttributeType, \
+    AttributeDefinition
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -57,10 +58,9 @@ INDEX_SCHEMA_DEFINITION = {
 CLIENT_SCOPE_SCHEMA_DEFINITION = {
     "properties": {
         "collection_name": {"type": "string"},
-        "scope_types": {"type": "array",
-                        "items": {"type": "string", "enum": ["CREATE", "UPDATE", "GET", "DELETE", "QUERY"]}}
+        "scope_type": {"type": "string", "enum": ["CREATE", "UPDATE", "GET", "DELETE", "QUERY"]}
     },
-    "required": ["collection_name", "scope_types"]
+    "required": ["collection_name", "scope_type"]
 }
 CLIENT_AUTHORIZATION_SCHEMA_DEFINITION = {
     "properties": {
@@ -148,34 +148,12 @@ def validate_client_authorization_api_key(client_authorization: dict):
     __validate(client_authorization, CLIENT_AUTHORIZATION_API_KEY_SCHEMA_DEFINITION)
 
 
-def from_attribute_type_to_schema(type: AttributeType):
-    return {
-        AttributeType.STRING: "string",
-        AttributeType.NUMBER: "number",
-        AttributeType.OBJECT: "object",
-        AttributeType.ARRAY: "array",
-        AttributeType.DATE: "string",
-        AttributeType.BOOLEAN: "boolean"
-    }[type]
-
-
-def from_attribute_definition_to_schema(a:AttributeDefinition):
-    d = {"type": from_attribute_type_to_schema(a.type)}
-    if a.attributes:
-        nested_attributes = dict(map(from_attribute_definition_to_schema, a.attributes))
-        d["attributes"] = nested_attributes
-    return a.name, d
-
-
-
 def validate_document(document: dict, collection_metadata: Collection):
     required_attributes = [collection_metadata.id_key]
     properties_schema = {
         collection_metadata.id_key: {"type": "string"}
     }
     if collection_metadata.attribute_definition:
-        # attributes_schema = { from_attribute_definition_to_schema(a) for a in
-        #                      collection_metadata.attribute_definition}
         attributes_schema = dict(map(from_attribute_definition_to_schema, collection_metadata.attribute_definition))
         collection_required_attributes = list(map(lambda a: a.name, filter(
             lambda a: a.constraints is not None and AttributeConstraint.NOT_NULL in a.constraints,
@@ -189,5 +167,37 @@ def validate_document(document: dict, collection_metadata: Collection):
     }
     __validate(document, document_schema)
 
+
+def validate_client_authorization(client_authorization: dict):
+    t = client_authorization["type"]
+    validators_map = {
+        "api_key": validate_client_authorization_api_key,
+        "http_signature": validate_client_authorization_http_signature
+    }
+    if t in client_authorization:
+        validators_map[t](client_authorization)
+    else:
+        raise JsonSchemaException("type not valid")
+
+
 # def validate_document(document: dict, collection_schema: dict):
 #    __validate(document, collection_schema)
+
+
+def from_attribute_type_to_schema(type: AttributeType):
+    return {
+        AttributeType.STRING: "string",
+        AttributeType.NUMBER: "number",
+        AttributeType.OBJECT: "object",
+        AttributeType.ARRAY: "array",
+        AttributeType.DATE: "string",
+        AttributeType.BOOLEAN: "boolean"
+    }[type]
+
+
+def from_attribute_definition_to_schema(a: AttributeDefinition):
+    d = {"type": from_attribute_type_to_schema(a.type)}
+    if a.attributes:
+        nested_attributes = dict(map(from_attribute_definition_to_schema, a.attributes))
+        d["attributes"] = nested_attributes
+    return a.name, d
