@@ -4,7 +4,7 @@ import uuid
 from fastjsonschema import JsonSchemaException
 
 from dynamoplus.service.validation_service import is_collection_schema_valid, validate_document, validate_collection, \
-    validate_index, validate_client_authorization_api_key
+    validate_index, validate_client_authorization_api_key, __validate as validate
 
 
 class TestValidationService(unittest.TestCase):
@@ -58,7 +58,7 @@ class TestValidationService(unittest.TestCase):
                     "minimum": 0
                 }
             }}
-        validate_document({"firstName": "Ambrogio", "lastName": "Fumagalli", "age": 20},
+        validate({"firstName": "Ambrogio", "lastName": "Fumagalli", "age": 20},
                           collection_schema)
         ##no error
 
@@ -80,7 +80,7 @@ class TestValidationService(unittest.TestCase):
                     "minimum": 0
                 }
             }}
-        self.assertRaises(JsonSchemaException, validate_document,
+        self.assertRaises(JsonSchemaException, validate,
                           {"firstName": "Ambrogio", "lastName": "Fumagalli", "age": "twenty"}, collection_schema)
 
     def test_validate_collection_success(self):

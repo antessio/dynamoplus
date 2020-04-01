@@ -1,28 +1,37 @@
 from typing import *
+
 from enum import Enum
 
 from dynamoplus.utils.utils import auto_str
 
 
 class AttributeConstraint(Enum):
-    NULLABLE = 0
-    NOT_NULL = 1
+    NULLABLE = "NULLABLE"
+    NOT_NULL = "NOT_NULL"
 
 
 class AttributeType(Enum):
-    STRING = 1
-    NUMBER = 2
-    OBJECT = 3
-    ARRAY = 4
-    DATE = 5
+    STRING = "STRING"
+    NUMBER = "NUMBER"
+    OBJECT = "OBJECT"
+    ARRAY = "ARRAY"
+    DATE = "DATE"
+    BOOLEAN = "BOOLEAN"
+
+
+SubAttribute = NewType("AttributeDefinition", object)
+
 
 @auto_str
 class AttributeDefinition(object):
     def __init__(self, name: str, type: AttributeType,
-                 constraints: List[AttributeConstraint] = []):
+                 constraints: List[AttributeConstraint] = [],
+                 attributes: List[SubAttribute] = []):
         self.name = name
         self.type = type
         self.constraints = constraints
+        self.attributes = attributes
+
 
 @auto_str
 class Collection(object):
