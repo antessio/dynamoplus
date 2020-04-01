@@ -2,6 +2,8 @@ import fastjsonschema
 import logging
 from fastjsonschema import JsonSchemaDefinitionException, JsonSchemaException
 
+from dynamoplus.models.system.collection.collection import Collection, AttributeConstraint, AttributeType,AttributeDefinition
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -16,10 +18,10 @@ COLLECTION_ATTRIBUTE_SCHEMA_DEFINITION = {
         **COLLECTION_ATTRIBUTE_BASE_SCHEMA_DEFINITION,
         "attributes": {
             "type": "array",
-            "items": { "properties": COLLECTION_ATTRIBUTE_BASE_SCHEMA_DEFINITION }
+            "items": {"properties": COLLECTION_ATTRIBUTE_BASE_SCHEMA_DEFINITION}
         }
     },
-    "required":["name","type"]
+    "required": ["name", "type"]
 }
 COLLECTION_SCHEMA_DEFINITION = {
     "properties": {
@@ -146,5 +148,46 @@ def validate_client_authorization_api_key(client_authorization: dict):
     __validate(client_authorization, CLIENT_AUTHORIZATION_API_KEY_SCHEMA_DEFINITION)
 
 
-def validate_document(document: dict, collection_schema: dict):
-    __validate(document, collection_schema)
+def from_attribute_type_to_schema(type: AttributeType):
+    return {
+        AttributeType.STRING: "string",
+        AttributeType.NUMBER: "number",
+        AttributeType.OBJECT: "object",
+        AttributeType.ARRAY: "array",
+        AttributeType.DATE: "string",
+        AttributeType.BOOLEAN: "boolean"
+    }[type]
+
+
+def from_attribute_definition_to_schema(a:AttributeDefinition):
+    d = {"type": from_attribute_type_to_schema(a.type)}
+    if a.attributes:
+        nested_attributes = dict(map(from_attribute_definition_to_schema, a.attributes))
+        d["attributes"] = nested_attributes
+    return a.name, d
+
+
+
+def validate_document(document: dict, collection_metadata: Collection):
+    required_attributes = [collection_metadata.id_key]
+    properties_schema = {
+        collection_metadata.id_key: {"type": "string"}
+    }
+    if collection_metadata.attribute_definition:
+        # attributes_schema = { from_attribute_definition_to_schema(a) for a in
+        #                      collection_metadata.attribute_definition}
+        attributes_schema = dict(map(from_attribute_definition_to_schema, collection_metadata.attribute_definition))
+        collection_required_attributes = list(map(lambda a: a.name, filter(
+            lambda a: a.constraints is not None and AttributeConstraint.NOT_NULL in a.constraints,
+            collection_metadata.attribute_definition)))
+        required_attributes.extend(collection_required_attributes)
+        properties_schema.update(attributes_schema)
+    document_schema = {
+        "type": "object",
+        "properties": properties_schema,
+        "required": required_attributes
+    }
+    __validate(document, document_schema)
+
+# def validate_document(document: dict, collection_schema: dict):
+#    __validate(document, collection_schema)

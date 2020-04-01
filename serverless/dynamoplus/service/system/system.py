@@ -92,11 +92,16 @@ def from_collection_to_dict(collection: Collection):
         "name": collection.name,
         "id_key": collection.id_key,
         "ordering": collection.ordering_key
-        ## TODO attributes definition
     }
-    # if collection.attributeDefinition:
-
+    if collection.attribute_definition:
+        attributes = list(map(lambda a: from_attribute_definition_to_dict(a), collection.attribute_definition))
+        d["attributes"] = attributes
     return d
+
+
+def from_attribute_definition_to_dict(attribute:AttributeDefinition):
+    nested_attributes = list(map(lambda a: from_attribute_definition_to_dict(a), attribute.attributes)) if attribute.attributes else None
+    return {"name": attribute.name, "type": attribute.type.value, "attributes": nested_attributes}
 
 
 def from_dict_to_collection(d: dict):
@@ -105,17 +110,21 @@ def from_dict_to_collection(d: dict):
 
 
 def from_dict_to_attribute_definition(d: dict):
+    attributes = None
+    if "attributes" in d and d["attributes"] is not None:
+        attributes = list(map(from_dict_to_attribute_definition, d["attributes"]))
     return AttributeDefinition(d["name"], from_string_to_attribute_type(d["type"]),
-                               from_array_to_constraints_list(d["constraints"]))
+                               from_array_to_constraints_list(d["constraints"]) if "constraints" in d else None,
+                               attributes)
 
 
 def from_array_to_constraints_list(constraints: List[dict]):
-    attribute_contraint_map = {
+    attribute_constraint_map = {
         "NULLABLE": AttributeConstraint.NULLABLE,
         "NOT_NULL": AttributeConstraint.NOT_NULL
     }
     return list(
-        map(lambda c: attribute_contraint_map[c] if c in attribute_contraint_map else AttributeConstraint.NULLABLE,
+        map(lambda c: attribute_constraint_map[c] if c in attribute_constraint_map else AttributeConstraint.NULLABLE,
             constraints))
 
 
@@ -127,7 +136,7 @@ def from_string_to_attribute_type(attribute_type: str):
         "DATE": AttributeType.DATE,
         "ARRAY": AttributeType.ARRAY
     }
-    return attribute_types_map[attribute_types_map] if attribute_type in attribute_types_map else AttributeType.STRING
+    return attribute_types_map[attribute_type] if attribute_type in attribute_types_map else AttributeType.STRING
 
 
 def from_dict_to_client_authorization_http_signature(d: dict):
