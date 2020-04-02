@@ -88,7 +88,6 @@ def create(collection_name: str, document: dict) -> dict:
             logger.info("Created index {}".format(index_metadata.__str__))
             return from_index_to_dict(index_metadata)
         elif collection_name == 'client_authorization':
-            ## TODO validate client authorization
             validate_client_authorization(document)
             client_authorization = from_dict_to_client_authorization(document)
             client_authorization = SystemService.create_client_authorization(client_authorization)

@@ -75,9 +75,9 @@ CLIENT_AUTHORIZATION_SCHEMA_DEFINITION = {
 }
 CLIENT_AUTHORIZATION_HTTP_SIGNATURE_SCHEMA_DEFINITION = {
     "properties": {
-        "client_public_key": {"type": "string"}
+        "public_key": {"type": "string"}
     },
-    "required": ["client_public_key"]
+    "required": ["public_key"]
 }
 CLIENT_AUTHORIZATION_API_KEY_SCHEMA_DEFINITION = {
     "properties": {
@@ -174,7 +174,7 @@ def validate_client_authorization(client_authorization: dict):
         "api_key": validate_client_authorization_api_key,
         "http_signature": validate_client_authorization_http_signature
     }
-    if t in client_authorization:
+    if t in validators_map:
         validators_map[t](client_authorization)
     else:
         raise JsonSchemaException("type not valid")
