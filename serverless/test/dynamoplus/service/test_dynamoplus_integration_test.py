@@ -1,5 +1,7 @@
 import unittest
 import logging
+import uuid
+
 from dynamoplus.dynamo_plus import create
 
 from moto import mock_dynamodb2
@@ -43,6 +45,24 @@ class TestDynamoPlusService(unittest.TestCase):
             ]
         })
         self.assertEqual(response["name"], collection_name)
+
+    def create_index(self):
+        collection_name = "example"
+        response = create("collection", {
+            "name": collection_name,
+            "id_key": "id",
+            "ordering": "ordering",
+            "attributes": [
+                {"name": "a", "type": "STRING"},
+                {"name": "b", "type": "STRING"},
+                {"name": "c", "type": "STRING"}
+            ]
+        })
+        index = {
+            "uid": str(uuid.uuid4()),
+            "name": "index"
+        }
+        create("index", index)
 
     def test_create_document(self):
         collection_name = "example"
@@ -94,6 +114,21 @@ class TestDynamoPlusService(unittest.TestCase):
         })
         self.assertEqual(response["id"], "1")
         self.assertIn("attributes", response)
+
+    def test_create_http_signature_client_authorization(self):
+        http_signature_client_authorization = {
+            "type": "http_signature",
+            "client_id": "testclientid",
+            "public_key": "test-public-key",
+            "client_scopes": [
+                {
+                    "collection_name": "collection1",
+                    "scope_type": "GET"
+                }
+            ]
+        }
+        response = create("client_authorization", http_signature_client_authorization)
+        print("{}".format(response))
 
     # @mock_dynamodb2
     # def test_getIndexFromCollectionName(self):
