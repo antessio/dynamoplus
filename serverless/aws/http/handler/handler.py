@@ -3,6 +3,9 @@ import logging
 import os
 
 from decimal import Decimal
+
+from fastjsonschema import JsonSchemaException
+
 from dynamoplus.dynamo_plus import get as dynamoplus_get,update as dynamoplus_update,query as dynamoplus_query,create as dynamoplus_create,delete as dynamoplus_delete, HandlerException
 
 from dynamoplus.utils.decimalencoder import DecimalEncoder
@@ -43,6 +46,9 @@ class HttpHandler(object):
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
                                           body=self.format_json({"msg": e.message}))
+        except JsonSchemaException as e:
+            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
+                                          body=self.format_json({"msg": e.message}))
         except Exception as e:
             logger.error("Unable to create entity {} for body {}".format(collection, body))
             logger.exception(str(e))
@@ -62,6 +68,9 @@ class HttpHandler(object):
                                           body=self.format_json(dto))
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
+                                          body=self.format_json({"msg": e.message}))
+        except JsonSchemaException as e:
+            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
                                           body=self.format_json({"msg": e.message}))
         except Exception as e:
             logger.error("Unable to update entity {} for body {}".format(collection, body))
