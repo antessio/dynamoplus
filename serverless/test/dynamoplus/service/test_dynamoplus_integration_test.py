@@ -46,7 +46,7 @@ class TestDynamoPlusService(unittest.TestCase):
         })
         self.assertEqual(response["name"], collection_name)
 
-    def create_index(self):
+    def test_create_index(self):
         collection_name = "example"
         response = create("collection", {
             "name": collection_name,
@@ -60,7 +60,12 @@ class TestDynamoPlusService(unittest.TestCase):
         })
         index = {
             "uid": str(uuid.uuid4()),
-            "name": "index"
+            "name": "index",
+            "collection":{
+                "id_key": "id",
+                "name": collection_name
+            },
+            "conditions":["a","b"]
         }
         create("index", index)
 
@@ -68,7 +73,7 @@ class TestDynamoPlusService(unittest.TestCase):
         collection_name = "example"
         response = create("collection", {
             "name": collection_name,
-            "id_key": "id",
+            "id_key": "name",
             "ordering": "ordering",
             "attributes": [
                 {"name": "a", "type": "STRING"},
@@ -77,7 +82,7 @@ class TestDynamoPlusService(unittest.TestCase):
             ]
         })
         response = create(collection_name, {
-            "id": "1",
+            "name": "1",
             "ordering": "2",
             "attributes": {
                 "a": "test1",
@@ -85,7 +90,7 @@ class TestDynamoPlusService(unittest.TestCase):
                 "c": "test3"
             }
         })
-        self.assertEqual(response["id"], "1")
+        self.assertEqual(response["name"], "1")
         self.assertIn("attributes", response)
 
     def test_create_document_nested_attributes(self):
