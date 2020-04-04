@@ -7,11 +7,12 @@ handler = HttpHandler()
 
 
 def get(event, context):
-    return handler.get(event['pathParameters'])
+    return handler.get(path_parameters=event['pathParameters'], query_string_parameters=event['queryStringParameters'])
 
 
 def query(event, context):
-    return handler.query(event['pathParameters'], query_string_parameters=event['queryStringParameters'],
+    return handler.query(path_parameters=event['pathParameters'],
+                         query_string_parameters=event['queryStringParameters'],
                          body=event["body"], headers=event['headers'])
 
 
