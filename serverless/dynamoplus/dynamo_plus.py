@@ -36,11 +36,9 @@ def get_all(collection_name:str, last_key:str, limit: int):
         logger.info("Get {} metadata from system".format(collection_name))
         if collection_name == 'collection':
             last_collection_metadata = None
-            collections, last_key = SystemService.get_all_collections(limit, last_key)
+            collections, last_evaluated_key = SystemService.get_all_collections(limit, last_key)
             documents = list(map(lambda c: from_collection_to_dict(c), collections))
-            if last_key:
-                logging.info("last evaluated key is {}".format(last_key))
-                last_evaluated_key = last_key["pk"]
+            return documents, last_evaluated_key
         else:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "{} not valid", collection_name)
     else:
