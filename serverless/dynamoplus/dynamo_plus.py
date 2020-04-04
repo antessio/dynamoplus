@@ -29,6 +29,31 @@ class HandlerException(Exception):
         self.code = code
         self.message = message
 
+def get_all(collection_name:str, last_key:str, limit: int):
+    is_system = DynamoPlusService.is_system(collection_name)
+    last_evaluated_key = None
+    if is_system:
+        logger.info("Get {} metadata from system".format(collection_name))
+        if collection_name == 'collection':
+            last_collection_metadata = None
+            collections, last_key = SystemService.get_all_collections(limit, last_key)
+            documents = list(map(lambda c: from_collection_to_dict(c), collections))
+            if last_key:
+                logging.info("last evaluated key is {}".format(last_key))
+                last_evaluated_key = last_key["pk"]
+        else:
+            raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "{} not valid", collection_name)
+    else:
+        logger.info("get all  {} collection limit = {} last_key = {} ".format(collection_name, limit, last_key))
+        collection_metadata = SystemService.get_collection_by_name(collection_name)
+        if collection_metadata is None:
+            raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
+                                   "{} is not a valid collection".format(collection_name))
+        domain_service = DomainService(collection_metadata)
+        logger.info("Query all {}".format(collection_name))
+        documents, last_evaluated_key = domain_service.find_all(limit, last_key)
+        return documents, last_evaluated_key
+
 
 def get(collection_name: str, document_id: str):
     is_system = DynamoPlusService.is_system(collection_name)
