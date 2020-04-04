@@ -1,48 +1,145 @@
 import unittest
-import decimal
 import logging
-from dynamoplus.models.query.query import Index
-#from dynamoplus.models.documents.documentTypes import Collection
-from dynamoplus.models.system.collection.collection import Collection
-from dynamoplus.repository.repositories import DynamoPlusRepository
-from dynamoplus.models.query.query import Query, Index
-from dynamoplus.repository.models import QueryResult, Model
-from dynamoplus.service.dynamoplus import DynamoPlusService
+import uuid
+
+from dynamoplus.dynamo_plus import create
 
 from moto import mock_dynamodb2
 import boto3
 import os
 
-
 logging.getLogger('boto').setLevel(logging.DEBUG)
+
 
 @mock_dynamodb2
 class TestDynamoPlusService(unittest.TestCase):
 
-    @mock_dynamodb2
     def setUp(self):
-        os.environ["DYNAMODB_DOMAIN_TABLE"] = "example-domain"
-        os.environ["DYNAMODB_SYSTEM_TABLE"] = "example-system"
+        domain_table_name = "domain"
+        system_table_name = "system"
+        os.environ["DYNAMODB_DOMAIN_TABLE"] = domain_table_name
+        os.environ["DYNAMODB_SYSTEM_TABLE"] = system_table_name
         self.dynamodb = boto3.resource("dynamodb", region_name='eu-west-1')
-        os.environ["ENTITIES"] = "collection#id#creation_date_time,index#id#creation_date_time"
-        self.system_table = self.getMockTable("example-system")
-        self.fillSystemData()
-        self.dynamoPlus = DynamoPlusService()
-        #self.getMockTable("example-domain")
-        #self.table = self.getMockTable("example-domain")
-
-
+        os.environ["ENTITIES"] = "collection,index,client_authorization"
+        self.system_table = self.getMockTable(system_table_name)
+        self.domain_table = self.getMockTable(domain_table_name)
+        # self.fillSystemData()
+        # self.getMockTable("example-domain")
 
     def tearDown(self):
-        #self.system_table.delete()
+        self.system_table.delete()
+        self.domain_table.delete()
         del os.environ["DYNAMODB_DOMAIN_TABLE"]
         del os.environ["DYNAMODB_SYSTEM_TABLE"]
+
+    def test_create_collection(self):
+        collection_name = "example"
+        response = create("collection", {
+            "name": collection_name,
+            "id_key": "id",
+            "ordering": "ordering",
+            "attributes": [
+                {"name": "a", "type": "STRING"},
+                {"name": "b", "type": "STRING"},
+                {"name": "c", "type": "STRING"}
+            ]
+        })
+        self.assertEqual(response["name"], collection_name)
+
+    def test_create_index(self):
+        collection_name = "example"
+        response = create("collection", {
+            "name": collection_name,
+            "id_key": "id",
+            "ordering": "ordering",
+            "attributes": [
+                {"name": "a", "type": "STRING"},
+                {"name": "b", "type": "STRING"},
+                {"name": "c", "type": "STRING"}
+            ]
+        })
+        index = {
+            "uid": str(uuid.uuid4()),
+            "name": "index",
+            "collection":{
+                "id_key": "id",
+                "name": collection_name
+            },
+            "conditions":["a","b"]
+        }
+        create("index", index)
+
+    def test_create_document(self):
+        collection_name = "example"
+        response = create("collection", {
+            "name": collection_name,
+            "id_key": "name",
+            "ordering": "ordering",
+            "attributes": [
+                {"name": "a", "type": "STRING"},
+                {"name": "b", "type": "STRING"},
+                {"name": "c", "type": "STRING"}
+            ]
+        })
+        response = create(collection_name, {
+            "name": "1",
+            "ordering": "2",
+            "attributes": {
+                "a": "test1",
+                "b": "test2",
+                "c": "test3"
+            }
+        })
+        self.assertEqual(response["name"], "1")
+        self.assertIn("attributes", response)
+
+    def test_create_document_nested_attributes(self):
+        collection_name = "example"
+        response = create("collection", {
+            "name": collection_name,
+            "id_key": "id",
+            "ordering": "ordering",
+            "attributes": [
+                {"name": "a", "type": "STRING"},
+                {"name": "b", "type": "STRING"},
+                {"name": "c", "type": "OBJECT", "attributes": [
+                    {"name": "ca", "type": "STRING"},
+                    {"name": "cb", "type": "STRING"}
+                ]}
+            ]
+        })
+        response = create(collection_name, {
+            "id": "1",
+            "ordering": "2",
+            "attributes": {
+                "a": "test1",
+                "b": "test2",
+                "c": {"ca": "test31", "cb": "test32"}
+            }
+        })
+        self.assertEqual(response["id"], "1")
+        self.assertIn("attributes", response)
+
+    def test_create_http_signature_client_authorization(self):
+        http_signature_client_authorization = {
+            "type": "http_signature",
+            "client_id": "testclientid",
+            "public_key": "test-public-key",
+            "client_scopes": [
+                {
+                    "collection_name": "collection1",
+                    "scope_type": "GET"
+                }
+            ]
+        }
+        response = create("client_authorization", http_signature_client_authorization)
+        print("{}".format(response))
 
     # @mock_dynamodb2
     # def test_getIndexFromCollectionName(self):
     #     query = self.dynamoPlus.get_indexes_from_collecion_name("example")
     #     self.assertEqual(len(query),1)
-        
+
     # @mock_dynamodb2
     # def test_getCollectionFromCollectionName_inSystem(self):
     #     result = dynamoPlus.getCollectionConfigurationFromCollectionName("collection")
@@ -60,7 +157,7 @@ class TestDynamoPlusService(unittest.TestCase):
     #     self.assertEqual(result.name, "example")
     #     self.assertEqual(result.idKey, "id")
     #     self.assertEqual(result.orderingKey, "ordering")
-    
+
     # def test_getSystemIndexConfigurationsFromDocumentType(self):
     #     self.fillSystemData()
     #     dynamoPlusService = DynamoPlusService()
@@ -114,8 +211,10 @@ class TestDynamoPlusService(unittest.TestCase):
 
     def fillSystemData(self):
         system_table = self.dynamodb.Table('example-system')
-        system_table.put_item(Item={"pk": "collection#example", "sk": "collection", "data": "example", "document": "{\"name\":\"example\",\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
-        system_table.put_item(Item={"pk": "index#collection.name", "sk": "index#collection.name", "data": "example", "document": "{\"name\":\"collection.name\",\"collection\":{\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
+        system_table.put_item(Item={"pk": "collection#example", "sk": "collection", "data": "example",
+                                    "document": "{\"name\":\"example\",\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
+        system_table.put_item(Item={"pk": "index#collection.name", "sk": "index#collection.name", "data": "example",
+                                    "document": "{\"name\":\"collection.name\",\"collection\":{\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
 
     def getMockTable(self, tableName):
         table = self.dynamodb.create_table(TableName=tableName,

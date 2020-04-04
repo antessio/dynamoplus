@@ -18,8 +18,8 @@ class DynamoPlusService(object):
 
     @staticmethod
     def is_system(collection_name):
-        SYSTEM_ENTITIES = os.environ['ENTITIES']
-        return collection_name in SYSTEM_ENTITIES.split(",")
+        system_entities = os.environ['ENTITIES']
+        return collection_name in system_entities.split(",")
 
     @staticmethod
     def build_index(index_str: str):
