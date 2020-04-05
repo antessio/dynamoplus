@@ -126,6 +126,16 @@ functions:
             name: auth
             type: request
 
+  getAll:
+    handler: aws/http/http.get
+    events:
+      - http:
+          path: dynamoplus/{collection}
+          method: get
+          cors: true
+          authorizer:
+            name: auth
+            type: request
   get:
     handler: aws/http/http.get
     events:

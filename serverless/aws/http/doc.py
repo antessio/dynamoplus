@@ -66,6 +66,41 @@ def swagger_json(event, context):
                     "403": {"description": "Access forbidden for system API"}
                 }}})
         spec.path(path="/dynamoplus/collection", operations={
+            'get': {
+                'tags': ['collection'],
+                'description': "get all collections",
+                'parameters': [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "number of elements",
+                        "required": False,
+                        "schema": {"type": "integer"}
+                    },
+                    {
+                        "name": "last_key",
+                        "in": "query",
+                        "description": "last id",
+                        "required": False,
+                        "schema": {"type": "string"}
+                    }
+                ],
+                'responses': {
+                    "200": {"description": "collections list",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "data": {
+                                                "type": "array",
+                                                "items": {"$ref": "#/components/schemas/Collection"}
+                                            },
+                                            "has_more": {"type": "boolean"}
+                                        }}}}},
+                    "403": {"description": "Access forbidden for system API"}
+                }
+            },
             'post': {
                 'tags': ['collection'],
                 'description': "create a new collection",
@@ -99,7 +134,8 @@ def swagger_json(event, context):
                                 }}}}},
                     "403": {"description": "Access forbidden for system API"}
                 }
-            }})
+            }
+        })
 
         spec.components.schema(
             "Index",
@@ -145,6 +181,41 @@ def swagger_json(event, context):
             }
         })
         spec.path(path="/dynamoplus/index", operations={
+            'get': {
+                'tags': ['index'],
+                'description': "get all indexes",
+                'parameters': [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "number of elements",
+                        "required": False,
+                        "schema": {"type": "integer"}
+                    },
+                    {
+                        "name": "last_key",
+                        "in": "query",
+                        "description": "last id",
+                        "required": False,
+                        "schema": {"type": "string"}
+                    }
+                ],
+                'responses': {
+                    "200": {"description": "index list",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "data": {
+                                                "type": "array",
+                                                "items": {"$ref": "#/components/schemas/Index"}
+                                            },
+                                            "has_more": {"type": "boolean"}
+                                        }}}}},
+                    "403": {"description": "Access forbidden for system API"}
+                }
+            },
             'post': {
                 'tags': ['index'],
                 'description': "create a new index",
@@ -255,6 +326,46 @@ def swagger_json(event, context):
             }
         })
         spec.path(path="/dynamoplus/client_authorization", operations={
+            'get': {
+                'tags': ['client_authorization'],
+                'description': "get all client authorizations",
+                'parameters': [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "number of elements",
+                        "required": False,
+                        "schema": {"type": "integer"}
+                    },
+                    {
+                        "name": "last_key",
+                        "in": "query",
+                        "description": "last id",
+                        "required": False,
+                        "schema": {"type": "string"}
+                    }
+                ],
+                'responses': {
+                    "200": {"description": "client authorization list",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "data": {
+                                                "type": "array",
+                                                "items": {
+                                                    "oneOf": [
+                                                        {"$ref": "#/components/schemas/ClientAuthorizationApiKey"},
+                                                        {"$ref": "#/components/schemas/ClientAuthorizationHttpSignature"}
+                                                    ]
+                                                }
+                                            },
+                                            "has_more": {"type": "boolean"}
+                                        }}}}},
+                    "403": {"description": "Access forbidden for system API"}
+                }
+            },
             'post': {
                 'tags': ['client_authorization'],
                 'description': "create a new client_authorization",
@@ -372,6 +483,41 @@ def add_collection(c, spec):
         }
     })
     spec.path(path="/dynamoplus/{}".format(c.name), operations={
+        'get': {
+            'tags': [c.name],
+            'description': "get all {}".format(c.name),
+            'parameters': [
+                {
+                    "name": "limit",
+                    "in": "query",
+                    "description": "number of elements",
+                    "required": False,
+                    "schema": {"type": "integer"}
+                },
+                {
+                    "name": "last_key",
+                    "in": "query",
+                    "description": "last id",
+                    "required": False,
+                    "schema": {"type": "string"}
+                }
+            ],
+            'responses': {
+                "200": {"description": "{} list".format(c.name),
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {"$ref": "#/components/schemas/{}".format(c.name)}
+                                        },
+                                        "has_more": {"type": "boolean"}
+                                    }}}}},
+                "403": {"description": "Access forbidden for system API"}
+            }
+        },
         'post': {
             'tags': [c.name],
             'description': "create a new {}".format(c.name),
