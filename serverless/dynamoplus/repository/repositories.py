@@ -206,7 +206,11 @@ class IndexDynamoPlusRepository(DynamoPlusRepository):
         ordering_key = query.index.ordering_key if query.index else None
         logger.info("order by is {} ".format(ordering_key))
         limit = query.limit
-        start_from = index_model.start_from(query.start_from) if query.start_from else None
+        start_from = None
+        if query.start_from:
+            last_index_model = self.get(query.start_from)
+            start_from = {"pk": last_index_model.pk(), "sk": last_index_model.sk(), "data": last_index_model.data()}
+        #start_from = index_model.start_from(query.start_from) if query.start_from else None
         #start_from = query.start_from
         logging.info("query starts from {}".format(start_from))
         if query.index.range_condition:
