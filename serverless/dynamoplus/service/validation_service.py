@@ -11,7 +11,7 @@ logger.setLevel(logging.INFO)
 COLLECTION_ATTRIBUTE_BASE_SCHEMA_DEFINITION = {
     "name": {"type": "string"},
     "type": {"type": "string", "enum": ["STRING", "OBJECT", "NUMBER", "DATE", "ARRAY"]},
-    "constraints": {"type": "string", "enum": ["NULLABLE", "NOT_NULL"]}
+    "constraints": {"type": "array", "items": {"type":"string","enum": ["NULLABLE", "NOT_NULL"]}}
 }
 
 COLLECTION_ATTRIBUTE_SCHEMA_DEFINITION = {
