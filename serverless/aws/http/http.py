@@ -7,7 +7,9 @@ handler = HttpHandler()
 
 
 def get(event, context):
-    return handler.get(path_parameters=event['pathParameters'], query_string_parameters=event['queryStringParameters'])
+    return handler.get(path_parameters=event['pathParameters'],
+                         query_string_parameters=event['queryStringParameters'],
+                         body=event["body"], headers=event['headers'])
 
 
 def query(event, context):
@@ -17,12 +19,18 @@ def query(event, context):
 
 
 def create(event, context):
-    return handler.create(event["pathParameters"], body=event["body"])
+    return handler.create(path_parameters=event['pathParameters'],
+                         query_string_parameters=event['queryStringParameters'],
+                         body=event["body"], headers=event['headers'])
 
 
 def update(event, context):
-    return handler.update(event["pathParameters"], body=event["body"])
+    return handler.update(path_parameters=event['pathParameters'],
+                         query_string_parameters=event['queryStringParameters'],
+                         body=event["body"], headers=event['headers'])
 
 
 def delete(event, context):
-    return handler.delete(event["pathParameters"])
+    return handler.delete(path_parameters=event['pathParameters'],
+                         query_string_parameters=event['queryStringParameters'],
+                         body=event["body"], headers=event['headers'])

@@ -33,8 +33,8 @@ class AuthorizationService:
 
     @staticmethod
     def get_authorization_value(headers: dict, type: str):
-        if "Authorization" in headers:
-            authorization_header = headers['Authorization']
+        if "authorization" in headers:
+            authorization_header = headers['authorization']
             split = authorization_header.split(' ', 1)
             return split[1] if len(split) == 2 and split[0].strip().lower() == type.lower() else None
 
@@ -44,8 +44,8 @@ class AuthorizationService:
 
     @staticmethod
     def get_client_authorization_using_http_signature_authorized(headers: dict, method: str, path: str):
-        if "Authorization" in headers:
-            authorization_header = headers["Authorization"]
+        if "authorization" in headers:
+            authorization_header = headers["authorization"]
             if authorization_header.startswith("Signature"):
                 authorization_value = authorization_header.replace("Signature","")
                 signature_components = {}
