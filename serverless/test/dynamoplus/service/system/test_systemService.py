@@ -135,7 +135,7 @@ class TestSystemService(unittest.TestCase):
     @patch.object(DynamoPlusRepository, "__init__")
     def test_createCollection(self, mock_repository, mock_create):
         expected_id = 'example'
-        target_collection = {"name": "example", "id_key": "id", "ordering": None}
+        target_collection = {"name": "example", "id_key": "id", "ordering": None, "auto_generate_id": False}
         document = {"name": expected_id, "id_key": "id"}
         collection_metadata = Collection("collection", "name")
         expected_model = Model(collection_metadata, document)
