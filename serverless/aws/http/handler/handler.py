@@ -145,8 +145,10 @@ class HttpHandler(object):
 
     def get_response_headers(self, request_headers):
         response_headers = {}
-        if request_headers and "origin" in request_headers:
-            origin = request_headers["origin"]
+
+        request_headers_normalized = dict((k.lower(), v) for k, v in request_headers.items())
+        if "origin" in request_headers_normalized:
+            origin = request_headers_normalized["origin"]
             if self.check_allowed_origin(origin):
                 response_headers["Access-Control-Allow-Origin"] = origin
                 response_headers["Access-Control-Allow-Credentials"] = True
