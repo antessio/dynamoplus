@@ -126,9 +126,8 @@ def create(collection_name: str, document: dict) -> dict:
                                    "{} is not a valid collection".format(collection_name))
         timestamp = datetime.utcnow()
         ## TODO: key generator
-        if collection_metadata.id_key not in document:
-            uid = str(uuid.uuid1())
-            document[collection_metadata.id_key] = uid
+        if collection_metadata.auto_generate_id:
+            document[collection_metadata.id_key] = str(uuid.uuid1())
         document["creation_date_time"] = timestamp.isoformat()
         d = DomainService(collection_metadata).create_document(document)
         logger.info("Created document {}".format(d))

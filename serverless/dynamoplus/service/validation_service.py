@@ -29,6 +29,7 @@ COLLECTION_SCHEMA_DEFINITION = {
         "id_key": {"type": "string"},
         "name": {"type": "string"},
         "ordering": {"type": "string"},
+        "auto_generate_id": {"type":"boolean"},
         "attributes": {
             "type": "array",
             "items": COLLECTION_ATTRIBUTE_SCHEMA_DEFINITION

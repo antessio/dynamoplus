@@ -4,7 +4,8 @@ from typing import *
 from dynamoplus.models.query.query import Query
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
 from dynamoplus.repository.models import Model, QueryResult
-from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType, AttributeConstraint
+from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType, \
+    AttributeConstraint
 from dynamoplus.models.system.index.index import Index
 from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
     ClientAuthorizationApiKey, ClientAuthorizationHttpSignature, Scope, ScopesType
@@ -61,7 +62,7 @@ def from_client_authorization_api_key_to_dict(client_authorization: ClientAuthor
         "type": "api_key",
         "client_id": client_authorization.client_id,
         "client_scopes": list(map(lambda s: {"collection_name": s.collection_name, "scope_type": s.scope_type.name},
-                           client_authorization.client_scopes)),
+                                  client_authorization.client_scopes)),
         "api_key": client_authorization.api_key,
     }
     if client_authorization.whitelist_hosts:
@@ -91,7 +92,8 @@ def from_collection_to_dict(collection: Collection):
     d = {
         "name": collection.name,
         "id_key": collection.id_key,
-        "ordering": collection.ordering_key
+        "ordering": collection.ordering_key,
+        "auto_generate_id": collection.auto_generate_id
     }
     if collection.attribute_definition:
         attributes = list(map(lambda a: from_attribute_definition_to_dict(a), collection.attribute_definition))
@@ -99,14 +101,16 @@ def from_collection_to_dict(collection: Collection):
     return d
 
 
-def from_attribute_definition_to_dict(attribute:AttributeDefinition):
-    nested_attributes = list(map(lambda a: from_attribute_definition_to_dict(a), attribute.attributes)) if attribute.attributes else None
-    return {"name": attribute.name, "type": attribute.type.value, "attributes": nested_attributes}
-
-
 def from_dict_to_collection(d: dict):
     attributes = list(map(from_dict_to_attribute_definition, d["attributes"])) if "attributes" in d else None
-    return Collection(d["name"], d["id_key"], d["ordering"] if "ordering" in d else None,attributes)
+    auto_generate_id = d["auto_generate_id"] if "auto_generate_id" in d else False
+    return Collection(d["name"], d["id_key"], d["ordering"] if "ordering" in d else None, attributes, auto_generate_id)
+
+
+def from_attribute_definition_to_dict(attribute: AttributeDefinition):
+    nested_attributes = list(
+        map(lambda a: from_attribute_definition_to_dict(a), attribute.attributes)) if attribute.attributes else None
+    return {"name": attribute.name, "type": attribute.type.value, "attributes": nested_attributes}
 
 
 def from_dict_to_attribute_definition(d: dict):
