@@ -74,10 +74,12 @@ class HttpHandler(object):
     def update(self, path_parameters: dict, queryStringParameters: list = [], body: dict = None,
                headers: dict = None) -> dict:
         collection = self.get_document_type_from_path_parameters(path_parameters)
+        id = path_parameters['id']
         logger.info("Updating {}".format(collection))
         data = json.loads(body, parse_float=Decimal)
         logger.info("Updating " + data.__str__())
         try:
+
             dto = dynamoplus_update(collection, data)
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
                                           body=self.format_json(dto))

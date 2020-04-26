@@ -29,7 +29,8 @@ class HandlerException(Exception):
         self.code = code
         self.message = message
 
-def get_all(collection_name:str, last_key:str, limit: int):
+
+def get_all(collection_name: str, last_key: str, limit: int):
     is_system = DynamoPlusService.is_system(collection_name)
     last_evaluated_key = None
     if is_system:
@@ -134,7 +135,7 @@ def create(collection_name: str, document: dict) -> dict:
         return d
 
 
-def update(collection_name: str, document: dict):
+def update(collection_name: str, document: dict, document_id: str = None):
     is_system = DynamoPlusService.is_system(collection_name)
     if is_system:
         if collection_name == "client_authorization":
@@ -152,7 +153,9 @@ def update(collection_name: str, document: dict):
         if collection_metadata is None:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                    "{} is not a valid collection".format(collection_name))
-        validate_document(document,collection_metadata)
+        if document_id:
+            document[collection_metadata.id_key] = document_id
+        validate_document(document, collection_metadata)
         timestamp = datetime.utcnow()
         document["update_date_time"] = timestamp.isoformat()
         d = DomainService(collection_metadata).update_document(document)
