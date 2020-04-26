@@ -107,11 +107,11 @@ class TestHttpHandler(unittest.TestCase):
                                       "document": json.dumps(document)})
 
     def test_update_client_authorization(self):
-        path_parameters = {"collection": "client_authorization"}
-        body = {"type":"api_key","client_id":"example-client-id","api_key":"test-api-key-2","client_scopes":[{"collection_name":"example","scope_type":"GET"}]}
+        path_parameters = {"collection": "client_authorization","id":"example-client-id"}
+        body = {"type":"api_key","api_key":"test-api-key-2","client_scopes":[{"collection_name":"example","scope_type":"GET"}]}
         result = self.httpHandler.update(path_parameters=path_parameters,body=json.dumps(body))
         self.assertEqual(result["statusCode"],200)
-        self.assertDictEqual(json.loads(result["body"]), body)
+        self.assertDictEqual(json.loads(result["body"]), {"client_id":"example-client-id", **body})
 
     def test_delete_client_authorization(self):
         path_parameters = {"collection": "client_authorization", "id":"example-client-id"}
@@ -165,7 +165,7 @@ class TestHttpHandler(unittest.TestCase):
         self.fill_sytem_data()
         self.fill_data()
         expected_result = {"id": "1", "title": "test_1", "ordering": "21", "new_attribute": "001"}
-        result = self.httpHandler.update({"collection": "example"}, body="{\"id\":\"1\", \"title\": \"test_1\", "
+        result = self.httpHandler.update({"collection": "example", "id":"1"}, body="{\"title\": \"test_1\", "
                                                                          "\"new_attribute\": \"001\", \"ordering\": "
                                                                          "\"21\"}")
         self.assertEqual(result["statusCode"], 200)

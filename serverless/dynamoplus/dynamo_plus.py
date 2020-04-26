@@ -138,6 +138,8 @@ def update(collection_name: str, document: dict, document_id: str = None):
     is_system = DynamoPlusService.is_system(collection_name)
     if is_system:
         if collection_name == "client_authorization":
+            if document_id:
+                document["client_id"] = document_id
             validate_client_authorization(document)
             client_authorization = from_dict_to_client_authorization(document)
             client_authorization = SystemService.update_authorization(client_authorization)
