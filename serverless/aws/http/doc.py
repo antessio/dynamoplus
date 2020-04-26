@@ -306,6 +306,30 @@ def swagger_json(event, context):
                     "403": {"description": "Access forbidden for system API"}
                 }
             },
+            'put': {
+                'tags': ['client_authorization'],
+                'description': "update client_authorization",
+                'requestBody': {
+                    "required": True,
+                    "content": {
+                        "application/json": {"schema": {
+                            "oneOf": [{"$ref": "#/components/schemas/ClientAuthorizationApiKey"},
+                                      {"$ref": "#/components/schemas/ClientAuthorizationHttpSignature"}
+                                      ]}}
+                    }
+                },
+                'responses': {
+                    "200": {
+                        "description": "client_authorization updated",
+                        "content": {"application/json": {"schema": {
+                            "oneOf": [
+                                {"$ref": "#/components/schemas/ClientAuthorizationApiKey"},
+                                {"$ref": "#/components/schemas/ClientAuthorizationHttpSignature"}
+                            ]}}}
+                    },
+                    "403": {"description": "Access forbidden for system API"}
+                }
+            },
             'delete': {
                 'tags': ['client_authorization'],
                 'description': "delete a client_authorization by id",
@@ -388,32 +412,6 @@ def swagger_json(event, context):
                 }
             }
         })
-        spec.path(path="/dynamoplus/client_authorization", operations={
-            'put': {
-                'tags': ['client_authorization'],
-                'description': "update client_authorization",
-                'requestBody': {
-                    "required": True,
-                    "content": {
-                        "application/json": {"schema": {
-                            "oneOf": [{"$ref": "#/components/schemas/ClientAuthorizationApiKey"},
-                                      {"$ref": "#/components/schemas/ClientAuthorizationHttpSignature"}
-                                      ]}}
-                    }
-                },
-                'responses': {
-                    "200": {
-                        "description": "client_authorization updated",
-                        "content": {"application/json": {"schema": {
-                            "oneOf": [
-                                {"$ref": "#/components/schemas/ClientAuthorizationApiKey"},
-                                {"$ref": "#/components/schemas/ClientAuthorizationHttpSignature"}
-                            ]}}}
-                    },
-                    "403": {"description": "Access forbidden for system API"}
-                }
-            }
-        })
     else:
         c = SystemService.get_collection_by_name(target_collection_name)
         add_collection(c, spec)
@@ -461,6 +459,23 @@ def add_collection(c, spec):
                 },
                 "404": {"description": "{} object found".format(c.name)},
                 "403": {"description": "Access forbidden "}
+            }
+        },
+        'put': {
+            'tags': [c.name],
+            'description': "update {}".format(c.name),
+            'requestBody': {
+                "required": True,
+                "content": {
+                    "application/json": {"schema": {"$ref": "#/components/schemas/{}".format(c.name)}}
+                }
+            },
+            'responses': {
+                "200": {
+                    "description": "{} updated".format(c.name),
+                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/{}".format(c.name)}}}
+                },
+                "403": {"description": "Access forbidden"}
             }
         },
         'delete': {
@@ -533,25 +548,6 @@ def add_collection(c, spec):
                     "content": {"application/json": {"schema": {"$ref": "#/components/schemas/{}".format(c.name)}}}
                 },
                 "403": {"description": "Access forbidden for system API"}
-            }
-        }
-    })
-    spec.path(path="/dynamoplus/{}".format(c.name), operations={
-        'put': {
-            'tags': [c.name],
-            'description': "update {}".format(c.name),
-            'requestBody': {
-                "required": True,
-                "content": {
-                    "application/json": {"schema": {"$ref": "#/components/schemas/{}".format(c.name)}}
-                }
-            },
-            'responses': {
-                "200": {
-                    "description": "{} updated".format(c.name),
-                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/{}".format(c.name)}}}
-                },
-                "403": {"description": "Access forbidden"}
             }
         }
     })
