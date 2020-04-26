@@ -159,7 +159,7 @@ class TestHttpHandler(unittest.TestCase):
         result = self.httpHandler.create({"collection": "example"},
                                          body="{\"id\":\"1000\", \"title\": \"test_1\",\"ordering\": \"21\"}")
         self.assertEqual(result["statusCode"], 201)
-        self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expected_result, ["id", "creation_date_time"])
+        self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expected_result, ["id", "creation_date_time","order_unique"])
 
     def test_update_adding_new_field(self):
         self.fill_sytem_data()

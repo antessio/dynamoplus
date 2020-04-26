@@ -13,7 +13,7 @@ class TestModels(unittest.TestCase):
         model = Model(collection, document)
         self.assertEqual(model.pk(), "example#randomId")
         self.assertEqual(model.sk(), "example")
-        self.assertEqual(model.data(), "randomId#123456")
+        self.assertEqual(model.data(), "123456")
         self.assertEqual(model.order_value(), "123456")
     def test_model(self):
         collection = Collection("example","id",None)
