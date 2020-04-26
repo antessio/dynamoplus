@@ -33,6 +33,7 @@ class AuthorizationService:
 
     @staticmethod
     def get_authorization_value(headers: dict, type: str):
+        headers = dict((k.lower(), v) for k, v in headers.items())
         if "authorization" in headers:
             authorization_header = headers['authorization']
             split = authorization_header.split(' ', 1)
@@ -44,6 +45,7 @@ class AuthorizationService:
 
     @staticmethod
     def get_client_authorization_using_http_signature_authorized(headers: dict, method: str, path: str):
+        headers = dict((k.lower(), v) for k, v in headers.items())
         if "authorization" in headers:
             authorization_header = headers["authorization"]
             if authorization_header.startswith("Signature"):

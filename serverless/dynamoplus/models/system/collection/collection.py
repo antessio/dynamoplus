@@ -33,11 +33,14 @@ class AttributeDefinition(object):
         self.attributes = attributes
 
 
+
 @auto_str
 class Collection(object):
     def __init__(self, name: str, id_key: str, ordering_key: str = None,
-                 attributes_definition: List[AttributeDefinition] = None):
+                 attributes_definition: List[AttributeDefinition] = None,
+                 auto_generate_id = False):
         self.name = name
         self.id_key = id_key
         self.attribute_definition = attributes_definition
         self.ordering_key = ordering_key
+        self.auto_generate_id = auto_generate_id
