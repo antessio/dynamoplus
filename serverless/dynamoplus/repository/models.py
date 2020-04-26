@@ -21,15 +21,18 @@ def getSk(document: dict, collectionName: str):
     return document["sk"] if "sk" in document else collectionName
 
 
-def getData(document: dict, idKey: str, orderingKey: str = None):
+def getData(document: dict, id_key: str, ordering_key: str = None):
     if "data" in document:
         return document["data"]
     else:
-        if idKey in document:
-            data = convertToString(document[idKey])
-            orderValue = getOrderValue(document, orderingKey)
-            if orderValue:
-                data = document[idKey] + "#" + orderValue
+        if id_key in document:
+            order_value = getOrderValue(document, ordering_key)
+            if order_value:
+                data = order_value
+            elif "order_unique" in document:
+                data = convertToString(document["order_unique"])
+            else:
+                data = convertToString(document[id_key])
             return data
 
 

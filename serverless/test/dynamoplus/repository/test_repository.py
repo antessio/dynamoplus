@@ -57,7 +57,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
         self.assertIsNotNone(result.document)
         self.assertEqual(result.pk(), "example#randomUid")
         self.assertEqual(result.sk(), "example")
-        self.assertEqual(result.data(), "randomUid#1")
+        self.assertEqual(result.data(), "1")
         self.assertDictEqual(result.document, document)
         # self.assertEqual(result.document["attribute1"],"value2")
         # self.assertIn("pk",result.toDynamoDbItem())

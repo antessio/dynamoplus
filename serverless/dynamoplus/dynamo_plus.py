@@ -3,6 +3,7 @@ import logging
 
 import uuid
 from datetime import datetime
+import time
 from enum import Enum
 
 from dynamoplus.service.dynamoplus import DynamoPlusService
@@ -129,6 +130,7 @@ def create(collection_name: str, document: dict) -> dict:
         if collection_metadata.auto_generate_id:
             document[collection_metadata.id_key] = str(uuid.uuid1())
         document["creation_date_time"] = timestamp.isoformat()
+        document["order_unique"] = str(int(time.time()*1000.0))
         d = DomainService(collection_metadata).create_document(document)
         logger.info("Created document {}".format(d))
         return d
