@@ -1,10 +1,14 @@
 import json
 import logging
 import os
-import base64
 
 from decimal import Decimal
-from dynamoplus.http.handler.dynamoPlusHandler import DynamoPlusHandler, HandlerException
+
+from fastjsonschema import JsonSchemaException
+
+from dynamoplus.dynamo_plus import get as dynamoplus_get, update as dynamoplus_update, query as dynamoplus_query, \
+    create as dynamoplus_create, delete as dynamoplus_delete, get_all as dynamoplus_get_all, HandlerException
+
 from dynamoplus.utils.decimalencoder import DecimalEncoder
 
 logger = logging.getLogger()
@@ -14,24 +18,36 @@ logger.setLevel(logging.DEBUG)
 ## TODO : it has to be converter in "Router"
 
 class HttpHandler(object):
-    def __init__(self):
-        # self.dynamoService = DynamoPlusService(os.environ["ENTITIES"],os.environ["INDEXES"])
-        self.dynamoPlusHandler = DynamoPlusHandler()
 
     def get(self, path_parameters, query_string_parameters=[], body=None, headers=None):
-        id = path_parameters['id']
         collection = self.get_document_type_from_path_parameters(path_parameters)
-        logger.info("get {} by id {}".format(collection, id))
-        try:
-            result = self.dynamoPlusHandler.get(collection, id)
-            if result:
-                return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
-                                              body=self.format_json(result))
-            else:
-                return self.get_http_response(headers=self.get_response_headers(headers), statusCode=404)
-        except HandlerException as e:
-            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
-                                          body=self.format_json({"msg": e.message}))
+        if 'id' in path_parameters:
+            id = path_parameters['id']
+            logger.info("get {} by id {}".format(collection, id))
+            try:
+                result = dynamoplus_get(collection, id)
+                if result:
+                    return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
+                                                  body=self.format_json(result))
+                else:
+                    return self.get_http_response(headers=self.get_response_headers(headers), statusCode=404)
+            except HandlerException as e:
+                return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
+                                              body=self.format_json({"msg": e.message}))
+        else:
+            try:
+                logging.info("received query parameters = {}".format(query_string_parameters))
+                last_key = query_string_parameters[
+                    "last_key"] if query_string_parameters and "last_key" in query_string_parameters else None
+                limit = int(query_string_parameters[
+                                "limit"]) if query_string_parameters and "limit" in query_string_parameters else None
+                documents, last_evaluated_key = dynamoplus_get_all(collection, last_key, limit)
+                result = {"data": documents, "has_more": last_evaluated_key is not None}
+                return self.get_http_response(body=self.format_json(result), headers=self.get_response_headers(headers),
+                                              statusCode=200)
+            except HandlerException as e:
+                return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
+                                              body=self.format_json({"msg": e.message}))
 
     def create(self, path_parameters, query_string_parameters=[], body=None, headers=None):
         collection = self.get_document_type_from_path_parameters(path_parameters)
@@ -39,12 +55,15 @@ class HttpHandler(object):
         data = json.loads(body, parse_float=Decimal)
         logger.info("Creating " + data.__str__())
         try:
-            dto = self.dynamoPlusHandler.create(collection, data)
+            dto = dynamoplus_create(collection, data)
             logger.info("dto = {}".format(dto))
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=201,
                                           body=self.format_json(dto))
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
+                                          body=self.format_json({"msg": e.message}))
+        except JsonSchemaException as e:
+            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
                                           body=self.format_json({"msg": e.message}))
         except Exception as e:
             logger.error("Unable to create entity {} for body {}".format(collection, body))
@@ -56,15 +75,20 @@ class HttpHandler(object):
     def update(self, path_parameters: dict, queryStringParameters: list = [], body: dict = None,
                headers: dict = None) -> dict:
         collection = self.get_document_type_from_path_parameters(path_parameters)
+        id = path_parameters['id'] if 'id' in path_parameters else None
         logger.info("Updating {}".format(collection))
         data = json.loads(body, parse_float=Decimal)
         logger.info("Updating " + data.__str__())
         try:
-            dto = self.dynamoPlusHandler.update(collection, data)
+
+            dto = dynamoplus_update(collection, data, id)
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
                                           body=self.format_json(dto))
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
+                                          body=self.format_json({"msg": e.message}))
+        except JsonSchemaException as e:
+            return self.get_http_response(headers=self.get_response_headers(headers), statusCode=400,
                                           body=self.format_json({"msg": e.message}))
         except Exception as e:
             logger.error("Unable to update entity {} for body {}".format(collection, body))
@@ -74,11 +98,11 @@ class HttpHandler(object):
                                               {"msg": "Error in create entity {}".format(collection)}))
 
     def delete(self, path_parameters, queryStringParameters=[], body=None, headers=None):
-        id = path_parameters['id']
+        document_id = path_parameters['id']
         collection = self.get_document_type_from_path_parameters(path_parameters)
-        logger.info("delete {} by id {}".format(collection, id))
+        logger.info("delete {} by document_id {}".format(collection, document_id))
         try:
-            self.dynamoPlusHandler.delete(collection, id)
+            dynamoplus_delete(collection, document_id)
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200)
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
@@ -87,22 +111,19 @@ class HttpHandler(object):
     def query(self, path_parameters, query_string_parameters={}, body=None, headers=None):
         logger.info("headers received {}".format(str(headers)))
         collection = self.get_document_type_from_path_parameters(path_parameters)
-        logger.debug("query string parameters {}".format(query_string_parameters))
-        query_id = path_parameters['queryId'] if 'queryId' in path_parameters else None
-        logger.info("Received {} as index".format(query_id))
-        query = json.loads(body, parse_float=Decimal)
-        logger.debug("example query {}".format(query))
-        last_key = query["start_from"] if "start_from" in query else None
-        limit = int(query["limit"]) if query and "limit" in query else None
-        document = query["matches"] if "matches" in query else {}
+        logger.debug("q string parameters {}".format(query_string_parameters))
+        q = json.loads(body, parse_float=Decimal)
+        logger.debug("query q {}".format(q))
+        last_key = query_string_parameters[
+            "start_from"] if query_string_parameters and "start_from" in query_string_parameters else None
+        limit = int(query_string_parameters[
+                        "limit"]) if query_string_parameters and "limit" in query_string_parameters else None
         logger.debug("last_key = {}".format(last_key))
         logger.debug("limit = {}".format(limit))
         try:
-            documents, last_evaluated_key = self.dynamoPlusHandler.query(collection, query_id, document, last_key,
-                                                                         limit)
-            result = {"data": documents}
-            if last_evaluated_key:
-                result["last_key"] = last_evaluated_key
+            documents, last_evaluated_key = dynamoplus_query(collection, q, last_key,
+                                                             limit)
+            result = {"data": documents, "has_more": last_evaluated_key is not None}
             return self.get_http_response(body=self.format_json(result), headers=self.get_response_headers(headers),
                                           statusCode=200)
         except HandlerException as e:
@@ -114,7 +135,7 @@ class HttpHandler(object):
         #     limit = query_string_parameters["limit"]
         # if "startFrom" in headers:
         #     startFrom = headers["startFrom"]
-        # data, lastEvaluatedKey = indexService.find_documents(query, startFrom, limit)
+        # data, lastEvaluatedKey = indexService.find_documents(q, startFrom, limit)
         # return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
         #                               body=self.format_json({"data": data, "lastKey": lastEvaluatedKey}))
 
@@ -124,11 +145,13 @@ class HttpHandler(object):
 
     def get_response_headers(self, request_headers):
         response_headers = {}
-        if request_headers and "origin" in request_headers:
-            origin = request_headers["origin"]
-            if self.check_allowed_origin(origin):
-                response_headers["Access-Control-Allow-Origin"] = origin
-                response_headers["Access-Control-Allow-Credentials"] = True
+        if request_headers:
+            request_headers_normalized = dict((k.lower(), v) for k, v in request_headers.items())
+            if "origin" in request_headers_normalized:
+                origin = request_headers_normalized["origin"]
+                if self.check_allowed_origin(origin):
+                    response_headers["Access-Control-Allow-Origin"] = origin
+                    response_headers["Access-Control-Allow-Credentials"] = True
         return response_headers
 
     @staticmethod

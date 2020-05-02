@@ -1,14 +1,14 @@
 import unittest
 import decimal
 
-from dynamoplus.models.query.query import Query
+from dynamoplus.models.query.conditions import AnyMatch
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
-from dynamoplus.repository.models import Model, QueryResult, IndexModel
+from dynamoplus.repository.models import Model, QueryResult, IndexModel, Query
 from dynamoplus.service.domain.domain import DomainService
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
-from dynamoplus.models.system.index.index import Index
+
 from mock import call
-from unittest.mock import patch
+from unittest.mock import patch, PropertyMock
 
 
 class TestDomainService(unittest.TestCase):
@@ -67,43 +67,25 @@ class TestDomainService(unittest.TestCase):
         mock_repository.assert_called_once_with(self.exampleCollectionMetadata)
         self.assertTrue(mock_get.called_with(expected_id))
 
-    @patch.object(IndexDynamoPlusRepository, "find")
-    @patch.object(IndexDynamoPlusRepository, "__init__")
-    def test_find_all_documents(self, mock_index_repository, mock_find):
+    @patch.object(DynamoPlusRepository, "query_v2")
+    @patch.object(DynamoPlusRepository, "__init__")
+    def test_find_all_documents(self, mock_repository, mock_query_v2):
         # given
-        mock_index_repository.return_value = None
-        mock_find.return_value = QueryResult([
+        mock_repository.return_value = None
+        mock_query_v2.return_value = QueryResult([
             Model(self.exampleCollectionMetadata, {"id": "1", "attribute1": "1"}),
             Model(self.exampleCollectionMetadata, {"id": "2", "attribute1": "1"})
         ])
+        expected_query = Query(AnyMatch(),self.exampleCollectionMetadata)
         # when
         documents, last_evaluated_key = self.domainService.find_all()
         # then
-        self.assertTrue(len(documents) == 2)
+        self.assertEqual(2, len(documents))
         self.assertEqual(documents[0]["id"], "1")
         self.assertEqual(documents[1]["id"], "2")
         self.assertIsNone(last_evaluated_key)
-
-    @patch.object(IndexDynamoPlusRepository, "find")
-    @patch.object(IndexDynamoPlusRepository, "__init__")
-    def test_find_by_index(self, mock_index_repository, mock_find):
-        # given
-        index = Index("1","example", ["attribute1"])
-        expected_example = {"attribute1": "1"}
-        expected_query = Query(expected_example, index)
-        mock_index_repository.return_value = None
-        mock_find.return_value = QueryResult([
-            IndexModel(self.exampleCollectionMetadata, {"id": "1", "attribute1": "1"},index),
-            IndexModel(self.exampleCollectionMetadata, {"id": "2", "attribute1": "1"},index)
-        ])
-        # when
-        documents, last_evaluated_key = self.domainService.find_by_index(index, expected_example)
-        # then
-        self.assertEqual(len(documents), 2)
-        self.assertEqual(documents[0]["id"], "1")
-        self.assertEqual(documents[1]["id"], "2")
-        self.assertIsNone(last_evaluated_key)
-        self.assertEqual(call(expected_query), mock_find.call_args_list[0])
+        self.assertTrue(mock_query_v2.called)
+        self.assertEqual(call(expected_query),mock_query_v2.call_args_list[0])
 
     # @patch.object(DynamoPlusRepository,"create")
     # @patch.object(DynamoPlusRepository, "__init__")

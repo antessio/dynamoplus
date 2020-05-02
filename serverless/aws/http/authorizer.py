@@ -10,7 +10,7 @@ ROOT_PASSWORD = os.getenv("ROOT_PASSWORD")
 
 
 def authorize(event, context):
-    headers = event["headers"]
+    headers = dict((k.lower(), v) for k, v in event["headers"].items())
     http_method = event["httpMethod"]
     path = event["path"]
     method_arn = event["methodArn"]
