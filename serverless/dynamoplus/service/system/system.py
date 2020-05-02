@@ -208,7 +208,7 @@ class SystemService:
         last_evaluated_item = None
         if start_from:
             last_evaluated_item = index_repository.get(start_from)
-        query: QueryRepository = QueryRepository(AnyMatch, collectionMetadata, limit, last_evaluated_item)
+        query: QueryRepository = QueryRepository(AnyMatch(), collectionMetadata, limit, last_evaluated_item)
         result = index_repository.query_v2(query)
         if result:
             return list(map(lambda m: from_dict_to_collection(m.document), result.data)), result.lastEvaluatedKey
