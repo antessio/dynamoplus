@@ -6,7 +6,8 @@ from decimal import Decimal
 
 from fastjsonschema import JsonSchemaException
 
-from dynamoplus.dynamo_plus import get as dynamoplus_get,update as dynamoplus_update,query as dynamoplus_query,create as dynamoplus_create,delete as dynamoplus_delete,get_all as dynamoplus_get_all, HandlerException
+from dynamoplus.dynamo_plus import get as dynamoplus_get, update as dynamoplus_update, query as dynamoplus_query, \
+    create as dynamoplus_create, delete as dynamoplus_delete, get_all as dynamoplus_get_all, HandlerException
 
 from dynamoplus.utils.decimalencoder import DecimalEncoder
 
@@ -80,7 +81,7 @@ class HttpHandler(object):
         logger.info("Updating " + data.__str__())
         try:
 
-            dto = dynamoplus_update(collection, data,id)
+            dto = dynamoplus_update(collection, data, id)
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
                                           body=self.format_json(dto))
         except HandlerException as e:
@@ -111,21 +112,17 @@ class HttpHandler(object):
         logger.info("headers received {}".format(str(headers)))
         collection = self.get_document_type_from_path_parameters(path_parameters)
         logger.debug("q string parameters {}".format(query_string_parameters))
-        query_id = path_parameters['queryId'] if 'queryId' in path_parameters else None
-        logger.info("Received {} as index".format(query_id))
         q = json.loads(body, parse_float=Decimal)
-        logger.debug("example q {}".format(q))
-        last_key = q["start_from"] if "start_from" in q else None
-        limit = int(q["limit"]) if q and "limit" in q else None
-        document = q["matches"] if "matches" in q else {}
+        logger.debug("query q {}".format(q))
+        last_key = query_string_parameters["start_from"] if "start_from" in query_string_parameters else None
+        limit = int(query_string_parameters[
+                        "limit"]) if query_string_parameters and "limit" in query_string_parameters else None
         logger.debug("last_key = {}".format(last_key))
         logger.debug("limit = {}".format(limit))
         try:
-            documents, last_evaluated_key = dynamoplus_query(collection, query_id, document, last_key,
-                                                                         limit)
-            result = {"data": documents}
-            if last_evaluated_key:
-                result["last_key"] = last_evaluated_key
+            documents, last_evaluated_key = dynamoplus_query(collection, q, last_key,
+                                                             limit)
+            result = {"data": documents, "has_more": last_evaluated_key is not None}
             return self.get_http_response(body=self.format_json(result), headers=self.get_response_headers(headers),
                                           statusCode=200)
         except HandlerException as e:
