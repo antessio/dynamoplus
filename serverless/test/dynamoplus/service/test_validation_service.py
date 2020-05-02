@@ -188,10 +188,7 @@ class TestValidationService(unittest.TestCase):
                 "id_key": "x",
                 "name": "y",
                 "ordering": "z"
-            },
-            "conditions": [
-                "c.1", "c.2", "c.3"
-            ]
+            }
         }
         self.assertRaises(JsonSchemaException, validate_index, index)
 
