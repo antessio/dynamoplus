@@ -1,9 +1,9 @@
 import unittest
 import decimal
 
-from dynamoplus.models.query.query import Query
+from dynamoplus.models.query.conditions import Eq
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
-from dynamoplus.repository.models import Model, QueryResult
+from dynamoplus.repository.models import Model, QueryResult, Query
 from dynamoplus.service.system.system import SystemService
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
 from dynamoplus.models.system.index.index import Index
@@ -203,12 +203,11 @@ class TestSystemService(unittest.TestCase):
         self.assertEqual(index_name, expected_id)
         self.assertEqual(call(target_index), mock_create.call_args_list[0])
 
-    @patch.object(IndexDynamoPlusRepository, "find")
-    @patch.object(IndexDynamoPlusRepository, "__init__")
+    @patch.object(DynamoPlusRepository, "query_v2")
+    @patch.object(DynamoPlusRepository, "__init__")
     def test_queryCollectionByName(self, mock_index_dynamoplus_repository, mock_find):
-        index = Index("1", "collection", ["name"])
-        expected_query = Query({"name": "example"}, index)
         collection_metadata = Collection("example", "name")
+        expected_query = Query(Eq("name", "example"), collection_metadata)
         mock_index_dynamoplus_repository.return_value = None
         mock_find.return_value = QueryResult([Model(Collection("example", "id"), {"name": "example", "id_key": "id"})])
         collections = self.systemService.find_collections_by_example(collection_metadata)
@@ -216,11 +215,10 @@ class TestSystemService(unittest.TestCase):
         self.assertEqual(collections[0].name, "example")
         self.assertEqual(call(expected_query), mock_find.call_args_list[0])
 
-    @patch.object(IndexDynamoPlusRepository, "find")
-    @patch.object(IndexDynamoPlusRepository, "__init__")
+    @patch.object(DynamoPlusRepository, "query_v2")
+    @patch.object(DynamoPlusRepository, "__init__")
     def test_queryIndex_by_CollectionByName(self, mock_index_dynamoplus_repository, mock_find):
-        index = Index("1", "index", ["collection.name"])
-        expected_query = Query({"collection": {"name": "example"}}, index)
+        expected_query = Query(Eq("collection.name", "example"), Collection("index", "uid"))
         mock_index_dynamoplus_repository.return_value = None
         mock_find.return_value = QueryResult(
             [Model(Collection("index", "name"),
@@ -232,11 +230,10 @@ class TestSystemService(unittest.TestCase):
         self.assertEqual(indexes[0].index_name, "collection.name")
         self.assertEqual(call(expected_query), mock_find.call_args_list[0])
 
-    @patch.object(IndexDynamoPlusRepository, "find")
-    @patch.object(IndexDynamoPlusRepository, "__init__")
+    @patch.object(DynamoPlusRepository, "query_v2")
+    @patch.object(DynamoPlusRepository, "__init__")
     def test_queryIndex_by_CollectionByName_generator(self, mock_index_dynamoplus_repository, mock_find):
-        index = Index("1", "index", ["collection.name"])
-        expected_query = Query({"collection": {"name": "example"}}, index)
+        expected_query = Query(Eq("collection.name", "example"), Collection("index", "uid"), 2)
         mock_index_dynamoplus_repository.return_value = None
         mock_find.side_effect = [
             self.fake_query_result("1", "2"),
@@ -251,24 +248,6 @@ class TestSystemService(unittest.TestCase):
         self.assertEqual(["1", "2", "3", "4", "5"], uids)
         self.assertEqual(call(expected_query), mock_find.call_args_list[0])
 
-    @patch.object(IndexDynamoPlusRepository, "find")
-    @patch.object(IndexDynamoPlusRepository, "__init__")
-    def test_queryIndex_by_CollectionByName_generator(self, mock_index_dynamoplus_repository, mock_find):
-        index = Index("1", "index", ["collection.name"])
-        expected_query = Query({"collection": {"name": "example"}}, index)
-        mock_index_dynamoplus_repository.return_value = None
-        mock_find.side_effect = [
-            self.fake_query_result("1", "2"),
-            self.fake_query_result("2", "3"),
-            self.fake_query_result("3", "4"),
-            self.fake_query_result("4", "5"),
-            self.fake_query_result("5"),
-        ]
-        indexes = self.systemService.get_indexes_from_collection_name_generator("example", 2)
-        uids = list(map(lambda i: i.uid, indexes))
-        self.assertEqual(5, len(uids))
-        self.assertEqual(["1", "2", "3", "4", "5"], uids)
-        self.assertEqual(call(expected_query), mock_find.call_args_list[0])
 
     def fake_query_result(self, uid, next=None):
         return QueryResult(
