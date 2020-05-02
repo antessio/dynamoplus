@@ -114,7 +114,8 @@ class HttpHandler(object):
         logger.debug("q string parameters {}".format(query_string_parameters))
         q = json.loads(body, parse_float=Decimal)
         logger.debug("query q {}".format(q))
-        last_key = query_string_parameters["start_from"] if "start_from" in query_string_parameters else None
+        last_key = query_string_parameters[
+            "start_from"] if query_string_parameters and "start_from" in query_string_parameters else None
         limit = int(query_string_parameters[
                         "limit"]) if query_string_parameters and "limit" in query_string_parameters else None
         logger.debug("last_key = {}".format(last_key))

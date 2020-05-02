@@ -216,7 +216,7 @@ def query(collection_name: str, query: dict = None, start_from: str = None,
                                    "{} is not a valid collection".format(collection_name))
         domain_service = DomainService(collection_metadata)
 
-        query_id = "#".join(predicate.get_fields())
+        query_id = "__".join(predicate.get_fields())
         index_metadata = SystemService.get_index(query_id, collection_name)
         if index_metadata is None:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
