@@ -38,7 +38,7 @@ provider:
     ROOT_PASSWORD: ${file(./secrets.json):ROOT_PASSWORD}
     DYNAMODB_HOST: http://localhost
     DYNAMODB_PORT: 8000
-    
+
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -60,32 +60,53 @@ provider:
 
 functions:
   auth:
-    handler: dynamoplus/http/authorizer.authorize
+    handler: aws/http/authorizer.authorize
     cors: true
   handleStream:
-    handler: dynamoplus/events/dynamodb.dynamo_stream_handler
+    handler: aws/events/dynamodb.dynamo_stream_handler
     events:
       - stream:
           type: dynamodb
           arn: { Fn::GetAtt: [ DomainDynamoDbTable, StreamArn ] }
           batchSize: 1
-  admin:
-    handler: dynamoplus/http/system.setup
+  adminSetup:
+    handler: aws/http/admin.setup
     events:
       - http:
           path: admin/setup
           method: post
           cors: true
+          authorizer:
+            name: auth
+            type: request
+  adminCleanup:
+    handler: aws/http/admin.cleanup
+    events:
+      - http:
+          path: admin/cleanup
+          method: post
+          cors: true
+          authorizer:
+            name: auth
+            type: request
+
   info:
-    handler: dynamoplus/http/system.info
+    handler: aws/http/info.info
     events:
       - http:
           path: system/info
           method: get
           cors: true
+  documentation:
+    handler: aws/http/doc.swagger_json
+    events:
+      - http:
+          path: system/documentation/swagger.json
+          method: get
+          cors: true
 
   create:
-    handler: dynamoplus/http/create.create
+    handler: aws/http/http.create
     events:
       - http:
           path: dynamoplus/{collection}
@@ -96,17 +117,7 @@ functions:
             type: request
 
   query:
-    handler: dynamoplus/http/query.query
-    events:
-      - http:
-          path: dynamoplus/{collection}/query/{queryId}
-          method: post
-          cors: true
-          authorizer:
-            name: auth
-            type: request
-  queryAll:
-    handler: dynamoplus/http/query.query
+    handler: aws/http/http.query
     events:
       - http:
           path: dynamoplus/{collection}/query
@@ -116,8 +127,18 @@ functions:
             name: auth
             type: request
 
+  getAll:
+    handler: aws/http/http.get
+    events:
+      - http:
+          path: dynamoplus/{collection}
+          method: get
+          cors: true
+          authorizer:
+            name: auth
+            type: request
   get:
-    handler: dynamoplus/http/get.get
+    handler: aws/http/http.get
     events:
       - http:
           path: dynamoplus/{collection}/{id}
@@ -128,7 +149,7 @@ functions:
             type: request
 
   update:
-    handler: dynamoplus/http/update.update
+    handler: aws/http/http.update
     events:
       - http:
           path: dynamoplus/{collection}/{id}
@@ -139,7 +160,7 @@ functions:
             type: request
 
   delete:
-    handler: dynamoplus/http/delete.delete
+    handler: aws/http/http.delete
     events:
       - http:
           path: dynamoplus/{collection}/{id}
@@ -193,17 +214,17 @@ resources:
           WriteCapacityUnits: 1
         TableName: ${self:provider.environment.DYNAMODB_SYSTEM_TABLE}
         GlobalSecondaryIndexes:
-        - IndexName: sk-data-index
-          KeySchema:
-          - AttributeName: sk
-            KeyType: HASH
-          - AttributeName: data
-            KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-          ProvisionedThroughput:
-            ReadCapacityUnits: '1'
-            WriteCapacityUnits: '1'
+          - IndexName: sk-data-index
+            KeySchema:
+              - AttributeName: sk
+                KeyType: HASH
+              - AttributeName: data
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: '1'
+              WriteCapacityUnits: '1'
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
     DomainDynamoDbTable:
@@ -227,17 +248,17 @@ resources:
           WriteCapacityUnits: 1
         TableName: ${self:provider.environment.DYNAMODB_DOMAIN_TABLE}
         GlobalSecondaryIndexes:
-        - IndexName: sk-data-index
-          KeySchema:
-          - AttributeName: sk
-            KeyType: HASH
-          - AttributeName: data
-            KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-          ProvisionedThroughput:
-            ReadCapacityUnits: '1'
-            WriteCapacityUnits: '1'
+          - IndexName: sk-data-index
+            KeySchema:
+              - AttributeName: sk
+                KeyType: HASH
+              - AttributeName: data
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: '1'
+              WriteCapacityUnits: '1'
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES 
       
