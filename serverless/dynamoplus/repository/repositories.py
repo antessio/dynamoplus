@@ -201,9 +201,6 @@ class DynamoPlusRepository(Repository):
         start_from = None
         if query.start_from:
             start_from = {"pk": query.start_from.pk(), "sk": query.start_from.sk(), "data": query.start_from.data()}
-            # start_from = query.start_from
-            # {'pk': 'example#00000025', 'sk': 'example#attribute1#attribute3'}
-        collection = query.collection
         model = query.get_model()
         if query.predicate.is_range():
             v_1, v_2 = model.data()
@@ -232,10 +229,9 @@ class DynamoPlusRepository(Repository):
         last_key = None
 
         if 'LastEvaluatedKey' in response:
-            last_key = response['LastEvaluatedKey']["pk"].replace(collection.name + "#", "")
-            #last_key = response['LastEvaluatedKey']
+            last_key = response['LastEvaluatedKey']["pk"].replace(self.collection.name + "#", "")
             logging.debug("last key = {}", last_key)
-        return QueryResult(list(map(lambda i: Model.from_dynamo_db_item(i, collection), response[u'Items'])),
+        return QueryResult(list(map(lambda i: Model.from_dynamo_db_item(i, self.collection), response[u'Items'])),
                            last_key)
 
 class IndexDynamoPlusRepository(DynamoPlusRepository):
