@@ -109,16 +109,6 @@ functions:
     handler: aws/http/http.query
     events:
       - http:
-          path: dynamoplus/{collection}/query/{queryId}
-          method: post
-          cors: true
-          authorizer:
-            name: auth
-            type: request
-  queryAll:
-    handler: aws/http/http.query
-    events:
-      - http:
           path: dynamoplus/{collection}/query
           method: post
           cors: true
