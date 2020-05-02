@@ -1,7 +1,7 @@
 import unittest
 from typing import *
 
-from dynamoplus.models.query.conditions import Range
+from dynamoplus.models.query.conditions import Range, AnyMatch
 from dynamoplus.repository.models import Model, IndexModel, QueryModel
 from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.models.system.collection.collection import Collection
@@ -73,3 +73,11 @@ class TestModels(unittest.TestCase):
         self.assertEqual(2, len(query_model.data()))
         self.assertEqual("value1", query_model.data()[0])
         self.assertEqual("value2", query_model.data()[1])
+
+    def test_query_model_any_match(self):
+        collection = Collection("example", "id", "ordering")
+        query_model = QueryModel(collection,AnyMatch())
+        self.assertIsNone(query_model.pk())
+        self.assertEqual("example", query_model.sk())
+        self.assertIsNone(query_model.data())
+
