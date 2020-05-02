@@ -42,6 +42,10 @@ jobs:
         path: dynamoplus-e2e-tests
     - name: Running e2e tests on localhost
       run: mvn -B clean test -DrunSuite=**/TestSuite.class --file dynamoplus-e2e-tests/pom.xml
+    - name: Junit Report to Annotations
+      uses: ashley-taylor/junit-report-annotations-action@v1.0
+      with:
+        access-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Shutting down DynamoPlus locally
       run: docker-compose -f docker-compose-localhost.yml kill
     - name: Removing containers
