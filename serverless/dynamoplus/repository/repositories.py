@@ -49,6 +49,44 @@ class Repository(abc.ABC):
         pass
 
 
+def is_local_environment():
+    return "STAGE" in os.environ and "local" == os.environ["STAGE"] and (
+            "TEST_FLAG" not in os.environ or "true" != os.environ["TEST_FLAG"])
+
+
+def cleanup_tables():
+    if not is_local_environment():
+        return None
+    try:
+        tableName = os.environ['DYNAMODB_DOMAIN_TABLE']
+        dynamo_db = connection if connection is not None else boto3.resource('dynamodb')
+        table = dynamo_db.Table(tableName)
+        scan = table.scan()
+        with table.batch_writer() as batch:
+            for each in scan['Items']:
+                batch.delete_item(
+                    Key={
+                        'pk': each['pk'],
+                        'sk': each['sk']
+                    }
+                )
+    except Exception as e:
+        logging.error("Unable to cleanup the table {} ".format("domain"), e)
+    try:
+        tableName = os.environ['DYNAMODB_SYSTEM_TABLE']
+        system_table = dynamo_db.Table(tableName)
+        scan = system_table.scan()
+        with system_table.batch_writer() as batch:
+            for each in scan['Items']:
+                batch.delete_item(
+                    Key={
+                        'pk': each['pk'],
+                        'sk': each['sk']
+                    }
+                )
+    except Exception as e:
+        logging.error("Unable to cleanup the table {} ".format("system"), e)
+
 
 def create_tables():
     dynamo_db = connection if connection is not None else boto3.resource('dynamodb')
@@ -234,6 +272,7 @@ class DynamoPlusRepository(Repository):
         return QueryResult(list(map(lambda i: Model.from_dynamo_db_item(i, self.collection), response[u'Items'])),
                            last_key)
 
+
 class IndexDynamoPlusRepository(DynamoPlusRepository):
     def __init__(self, collection: Collection, index: Index, is_system=False):
         self.index = index
@@ -243,10 +282,5 @@ class IndexDynamoPlusRepository(DynamoPlusRepository):
         return IndexModel(self.collection, document, self.index)
 
     def from_dynamo_db_item(self, result) -> Model:
-        return IndexModel.from_dynamo_db_item(result[u'Item'], self.collection, self.index) if 'Item' in result else None
-
-
-
-
-
-
+        return IndexModel.from_dynamo_db_item(result[u'Item'], self.collection,
+                                              self.index) if 'Item' in result else None
