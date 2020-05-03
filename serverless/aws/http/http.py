@@ -6,6 +6,15 @@ logging.basicConfig(level=logging.INFO)
 handler = HttpHandler()
 
 
+def custom(event,context):
+    logging.info(event)
+    return handler.custom( method=event["httpMethod"],
+                           path=event["path"],
+                           path_parameters=event["pathParameters"],
+                           query_string_parameters=event['queryStringParameters'],
+                           headers=event['headers'],
+                           body=event["body"])
+
 def get(event, context):
     return handler.get(path_parameters=event['pathParameters'],
                          query_string_parameters=event['queryStringParameters'],
