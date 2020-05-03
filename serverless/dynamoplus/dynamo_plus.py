@@ -6,6 +6,7 @@ from datetime import datetime
 import time
 from enum import Enum
 
+from dynamoplus.models.query.conditions import Predicate, Range, Eq,And
 from dynamoplus.service.dynamoplus import DynamoPlusService
 from dynamoplus.service.domain.domain import DomainService
 from dynamoplus.service.system.system import SystemService, from_dict_to_collection, from_dict_to_index, \
@@ -30,6 +31,23 @@ class HandlerException(Exception):
         self.code = code
         self.message = message
 
+def from_predicate_to_dict(predicate: Predicate):
+    if isinstance(predicate, Eq):
+        return {"eq": {"field_name": predicate.field_name, "value": predicate.value}}
+    elif isinstance(predicate, Range):
+        return {"range": {"field_name": predicate.field_name, "from": predicate.from_value, "to": predicate.to_value}}
+    elif isinstance(predicate, And):
+        return {"and": list(map(lambda c: from_predicate_to_dict(c), predicate.conditions))}
+
+
+def from_dict_to_predicate(d: dict):
+    if "eq" in d:
+        return Eq(d["eq"]["field_name"], d["eq"]["value"])
+    elif "range" in d:
+        return Range(d["range"]["field_name"], d["range"]["from"], d["range"]["to"])
+    elif "and" in d:
+        conditions = list(map(lambda cd: from_dict_to_predicate(cd), d["and"]))
+        return And(conditions)
 
 def get_all(collection_name: str, last_key: str, limit: int):
     is_system = DynamoPlusService.is_system(collection_name)
@@ -166,7 +184,7 @@ def update(collection_name: str, document: dict, document_id: str = None):
         return d
 
 
-def query(collection_name: str, query_id: str = None, example: dict = None, start_from: str = None,
+def query(collection_name: str, query: dict = None, start_from: str = None,
           limit: int = None):
     is_system = DynamoPlusService.is_system(collection_name)
     documents = []
@@ -176,29 +194,33 @@ def query(collection_name: str, query_id: str = None, example: dict = None, star
             collections, last_key = SystemService.get_all_collections(limit, start_from)
             documents = list(map(lambda c: from_collection_to_dict(c), collections))
             last_evaluated_key = last_key
-        elif collection_name == 'index':
+        elif collection_name == 'index' and "matches" in query and "eq" in query["matches"] and "value" in query["matches"]["eq"]:
+            target_collection_name = query["matches"]["eq"]["value"]
             index_metadata_list, last_key = SystemService.find_indexes_from_collection_name(
-                example["collection"]["name"], limit, start_from)
+                target_collection_name, limit, start_from)
             documents = list(map(lambda i: from_index_to_dict(i), index_metadata_list))
             last_evaluated_key = last_key
         else:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                    "{} is not a valid collection".format(collection_name))
     else:
-        logger.info("query id {} collection {} by example ".format(query_id, collection_name, example))
+        if "matches" in query:
+            predicate:Predicate = from_dict_to_predicate(query["matches"])
+        else:
+            raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
+                                   "invalid predicate")
+        logger.info("query {} collection by {} ".format(collection_name, predicate))
         collection_metadata = SystemService.get_collection_by_name(collection_name)
         if collection_metadata is None:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                    "{} is not a valid collection".format(collection_name))
         domain_service = DomainService(collection_metadata)
-        if query_id is None:
-            logger.info("Query all {}".format(collection_name))
-            documents, last_evaluated_key = domain_service.find_all(limit, start_from)
-        else:
-            index_metadata = SystemService.get_index(query_id, collection_name)
-            if index_metadata is None:
-                raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
-            documents, last_evaluated_key = domain_service.find_by_index(index_metadata, example, limit, start_from)
+
+        query_id = "__".join(predicate.get_fields())
+        index_metadata = SystemService.get_index(query_id, collection_name)
+        if index_metadata is None:
+            raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
+        documents, last_evaluated_key = domain_service.query(predicate, limit, start_from)
     return documents, last_evaluated_key
 
 

@@ -22,6 +22,7 @@ jobs:
       with:
         repository: antessio/dynamoplus-java-sdk
         path: dynamoplus-java-sdk
+        ref: v0.4
     - name: Install sdk
       run: mvn -B clean install --file dynamoplus-java-sdk/pom.xml
 
@@ -40,6 +41,7 @@ jobs:
       with:
         repository: antessio/dynamoplus-e2e-tests
         path: dynamoplus-e2e-tests
+        ref: v0.4
     - name: Running e2e tests on localhost
       run: mvn -B clean test -DrunSuite=**/TestSuite.class --file dynamoplus-e2e-tests/pom.xml
     - name: Shutting down DynamoPlus locally

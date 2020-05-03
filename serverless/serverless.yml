@@ -38,7 +38,7 @@ provider:
     ROOT_PASSWORD: ${file(./secrets.json):ROOT_PASSWORD}
     DYNAMODB_HOST: http://localhost
     DYNAMODB_PORT: 8000
-    
+
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -80,7 +80,7 @@ functions:
             name: auth
             type: request
 
-  admin:
+  adminSetup:
     handler: aws/http/admin.setup
     events:
       - http:
@@ -90,6 +90,17 @@ functions:
           authorizer:
             name: auth
             type: request
+  adminCleanup:
+    handler: aws/http/admin.cleanup
+    events:
+      - http:
+          path: admin/cleanup
+          method: post
+          cors: true
+          authorizer:
+            name: auth
+            type: request
+
   info:
     handler: aws/http/info.info
     events:
@@ -117,16 +128,6 @@ functions:
             type: request
 
   query:
-    handler: aws/http/http.query
-    events:
-      - http:
-          path: dynamoplus/{collection}/query/{queryId}
-          method: post
-          cors: true
-          authorizer:
-            name: auth
-            type: request
-  queryAll:
     handler: aws/http/http.query
     events:
       - http:
