@@ -6,17 +6,22 @@ from decimal import Decimal
 
 from fastjsonschema import JsonSchemaException
 
-from dynamoplus.dynamo_plus import get as dynamoplus_get,update as dynamoplus_update,query as dynamoplus_query,create as dynamoplus_create,delete as dynamoplus_delete,get_all as dynamoplus_get_all, HandlerException
+from dynamoplus.dynamo_plus import get as dynamoplus_get, update as dynamoplus_update, query as dynamoplus_query, \
+    create as dynamoplus_create, delete as dynamoplus_delete, get_all as dynamoplus_get_all, HandlerException
 
 from dynamoplus.utils.decimalencoder import DecimalEncoder
+from custom.custom_service import CustomService
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
+custom_service = CustomService()
 
-## TODO : it has to be converter in "Router"
 
 class HttpHandler(object):
+
+    def custom(self, method,path, path_parameters, query_string_parameters=[], body=None, headers=None):
+        return custom_service.route(method,path, path_parameters, query_string_parameters, headers, body)
 
     def get(self, path_parameters, query_string_parameters=[], body=None, headers=None):
         collection = self.get_document_type_from_path_parameters(path_parameters)
@@ -80,7 +85,7 @@ class HttpHandler(object):
         logger.info("Updating " + data.__str__())
         try:
 
-            dto = dynamoplus_update(collection, data,id)
+            dto = dynamoplus_update(collection, data, id)
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
                                           body=self.format_json(dto))
         except HandlerException as e:
@@ -122,7 +127,7 @@ class HttpHandler(object):
         logger.debug("limit = {}".format(limit))
         try:
             documents, last_evaluated_key = dynamoplus_query(collection, query_id, document, last_key,
-                                                                         limit)
+                                                             limit)
             result = {"data": documents}
             if last_evaluated_key:
                 result["last_key"] = last_evaluated_key
