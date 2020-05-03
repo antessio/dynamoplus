@@ -1,9 +1,9 @@
 import logging
 from typing import *
 
-from dynamoplus.models.query.query import Query
+from dynamoplus.models.query.conditions import Predicate, And, Range, Eq, AnyMatch
+from dynamoplus.repository.models import Query as QueryRepository
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
-from dynamoplus.repository.models import Model, QueryResult
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType, \
     AttributeConstraint
 from dynamoplus.models.system.index.index import Index
@@ -11,7 +11,7 @@ from dynamoplus.models.system.client_authorization.client_authorization import C
     ClientAuthorizationApiKey, ClientAuthorizationHttpSignature, Scope, ScopesType
 
 collectionMetadata = Collection("collection", "name")
-indexMetadata = Collection("index", "uid")
+index_metadata = Collection("index", "uid")
 client_authorization_metadata = Collection("client_authorization", "client_id")
 
 logger = logging.getLogger()
@@ -204,8 +204,12 @@ class SystemService:
     @staticmethod
     def get_all_collections(limit: int = None, start_from: str = None):
         index_metadata = Index(None, "collection", [])
-        query = Query({}, index_metadata, limit, start_from)
-        result = IndexDynamoPlusRepository(collectionMetadata, True, index_metadata).find(query)
+        index_repository = IndexDynamoPlusRepository(collectionMetadata, True, index_metadata)
+        last_evaluated_item = None
+        if start_from:
+            last_evaluated_item = index_repository.get(start_from)
+        query: QueryRepository = QueryRepository(AnyMatch(), collectionMetadata, limit, last_evaluated_item)
+        result = index_repository.query_v2(query)
         if result:
             return list(map(lambda m: from_dict_to_collection(m.document), result.data)), result.lastEvaluatedKey
 
@@ -218,29 +222,32 @@ class SystemService:
     @staticmethod
     def create_index(i: Index) -> Index:
         index = from_index_to_dict(i)
-        repository = DynamoPlusRepository(indexMetadata, True)
+        repository = DynamoPlusRepository(index_metadata, True)
         model = repository.create(index)
         if model:
             created_index = from_dict_to_index(model.document)
             logger.info("index created {}".format(created_index.__str__()))
-            index_by_collection_name = IndexDynamoPlusRepository(indexMetadata,
+            index_by_collection_name = IndexDynamoPlusRepository(index_metadata,
                                                                  Index(None, "index", ["collection.name"]),
                                                                  True).create(model.document)
             logger.info(
                 "{} has been indexed {}".format(created_index.collection_name, index_by_collection_name.document))
-            index_by_name = IndexDynamoPlusRepository(indexMetadata, Index(None, "index", ["collection.name", "name"]),
+            index_by_name = IndexDynamoPlusRepository(index_metadata, Index(None, "index", ["collection.name", "name"]),
                                                       True).create(model.document)
             logger.info("{} has been indexed {}".format(created_index.collection_name, index_by_name.document))
             return created_index
 
     @staticmethod
+    def get_index_matching_fiedls(fields: List[str], collection_name: str):
+        index_name = "#".join(fields)
+        return SystemService.get_index(index_name,collection_name)
+
+    @staticmethod
     def get_index(name: str, collection_name: str):
-        # model = DynamoPlusRepository(indexMetadata, True).get(name)
-        # if model:
-        #     return from_dict_to_index(model.document)
-        index = Index(None, "index", ["collection.name", "name"])
-        query = Query({"name": name, "collection": {"name": collection_name}}, index)
-        result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
+        query: QueryRepository = QueryRepository(And([Eq("collection.name", collection_name), Eq("name", name)]),
+                                                 index_metadata, 1)
+        repository = DynamoPlusRepository(index_metadata, True)
+        result = repository.query_v2(query)
         indexes = list(map(lambda m: from_dict_to_index(m.document), result.data))
         if len(indexes) == 0:
             return None
@@ -249,7 +256,7 @@ class SystemService:
 
     @staticmethod
     def delete_index(name: str):
-        DynamoPlusRepository(indexMetadata, True).delete(name)
+        DynamoPlusRepository(index_metadata, True).delete(name)
 
     @staticmethod
     def get_indexes_from_collection_name_generator(collection_name: str, limit=10):
@@ -274,16 +281,21 @@ class SystemService:
 
     @staticmethod
     def find_indexes_from_collection_name(collection_name: str, limit: int = None, start_from: str = None):
-        index = Index(None, "index", ["collection.name"])
-        query = Query({"collection": {"name": collection_name}}, index, limit, start_from)
-        result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
+        repository = DynamoPlusRepository(index_metadata, True)
+        last_evaluated_key = None
+        if start_from:
+            last_evaluated_key = repository.get(start_from)
+        query: QueryRepository = QueryRepository(Eq("collection.name", collection_name),
+                                                 index_metadata, limit, last_evaluated_key)
+        result = repository.query_v2(query)
         return list(map(lambda m: from_dict_to_index(m.document), result.data)), result.lastEvaluatedKey
 
     @staticmethod
     def find_collections_by_example(example: Collection):
-        index = Index(None, "collection", ["name"])
-        query = Query({"name": example.name}, index)
-        result: QueryResult = IndexDynamoPlusRepository(indexMetadata, index, True).find(query)
+        repository = DynamoPlusRepository(collectionMetadata, True)
+        query: QueryRepository = QueryRepository(Eq("name", example.name),
+                                                 index_metadata)
+        result = repository.query_v2(query)
         return list(map(lambda m: from_dict_to_collection(m.document), result.data))
 
     @staticmethod

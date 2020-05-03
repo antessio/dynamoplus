@@ -50,7 +50,6 @@ INDEX_SCHEMA_DEFINITION = {
     },
     "required": [
         "uid",
-        "name",
         "collection",
         "conditions"
     ]
@@ -150,7 +149,9 @@ def validate_client_authorization_api_key(client_authorization: dict):
 
 
 def validate_document(document: dict, collection_metadata: Collection):
-    required_attributes = [collection_metadata.id_key]
+    required_attributes = []
+    if not collection_metadata.auto_generate_id:
+        required_attributes.append(collection_metadata.id_key)
     properties_schema = {
         collection_metadata.id_key: {"type": "string"}
     }
