@@ -5,8 +5,8 @@
   "author": "antessio",
   "license": "GPL v3.0",
   "dependencies": {
-    "serverless-python-requirements": "5.0.1",
+    "serverless-dynamodb-local": "0.2.39",
     "serverless-offline": "5.12.1",
-    "serverless-dynamodb-local": "0.2.39"
+    "serverless-python-requirements": "5.0.1"
   }
 }

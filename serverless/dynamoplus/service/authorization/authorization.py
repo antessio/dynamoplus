@@ -1,8 +1,12 @@
+import json
 from typing import *
 from base64 import b64decode, b64encode
 import os
 import re
 import logging
+import time
+import jwt
+
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 from Crypto.PublicKey import RSA
@@ -11,13 +15,20 @@ from Crypto.Hash import SHA256
 from dynamoplus.service.system.system import SystemService
 from dynamoplus.models.system.client_authorization.client_authorization import ScopesType, Scope
 
+JWT_SECRET = os.getenv("JWT_SECRET")
+
 API_KEY_PREFIX = "dynamoplus-api-key"
 CLIENT_ID_HEADER = "dynamoplus-client-id"
+BEARER_PREFIX = "Bearer"
 
 path_regex = r"dynamoplus\/(\w+)(\/query)*(\/.*)*"
 
 
 class AuthorizationService:
+
+    @staticmethod
+    def is_bearer(headers: dict):
+        return AuthorizationService.is_authorization_of_type(headers, BEARER_PREFIX)
 
     @staticmethod
     def is_http_signature(headers: dict):
@@ -49,20 +60,20 @@ class AuthorizationService:
         if "authorization" in headers:
             authorization_header = headers["authorization"]
             if authorization_header.startswith("Signature"):
-                authorization_value = authorization_header.replace("Signature","")
+                authorization_value = authorization_header.replace("Signature", "")
                 signature_components = {}
                 if authorization_value:
                     for v in authorization_value.split(","):
-                        key,value = v.split("=",1)
-                        signature_components[key.strip()]=value.replace("\"","")
+                        key, value = v.split("=", 1)
+                        signature_components[key.strip()] = value.replace("\"", "")
                     if "keyId" in signature_components:
                         key_id = signature_components["keyId"]
                         logging.info("client {}".format(key_id))
                         client_authorization = SystemService.get_client_authorization(key_id)
                         if client_authorization:
-                            signatory_message = "(request-target): {} {}".format(method,path);
+                            signatory_message = "(request-target): {} {}".format(method, path);
                             for h in filter(lambda header: header.lower() != 'authorization', headers):
-                                signatory_message += "\n{}: {}".format(h.lower(),headers[h])
+                                signatory_message += "\n{}: {}".format(h.lower(), headers[h])
 
                             rsakey = RSA.importKey(client_authorization.client_public_key)
                             signer = PKCS1_v1_5.new(rsakey)
@@ -81,13 +92,13 @@ class AuthorizationService:
                 else:
                     logging.error("missing authorization value ")
 
-
     @staticmethod
     def get_basic_auth_authorized(headers: dict):
         authorization_value = AuthorizationService.get_authorization_value(headers, "basic")
         username, password = b64decode(authorization_value).decode().split(':', 1)
         if os.environ['ROOT_ACCOUNT'] == username and os.environ['ROOT_PASSWORD'] == password:
             return username
+
 
     @staticmethod
     def get_client_authorization_by_api_key(headers: dict):
@@ -109,8 +120,26 @@ class AuthorizationService:
             is_query = len(match.groups()) >= 1 and match.group(2) == '/query'
             for scope in filter(lambda cs: cs.collection_name == collection_name, client_scopes):
                 if method.lower() == 'post':
-                    if (scope.scope_type == ScopesType.CREATE and not is_query) or (scope.scope_type == ScopesType.QUERY and is_query):
+                    if (scope.scope_type == ScopesType.CREATE and not is_query) or (
+                            scope.scope_type == ScopesType.QUERY and is_query):
                         return True
                 elif method.lower() == scope.scope_type.name.lower():
                     return True
         return False
+
+    @staticmethod
+    def get_jwt_token(username):
+        jwt_payload = {"username": username, "expiration": int(time.time() * 1000.0) + (15 * 60 * 1000)}
+        return jwt.encode(jwt_payload, JWT_SECRET, algorithm='HS256')
+
+    @staticmethod
+    def get_bearer_authorized(headers: dict):
+        jwt_secret = JWT_SECRET if JWT_SECRET is not None else os.getenv("JWT_SECRET")
+        authorization_value = AuthorizationService.get_authorization_value(headers, BEARER_PREFIX)
+        payload = jwt.decode(authorization_value, jwt_secret, algorithms='HS256')
+        #payload = json.loads(token_decoded)
+        logging.debug("payload = {}".format(payload))
+        expiration = payload["expiration"]
+        if expiration > int(time.time() * 1000.0):
+            return payload["username"]
+
