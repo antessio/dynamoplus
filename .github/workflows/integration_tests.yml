@@ -37,8 +37,8 @@ jobs:
     - name: Creating tables
       run: ./github_actions_scripts/create-tables.sh
     - name: The job has failed
-        if: ${{ failure() }}
-        run: docker-compose -f docker-compose-localhost.yml logs
+      if: ${{ failure() }}
+      run: docker-compose -f docker-compose-localhost.yml logs
     - name: Checkout e2e tests
       uses: actions/checkout@v2
       with:
