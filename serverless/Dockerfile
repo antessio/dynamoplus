@@ -3,9 +3,9 @@ FROM python:3.7
 # update apt-get
 RUN apt-get update -y && apt-get upgrade -y
 
-# Install Nodejs 8
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
-RUN apt-get install -y nodejs npm
+# Install Nodejs
+RUN curl -sL https://deb.nodesource.com/setup_14.x | bash -
+RUN apt-get install -y  nodejs
 
 
 RUN node --version

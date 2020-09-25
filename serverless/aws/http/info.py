@@ -1,6 +1,6 @@
 import json
 import logging
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 logging.basicConfig(level=logging.INFO)
 
 
