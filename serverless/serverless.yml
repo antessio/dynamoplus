@@ -19,7 +19,7 @@ custom:
       migrate: true
   system_collections: "collection,index,client_authorization"
   allowed_origins: ${file(./secrets.json):ALLOWED_ORIGINS}
-frameworkVersion: ">=1.1.0 <2.0.0"
+
 
 provider:
   name: aws
@@ -36,6 +36,7 @@ provider:
     ENTITIES: ${self:custom.system_collections}
     ROOT_ACCOUNT: ${file(./secrets.json):ROOT_ACCOUNT}
     ROOT_PASSWORD: ${file(./secrets.json):ROOT_PASSWORD}
+    JWT_SECRET: ${file(./secrets.json):JWT_SECRET}
     DYNAMODB_HOST: http://localhost
     DYNAMODB_PORT: 8000
 
@@ -79,6 +80,14 @@ functions:
           authorizer:
             name: auth
             type: request
+
+  adminLogin:
+    handler: aws/http/authorizer.issue_jwt
+    events:
+      - http:
+          path: admin/login
+          method: post
+          cors: true
 
   adminSetup:
     handler: aws/http/admin.setup
