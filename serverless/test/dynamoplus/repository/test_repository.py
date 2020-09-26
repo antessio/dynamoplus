@@ -293,8 +293,8 @@ class TestDynamoPlusRepository(unittest.TestCase):
         self.assertEqual("value_00000033", result.data[2].document["attribute2"])
         self.assertEqual("00000033", result.data[2].document["attribute3"])
 
-    def test_query_v2_subset_of_conditions_matching_index(self):
-        raise Exception("whatever")
+    # def test_query_v2_subset_of_conditions_matching_index(self):
+    #     raise Exception("whatever")
     #
     # def test_query_all(self):
     #     for i in range(1, 10):
