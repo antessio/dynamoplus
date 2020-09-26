@@ -103,11 +103,11 @@ class Model(object):
 
 
 class QueryModel(Model):
-    def __init__(self, collection: Collection, predicate: Predicate):
+    def __init__(self, collection: Collection, index_fields:List[str], predicate: Predicate):
         self.predicate = predicate
         super().__init__(collection, None)
         self.collection = collection
-        self.fields = self.predicate.get_fields()
+        self.fields = index_fields
         self.values = self.predicate.get_values()
 
     def pk(self):
@@ -193,14 +193,15 @@ class IndexModel(Model):
 @auto_str
 class Query(object):
 
-    def __init__(self, predicate: Predicate, collection: Collection, limit: int = None, start_from: Model = None):
+    def __init__(self, predicate: Predicate, collection: Collection, index_fields:List[str], limit: int = None, start_from: Model = None):
         self.start_from = start_from
         self.predicate = predicate
         self.collection = collection
+        self.index_fields = index_fields
         self.limit = limit
 
     def get_model(self) -> QueryModel:
-        return QueryModel(self.collection, self.predicate)
+        return QueryModel(self.collection, self.index_fields, self.predicate)
 
     def __eq__(self, o: object) -> bool:
         if isinstance(o, Query):

@@ -76,7 +76,7 @@ class TestDomainService(unittest.TestCase):
             Model(self.exampleCollectionMetadata, {"id": "1", "attribute1": "1"}),
             Model(self.exampleCollectionMetadata, {"id": "2", "attribute1": "1"})
         ])
-        expected_query = Query(AnyMatch(),self.exampleCollectionMetadata)
+        expected_query = Query(AnyMatch(),self.exampleCollectionMetadata,[])
         # when
         documents, last_evaluated_key = self.domainService.find_all()
         # then

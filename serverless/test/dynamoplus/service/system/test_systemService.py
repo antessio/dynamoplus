@@ -168,9 +168,30 @@ class TestSystemService(unittest.TestCase):
         # self.assertIn("fields",result)
         self.assertTrue(mock_get.called_with(expected_id))
 
+    @patch.object(DynamoPlusRepository, "query_v2")
     @patch.object(DynamoPlusRepository, "create")
     @patch.object(DynamoPlusRepository, "__init__")
-    def test_createIndexWithOrdering(self, mock_repository, mock_create):
+    def test_createIndexDuplicated(self, mock_repository, mock_create, mock_query_v2):
+        expected_id = 'field1__field2.field21__ORDER_BY__field2.field21'
+        expected_conditions = ["field1", "field2.field21"]
+        target_index = {"uid": "1", "name": expected_id, "collection": {"name": "example"},
+                        "conditions": expected_conditions,
+                        "ordering_key": "field2.field21"}
+        index_metadata = Collection("index", "name")
+        expected_model = Model(index_metadata, target_index)
+        mock_repository.return_value = None
+        mock_query_v2.return_value = QueryResult([expected_model], None)
+        index = Index("1", "example", expected_conditions, "field2.field21")
+        created_index = self.systemService.create_index(index)
+        index_name = created_index.index_name
+        self.assertEqual(index_name, expected_id)
+        self.assertFalse(mock_create.called)
+        self.assertEqual(call(Query(Eq("name", index.index_name), index_metadata,["name"])), mock_query_v2.call_args_list[0])
+
+    @patch.object(DynamoPlusRepository, "query_v2")
+    @patch.object(DynamoPlusRepository, "create")
+    @patch.object(DynamoPlusRepository, "__init__")
+    def test_createIndexWithOrdering(self, mock_repository, mock_create, mock_query_v2):
         expected_id = 'field1__field2.field21__ORDER_BY__field2.field21'
         expected_conditions = ["field1", "field2.field21"]
         target_index = {"uid": "1", "name": expected_id, "collection": {"name": "example"},
@@ -180,15 +201,17 @@ class TestSystemService(unittest.TestCase):
         expected_model = Model(index_metadata, target_index)
         mock_repository.return_value = None
         mock_create.return_value = expected_model
+        mock_query_v2.return_value = QueryResult([], None)
         index = Index("1", "example", expected_conditions, "field2.field21")
         created_index = self.systemService.create_index(index)
         index_name = created_index.index_name
         self.assertEqual(index_name, expected_id)
         self.assertEqual(call(target_index), mock_create.call_args_list[0])
 
+    @patch.object(DynamoPlusRepository, "query_v2")
     @patch.object(DynamoPlusRepository, "create")
     @patch.object(DynamoPlusRepository, "__init__")
-    def test_createIndexWithNoOrdering(self, mock_repository, mock_create):
+    def test_createIndexWithNoOrdering(self, mock_repository, mock_create, mock_query_v2):
         expected_id = 'field1__field2.field21'
         expected_conditions = ["field1", "field2.field21"]
         target_index = {"uid": "1", "name": expected_id, "collection": {"name": "example"},
@@ -197,6 +220,7 @@ class TestSystemService(unittest.TestCase):
         expected_model = Model(index_metadata, target_index)
         mock_repository.return_value = None
         mock_create.return_value = expected_model
+        mock_query_v2.return_value = QueryResult([],None)
         index = Index("1", "example", expected_conditions)
         created_index = self.systemService.create_index(index)
         index_name = created_index.index_name
@@ -207,7 +231,7 @@ class TestSystemService(unittest.TestCase):
     @patch.object(DynamoPlusRepository, "__init__")
     def test_queryCollectionByName(self, mock_index_dynamoplus_repository, mock_find):
         collection_metadata = Collection("example", "name")
-        expected_query = Query(Eq("name", "example"), collection_metadata)
+        expected_query = Query(Eq("name", "example"), collection_metadata,["name"])
         mock_index_dynamoplus_repository.return_value = None
         mock_find.return_value = QueryResult([Model(Collection("example", "id"), {"name": "example", "id_key": "id"})])
         collections = self.systemService.find_collections_by_example(collection_metadata)
@@ -218,7 +242,7 @@ class TestSystemService(unittest.TestCase):
     @patch.object(DynamoPlusRepository, "query_v2")
     @patch.object(DynamoPlusRepository, "__init__")
     def test_queryIndex_by_CollectionByName(self, mock_index_dynamoplus_repository, mock_find):
-        expected_query = Query(Eq("collection.name", "example"), Collection("index", "uid"))
+        expected_query = Query(Eq("collection.name", "example"), Collection("index", "uid"),["collection.name"])
         mock_index_dynamoplus_repository.return_value = None
         mock_find.return_value = QueryResult(
             [Model(Collection("index", "name"),
@@ -247,6 +271,26 @@ class TestSystemService(unittest.TestCase):
         self.assertEqual(5, len(uids))
         self.assertEqual(["1", "2", "3", "4", "5"], uids)
         self.assertEqual(call(expected_query), mock_find.call_args_list[0])
+
+
+    @patch('dynamoplus.service.system.system.SystemService.get_index')
+    def test_find_index_matching_fields(self, mock_get_index):
+        expected_index = Index("1", "example", "field1")
+        mock_get_index.side_effect = [None,None,expected_index]
+        index = SystemService.get_index_matching_fields(["field1","field2","field3"],"example")
+        self.assertEqual(expected_index,index)
+        calls = [call("field1__field2__field3","example"),call("field1__field2","example"),call("field1","example")]
+        mock_get_index.assert_has_calls(calls)
+
+    @patch('dynamoplus.service.system.system.SystemService.get_index')
+    def test_find_index_matching_fields_not_found(self, mock_get_index):
+
+        mock_get_index.side_effect = [None, None, None]
+        index = SystemService.get_index_matching_fields(["field1", "field2", "field3"], "example")
+        self.assertIsNone(index)
+        calls = [call("field1__field2__field3", "example"), call("field1__field2", "example"),
+                 call("field1", "example")]
+        mock_get_index.assert_has_calls(calls)
 
 
     def fake_query_result(self, uid, next=None):

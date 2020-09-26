@@ -215,12 +215,13 @@ def query(collection_name: str, query: dict = None, start_from: str = None,
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                    "{} is not a valid collection".format(collection_name))
         domain_service = DomainService(collection_metadata)
-
+        ## TODO - missing order unique in the query
         query_id = "__".join(predicate.get_fields())
-        index_metadata = SystemService.get_index(query_id, collection_name)
-        if index_metadata is None:
+        index_matching_conditions = SystemService.get_index_matching_fields(predicate.get_fields(),collection_name,None)
+        if index_matching_conditions is None:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
-        documents, last_evaluated_key = domain_service.query(predicate, limit, start_from)
+        ## Since the sk should be built using the index it is necessary to pass the index matching the conditions
+        documents, last_evaluated_key = domain_service.query(predicate,index_matching_conditions.conditions, limit, start_from)
     return documents, last_evaluated_key
 
 

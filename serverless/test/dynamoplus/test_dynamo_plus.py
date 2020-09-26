@@ -75,5 +75,5 @@ class TestDynamoPlusHandler(unittest.TestCase):
         self.assertEqual(len(documents), len(expected_documents))
         self.assertTrue(mock_get_collection_by_name.called_with("example"))
         self.assertTrue(mock_get_index.called_with("attribute1"))
-        self.assertEqual(call(expected_predicate, None, None), mock_find_by_index.call_args_list[0])
+        self.assertEqual(call(expected_predicate,["attribute1"], None, None), mock_find_by_index.call_args_list[0])
         #self.assertEqual(call(expected_index,expected_document_example,None,None),mock_find_by_index.call_args_list[0])

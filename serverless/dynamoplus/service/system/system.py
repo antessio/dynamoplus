@@ -2,7 +2,7 @@ import logging
 from typing import *
 
 from dynamoplus.models.query.conditions import Predicate, And, Range, Eq, AnyMatch
-from dynamoplus.repository.models import Query as QueryRepository
+from dynamoplus.repository.models import Query as QueryRepository, Query
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType, \
     AttributeConstraint
@@ -31,21 +31,8 @@ def from_index_to_dict(index_metadata: Index):
 
 
 def from_dict_to_index(d: dict):
-    return Index(d["uid"], d["collection"]["name"], d["conditions"], d["ordering_key"] if "ordering_key" in d else None,
-                 d["name"] if "name" in d else None)
+    return Index(d["uid"], d["collection"]["name"], d["conditions"], d["ordering_key"] if "ordering_key" in d else None)
 
-
-# def from_dict_to_client_authorization(d: dict):
-#     client_id = d["client_id"]
-#     scopes = list(map(lambda s: Scope(s["collection_name"], ScopesType(s["scope_type"])), d["scopes"]))
-#     if d["type"].lower() == 'api-key':
-#         api_key = d["api_key"]
-#         whitelist_hosts = d["whitelist_hosts"] if "whitelist_hosts" in d else None
-#         return ClientAuthorizationApiKey(client_id, scopes, api_key, whitelist_hosts)
-#     elif d["type"] == 'http-signature':
-#         return ClientAuthorizationHttpSignature(client_id, scopes, d["public_key"])
-#     else:
-#         raise NotImplementedError
 
 def from_client_authorization_http_signature_to_dict(client_authorization: ClientAuthorizationHttpSignature):
     return {
@@ -223,6 +210,11 @@ class SystemService:
     def create_index(i: Index) -> Index:
         index = from_index_to_dict(i)
         repository = DynamoPlusRepository(index_metadata, True)
+
+        existing_index_with_same_name = repository.query_v2(Query(Eq("name", index["name"]), index_metadata,["name"]))
+        if len(existing_index_with_same_name.data) != 0:
+            return from_dict_to_index(existing_index_with_same_name.data[0].document)
+
         model = repository.create(index)
         if model:
             created_index = from_dict_to_index(model.document)
@@ -238,14 +230,20 @@ class SystemService:
             return created_index
 
     @staticmethod
-    def get_index_matching_fiedls(fields: List[str], collection_name: str):
-        index_name = "#".join(fields)
-        return SystemService.get_index(index_name,collection_name)
+    def get_index_matching_fields(fields: List[str], collection_name: str, ordering_key: str = None):
+        index_name = Index.index_name_generator(fields, ordering_key)
+        index = SystemService.get_index(index_name, collection_name)
+        fields_counter = len(fields) - 1
+        while index is None and fields_counter >= 1:
+            index_name = Index.index_name_generator(fields[0:fields_counter], ordering_key)
+            index = SystemService.get_index(index_name, collection_name)
+            fields_counter = fields_counter - 1
+        return index
 
     @staticmethod
     def get_index(name: str, collection_name: str):
         query: QueryRepository = QueryRepository(And([Eq("collection.name", collection_name), Eq("name", name)]),
-                                                 index_metadata, 1)
+                                                 index_metadata, ["collection.name","name"], 1)
         repository = DynamoPlusRepository(index_metadata, True)
         result = repository.query_v2(query)
         indexes = list(map(lambda m: from_dict_to_index(m.document), result.data))
@@ -294,7 +292,8 @@ class SystemService:
     def find_collections_by_example(example: Collection):
         repository = DynamoPlusRepository(collectionMetadata, True)
         query: QueryRepository = QueryRepository(Eq("name", example.name),
-                                                 index_metadata)
+                                                 index_metadata,
+                                                 ["name"])
         result = repository.query_v2(query)
         return list(map(lambda m: from_dict_to_collection(m.document), result.data))
 
