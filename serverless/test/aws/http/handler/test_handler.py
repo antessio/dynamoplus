@@ -70,7 +70,7 @@ class TestHttpHandler(unittest.TestCase):
         ##index 2 - even
         self.systemTable.put_item(Item={"pk": "index#2", "sk": "index", "data": "2",
                                         "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
-        self.systemTable.put_item(Item={"pk": "index#2", "sk": "index#collection.name", "data": "example",
+        self.systemTable.put_item(Item={"pk": "index#2", "sk": "index#name", "data": "example",
                                         "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
         self.systemTable.put_item(Item={"pk": "index#2", "sk": "index#collection.name#name", "data": "example#even",
                                         "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})

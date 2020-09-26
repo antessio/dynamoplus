@@ -67,7 +67,7 @@ class TestModels(unittest.TestCase):
 
     def test_query_model_range(self):
         collection = Collection("example", "id", "ordering")
-        query_model = QueryModel(collection,Range("field1","value1","value2"))
+        query_model = QueryModel(collection,["field1"], Range("field1","value1","value2"))
         self.assertIsNone(query_model.pk())
         self.assertEqual("example#field1", query_model.sk())
         self.assertEqual(2, len(query_model.data()))
@@ -76,7 +76,7 @@ class TestModels(unittest.TestCase):
 
     def test_query_model_any_match(self):
         collection = Collection("example", "id", "ordering")
-        query_model = QueryModel(collection,AnyMatch())
+        query_model = QueryModel(collection, [], AnyMatch())
         self.assertIsNone(query_model.pk())
         self.assertEqual("example", query_model.sk())
         self.assertIsNone(query_model.data())
