@@ -114,7 +114,7 @@ class QueryModel(Model):
         return None
 
     def sk(self):
-        return self.collection.name+("#{}".format("#".join(self.fields)) if len(self.fields)>0 else "")
+        return self.collection.name+("#{}".format("#".join(self.fields)) if self.fields is not None and  len(self.fields)>0 else "")
 
     def data(self):
         if self.predicate.is_range():
