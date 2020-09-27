@@ -284,7 +284,7 @@ class SystemService:
         if start_from:
             last_evaluated_key = repository.get(start_from)
         query: QueryRepository = QueryRepository(Eq("collection.name", collection_name),
-                                                 index_metadata, limit, last_evaluated_key)
+                                                 index_metadata, ["collection.name"], limit, last_evaluated_key)
         result = repository.query_v2(query)
         return list(map(lambda m: from_dict_to_index(m.document), result.data)), result.lastEvaluatedKey
 
