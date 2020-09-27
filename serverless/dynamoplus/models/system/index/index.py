@@ -6,7 +6,7 @@ from dynamoplus.utils.utils import auto_str
 
 @auto_str
 class Index(object):
-    def __init__(self, uid:str, collection_name: str, conditions: List[str], ordering_key: str = None, index_name:str = None):
+    def __init__(self, uid:str, collection_name: str, conditions: List[str], ordering_key: str = None):
         self._collection_name = collection_name
         self._conditions = conditions
         conditions_set = set(self._conditions)
@@ -15,7 +15,7 @@ class Index(object):
         if condition_set_length != len(self._conditions) and condition_set_length == 1:
             self._range_condition = conditions_set.pop()
         self._ordering_key = ordering_key
-        self._index_name = index_name if index_name else Index.index_name_generator(self._conditions,self._ordering_key)
+        self._index_name = Index.index_name_generator(self._conditions,self._ordering_key)
         self._uid = uid
 
     @property
