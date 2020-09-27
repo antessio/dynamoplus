@@ -257,7 +257,7 @@ class TestSystemService(unittest.TestCase):
     @patch.object(DynamoPlusRepository, "query_v2")
     @patch.object(DynamoPlusRepository, "__init__")
     def test_queryIndex_by_CollectionByName_generator(self, mock_index_dynamoplus_repository, mock_find):
-        expected_query = Query(Eq("collection.name", "example"), Collection("index", "uid"), 2)
+        expected_query = Query(Eq("collection.name", "example"), Collection("index", "uid"),["collection.name"], 2)
         mock_index_dynamoplus_repository.return_value = None
         mock_find.side_effect = [
             self.fake_query_result("1", "2"),
