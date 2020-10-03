@@ -7,6 +7,7 @@ from dynamoplus.models.query.conditions import Predicate, get_range_predicate, A
 from dynamoplus.models.system.collection.collection import Collection
 from decimal import Decimal
 from dynamoplus.models.query.query import Index
+from dynamoplus.models.system.index.index import IndexConfiguration
 from dynamoplus.utils.decimalencoder import DecimalEncoder
 from dynamoplus.utils.utils import convertToString, find_value, get_values_by_key_recursive
 from dynamoplus.utils.utils import auto_str
@@ -14,21 +15,21 @@ from dynamoplus.utils.utils import auto_str
 logging.basicConfig(level=logging.INFO)
 
 
-def getPk(document: dict, collectionName: str, idKey: str):
+def get_pk(document: dict, collection_name: str, id_key: str):
     return document["pk"] if "pk" in document else (
-        collectionName + "#" + document[idKey] if idKey in document else None)
+        collection_name + "#" + document[id_key] if id_key in document else None)
 
 
-def getSk(document: dict, collectionName: str):
-    return document["sk"] if "sk" in document else collectionName
+def get_sk(document: dict, collection_name: str):
+    return document["sk"] if "sk" in document else collection_name
 
 
-def getData(document: dict, id_key: str, ordering_key: str = None):
+def get_data(document: dict, id_key: str, ordering_key: str = None):
     if "data" in document:
         return document["data"]
     else:
         if id_key in document:
-            order_value = getOrderValue(document, ordering_key)
+            order_value = get_order_value(document, ordering_key)
             if order_value:
                 data = order_value
             elif "order_unique" in document:
@@ -38,7 +39,7 @@ def getData(document: dict, id_key: str, ordering_key: str = None):
             return data
 
 
-def getOrderValue(document: dict, orderingKey: str):
+def get_order_value(document: dict, orderingKey: str):
     if orderingKey:
         return find_value(document, orderingKey.split("."))
 
@@ -69,22 +70,22 @@ class QueryResult(object):
 
 class Model(object):
     def __init__(self, collection: Collection, document: dict):
-        self.idKey = collection.id_key
+        self.id_key = collection.id_key
         self.ordering_key = collection.ordering_key
         self.collectionName = collection.name
         self.document = document
 
     def pk(self):
-        return getPk(self.document, self.collectionName, self.idKey)
+        return get_pk(self.document, self.collectionName, self.id_key)
 
     def sk(self):
-        return getSk(self.document, self.collectionName)
+        return get_sk(self.document, self.collectionName)
 
     def data(self):
-        return getData(self.document, self.idKey, self.ordering_key)
+        return get_data(self.document, self.id_key, self.ordering_key)
 
     def order_value(self):
-        return getOrderValue(self.document, self.ordering_key)
+        return get_order_value(self.document, self.ordering_key)
 
     def to_dynamo_db_item(self):
         return {"document": json.dumps(self.document, cls=DecimalEncoder), "pk": self.pk(), "sk": self.sk(),
@@ -97,7 +98,7 @@ class Model(object):
 
     def __str__(self) -> str:
         return "Model => collection_name = {} id_key = {} ordering_key = {} document = {}".format(self.collectionName,
-                                                                                                  self.idKey,
+                                                                                                  self.id_key,
                                                                                                   self.ordering_key,
                                                                                                   self.document)
 
@@ -187,21 +188,24 @@ class IndexModel(Model):
     @staticmethod
     def from_dynamo_db_item(dynamo_db_item: dict, collection: Collection, index: Index):
         if "document" in dynamo_db_item:
-            return IndexModel(collection, json.loads(dynamo_db_item["document"], parse_float=Decimal), index)
+            document_from_db = json.loads(dynamo_db_item["document"], parse_float=Decimal)
+            ## in case the index is write optimized, then then the document stored contains only the id
+            document = document_from_db if index.index_configuration == IndexConfiguration.OPTIMIZE_READ else { collection.id_key: document_from_db[collection.id_key] }
+            return IndexModel(collection, document, index)
 
 
 @auto_str
 class Query(object):
 
-    def __init__(self, predicate: Predicate, collection: Collection, index_fields:List[str], limit: int = None, start_from: Model = None):
+    def __init__(self, predicate: Predicate, collection: Collection, index:Index, limit: int = None, start_from: Model = None):
         self.start_from = start_from
         self.predicate = predicate
         self.collection = collection
-        self.index_fields = index_fields
+        self.index = index
         self.limit = limit
 
     def get_model(self) -> QueryModel:
-        return QueryModel(self.collection, self.index_fields, self.predicate)
+        return QueryModel(self.collection, self.index.conditions if self.index else [], self.predicate)
 
     def __eq__(self, o: object) -> bool:
         if isinstance(o, Query):

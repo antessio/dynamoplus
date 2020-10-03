@@ -211,7 +211,7 @@ class SystemService:
         index = from_index_to_dict(i)
         repository = DynamoPlusRepository(index_metadata, True)
 
-        existing_index_with_same_name = repository.query_v2(Query(Eq("name", index["name"]), index_metadata,["name"]))
+        existing_index_with_same_name = repository.query_v2(Query(Eq("name", index["name"]), index_metadata,Index(None,"index",["name"])))
         if len(existing_index_with_same_name.data) != 0:
             return from_dict_to_index(existing_index_with_same_name.data[0].document)
 
@@ -240,10 +240,26 @@ class SystemService:
             fields_counter = fields_counter - 1
         return index
 
+    ## TODO: add tests
+    @staticmethod
+    def find_indexes_matching_fields(fields: List[str], collection_name: str, ordering_key: str = None):
+        fields_counter = len(fields)
+        indexes = []
+        while  fields_counter >= 1:
+            index_name = Index.index_name_generator(fields[0:fields_counter], ordering_key)
+            index = SystemService.get_index(index_name, collection_name)
+            if index is not None:
+                indexes.append(index)
+            fields_counter = fields_counter - 1
+
+
+        return indexes
+
     @staticmethod
     def get_index(name: str, collection_name: str):
         query: QueryRepository = QueryRepository(And([Eq("collection.name", collection_name), Eq("name", name)]),
-                                                 index_metadata, ["collection.name","name"], 1)
+                                                 index_metadata,
+                                                 Index(None,"index",["collection.name","name"]), 1)
         repository = DynamoPlusRepository(index_metadata, True)
         result = repository.query_v2(query)
         indexes = list(map(lambda m: from_dict_to_index(m.document), result.data))
@@ -284,7 +300,7 @@ class SystemService:
         if start_from:
             last_evaluated_key = repository.get(start_from)
         query: QueryRepository = QueryRepository(Eq("collection.name", collection_name),
-                                                 index_metadata, ["collection.name"], limit, last_evaluated_key)
+                                                 index_metadata, Index(None,"index",["collection.name"]), limit, last_evaluated_key)
         result = repository.query_v2(query)
         return list(map(lambda m: from_dict_to_index(m.document), result.data)), result.lastEvaluatedKey
 

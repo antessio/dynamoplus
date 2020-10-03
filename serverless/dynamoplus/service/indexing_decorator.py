@@ -30,26 +30,30 @@ def create_document(fun):
 def update_document(fun):
     def update(*args,**kwargs):
         is_local_env = is_local_environment()
-        result = fun(*args,**kwargs)
-        if result and is_local_env:
+        before = args[1]
+        after = fun(*args,**kwargs)
+        if after and is_local_env:
             domain_service = args[0]
             collection = domain_service.collection
-            update_indexes(collection.name,result)
+            update_indexes(collection.name,after,before)
             logger.info("updating document index for {}".format(collection.name))
-        return result
+        return after
 
     return update
 
 def delete_document(fun):
     def delete(*args,**kwargs):
         is_local_env = is_local_environment()
-        result = fun(*args,**kwargs)
-        if result and is_local_env:
+        if is_local_env:
             domain_service = args[0]
+            before = domain_service.get_document(args[1])
+            fun(*args, **kwargs)
             collection = domain_service.collection
-            delete_indexes(collection.name,result)
+            delete_indexes(collection.name,before)
             logger.info("delete document index for {}".format(collection.name))
-        return result
+        else:
+            fun(*args, **kwargs)
+
 
     return delete
 

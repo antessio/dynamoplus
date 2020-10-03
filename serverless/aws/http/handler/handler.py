@@ -77,7 +77,7 @@ class HttpHandler(object):
                                           body=self.format_json(
                                               {"msg": "Error in create entity {}".format(collection)}))
 
-    def update(self, path_parameters: dict, queryStringParameters: list = [], body: dict = None,
+    def update(self, path_parameters: dict, query_string_parameters: list = [], body: dict = None,
                headers: dict = None) -> dict:
         collection = self.get_document_type_from_path_parameters(path_parameters)
         id = path_parameters['id'] if 'id' in path_parameters else None
@@ -102,7 +102,7 @@ class HttpHandler(object):
                                           body=self.format_json(
                                               {"msg": "Error in create entity {}".format(collection)}))
 
-    def delete(self, path_parameters, queryStringParameters=[], body=None, headers=None):
+    def delete(self, path_parameters, query_string_parameters=[], body=None, headers=None):
         document_id = path_parameters['id']
         collection = self.get_document_type_from_path_parameters(path_parameters)
         logger.info("delete {} by document_id {}".format(collection, document_id))

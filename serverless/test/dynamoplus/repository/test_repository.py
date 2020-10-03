@@ -177,7 +177,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
             self.table.put_item(Item={"pk": "example#" + str(i), "sk": "example#attribute1", "data": str(i % 2),
                                       "document": json.dumps(document)})
 
-        query_model = Query(Eq("attribute1", "1"), self.collection, ["attribute1"])
+        query_model = Query(Eq("attribute1", "1"), self.collection, Index(None, "example",["attribute1"]))
         result = repository.query_v2(query_model)
         self.assertIsNotNone(result)
         self.assertEqual(len(result.data), 5)
@@ -195,7 +195,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
                                       "document": json.dumps(document)})
 
         query_model = Query(And([Eq("attribute1", "1"), Eq("attribute2", "value_3")]), self.collection,
-                            ["attribute1", "attribute2"])
+                            Index(None, "example",["attribute1", "attribute2"]))
         result = repository.query_v2(query_model)
         self.assertIsNotNone(result)
         self.assertEqual(len(result.data), 1)
@@ -213,7 +213,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
                                       "document": json.dumps(document)})
 
         query_model = Query(And([Eq("attribute1", "1"), Range("attribute3", "3", "7")]), self.collection,
-                            ["attribute1", "attribute3"])
+                            Index(None, "example", ["attribute1", "attribute3"]))
         result = repository.query_v2(query_model)
         self.assertIsNotNone(result)
         self.assertEqual(len(result.data), 3)
@@ -243,7 +243,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
         query_model = Query(
             And([Eq("attribute1", "1"), Range("attribute3", "00000020", "00000030")]),
             self.collection,
-            ["attribute1", "attribute3"],
+            Index(None, "example", ["attribute1", "attribute3"]),
             3)
         result = repository.query_v2(query_model)
         self.assertIsNotNone(result)
@@ -279,7 +279,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
         query_model = Query(
             And([Eq("attribute1", "1"), Range("attribute3", "00000020", "00000040")]),
             self.collection,
-            ["attribute1", "attribute3"],
+            Index(None, "example", ["attribute1", "attribute3"]),
             3,
             starting_after)
         result = repository.query_v2(query_model)
@@ -306,7 +306,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
                                       "document": json.dumps(document)})
 
         query_model = Query(And([Eq("attribute1", "1")]), self.collection,
-                            ["attribute1", "attribute2"])
+                            Index(None, "example", ["attribute1", "attribute2"]))
         result = repository.query_v2(query_model)
         self.assertIsNotNone(result)
         self.assertEqual(len(result.data), 5)

@@ -45,6 +45,7 @@ class TestDomainService(unittest.TestCase):
         mock_repository.assert_called_once_with(self.exampleCollectionMetadata)
         self.assertEqual(call(document), mock_update.call_args_list[0])
 
+
     @patch.object(DynamoPlusRepository, "delete")
     @patch.object(DynamoPlusRepository, "__init__")
     def test_deleteCollection(self, mock_repository, mock_delete):
