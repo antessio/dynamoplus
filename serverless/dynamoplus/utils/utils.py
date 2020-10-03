@@ -54,7 +54,7 @@ def get_schema_from_conditions(conditions: List[str]):
     for k in conditions:
         sub_keys = k.split(".")
         if len(sub_keys) == 1:
-            result[k] = {"type":"string"}
+            result[k] = {"type": "string"}
         else:
             k2 = ".".join(sub_keys[1:])
             r = __spread(k2)
@@ -65,7 +65,7 @@ def get_schema_from_conditions(conditions: List[str]):
     return result
 
 
-def __dict_merge(dct:dict, merge_dct:dict):
+def __dict_merge(dct: dict, merge_dct: dict):
     """ Recursive dict merge. Inspired by :meth:``dict.update()``, instead of
     updating only top-level keys, dict_merge recurses down into dicts nested
     to an arbitrary depth, updating keys. The ``merge_dct`` is merged into
@@ -133,3 +133,112 @@ def sanitize(data):
     else:
         new_data = data
     return new_data
+
+
+def filter_out_not_included_fields(d: dict, included_fields: List[str]):
+    result = {}
+    for f in included_fields:
+        nested_fields = f.split('.')
+        nested_value = None
+        if len(nested_fields) > 1:
+            if nested_fields[0] in d:
+                nested_value = filter_out_not_included_fields(d[nested_fields[0]], nested_fields[1:])
+        else:
+            if nested_fields[0] in d:
+                nested_value = d[nested_fields[0]]
+        if nested_value:
+            result[nested_fields[0]] = nested_value
+    return result
+
+
+def find_removed_values(before: dict, after: dict):
+    removed_values = {}
+    for k in before.keys():
+        if k not in after:
+            removed_values[k] = before[k]
+        elif isinstance(before[k], dict) and (isinstance(after[k], dict)):
+            v = find_removed_values(before[k], after[k])
+            if v is not None:
+                removed_values[k] = v
+
+        elif isinstance(before[k], list) and isinstance(after[k], list):
+
+            if len(before[k]) > len(after[k]):
+                removed_values_list = []
+                for before_value in before[k][len(after[k]):]:
+                    removed_values_list.append(before_value)
+
+                if len(removed_values_list) > 0:
+                    removed_values[k] = removed_values_list
+            elif len(before[k]) == len(after[k]):
+                removed_values_list = []
+                for i, after_value in enumerate(after[k]):
+                    if isinstance(after_value, dict):
+                        v = find_removed_values(before[k][i], after_value)
+                        if v is not None:
+                            removed_values_list.append(v)
+                    elif after_value != before[k][i]:
+                        removed_values_list.append(before[k][i])
+                if len(removed_values_list) > 0:
+                    removed_values[k] = removed_values_list
+
+        elif before[k] != after[k]:
+            removed_values[k] = before[k]
+    return removed_values if len(removed_values.keys()) > 0 else None
+
+
+def find_added_values(before: dict, after: dict):
+    added_values = {}
+    for k in after.keys():
+        if k not in before:
+            added_values[k] = after[k]
+        elif isinstance(before[k], dict) and (isinstance(after[k], dict)):
+            v = find_added_values(before[k], after[k])
+            if v is not None:
+                added_values[k] = v
+
+        elif isinstance(before[k], list) and isinstance(after[k], list):
+
+            if len(before[k]) < len(after[k]):
+                added_values_list = []
+                for add_value in after[k][len(before[k]):]:
+                    added_values_list.append(add_value)
+
+                if len(added_values_list) > 0:
+                    added_values[k] = added_values_list
+            elif len(before[k]) == len(after[k]):
+                added_values_list = []
+                for i, after_value in enumerate(after[k]):
+                    if isinstance(after_value, dict):
+                        v = find_added_values(before[k][i], after_value)
+                        if v is not None:
+                            added_values_list.append(v)
+                    elif after_value != before[k][i]:
+                        added_values_list.append(after_value)
+                if len(added_values_list) > 0:
+                    added_values[k] = added_values_list
+
+    return added_values if len(added_values.keys()) > 0 else None
+
+
+def find_updated_values(before: dict, after: dict):
+    updated_values = {}
+    for k in after.keys():
+        if k in before:
+            if isinstance(before[k], dict) and (isinstance(after[k], dict)):
+                v = find_updated_values(before[k], after[k])
+                if v is not None:
+                    updated_values[k] = v
+
+            elif isinstance(before[k], list) and isinstance(after[k], list):
+                new_values_list = []
+                for i, before_value in enumerate(before[k]):
+                    if before_value != after[k][i]:
+                        new_values_list.append(after[k][i])
+                if len(new_values_list) > 0:
+                    updated_values[k] = new_values_list
+
+            elif before[k] != after[k]:
+                updated_values[k] = after[k]
+
+    return updated_values if len(updated_values.keys()) > 0 else None

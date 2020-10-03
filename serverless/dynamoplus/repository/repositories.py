@@ -6,6 +6,7 @@ from boto.dynamodb2.table import Table
 
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.query.query import Index
+from dynamoplus.models.system.index.index import IndexConfiguration
 from dynamoplus.repository.models import Model, IndexModel, QueryResult, Query as QueryModel
 from dynamoplus.utils.utils import sanitize
 from boto3.dynamodb.conditions import Key, Attr
@@ -268,9 +269,16 @@ class DynamoPlusRepository(Repository):
 
         if 'LastEvaluatedKey' in response:
             last_key = response['LastEvaluatedKey']["pk"].replace(self.collection.name + "#", "")
-            logging.debug("last key = {}", last_key)
-        return QueryResult(list(map(lambda i: Model.from_dynamo_db_item(i, self.collection), response[u'Items'])),
-                           last_key)
+            logging.debug("last key = {}".format(last_key))
+
+        return QueryResult(list(map(lambda i: self.map_to_result(i,query.index), response[u'Items'])), last_key)
+
+    def map_to_result(self, i:dict, index: Index):
+        document_model = Model.from_dynamo_db_item(i, self.collection)
+        if index is None or index.index_configuration == IndexConfiguration.OPTIMIZE_READ:
+            return document_model
+        else:
+            return self.get(document_model.document[document_model.id_key])
 
 
 class IndexDynamoPlusRepository(DynamoPlusRepository):

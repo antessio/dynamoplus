@@ -38,25 +38,27 @@ def dynamo_stream_handler(event, context):
             if record.get('eventName') == 'INSERT':
                 new_record = deserialize(record['dynamodb']['NewImage'])
                 logger.info("creating index for {}".format(str(new_record)))
-                document = json.loads(new_record["document"], parse_float=Decimal)
-                create_indexes(sk, document)
-                # create_indexes_for_collection(sk,document, lambda r: r.create(document))
+                new_document = json.loads(new_record["document"], parse_float=Decimal)
+                create_indexes(sk, new_document,None)
+                # create_indexes_for_collection(sk,new_document, lambda r: r.create(new_document))
 
             elif record.get('eventName') == 'MODIFY':
                 new_record = deserialize(record['dynamodb']['NewImage'])
-                # document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], new_record.items()))
+                old_record = deserialize(record['dynamodb']['OldImage'])
+                # new_document = dict(filter(lambda kv: kv[0] not in ["geokey","hashkey"], new_record.items()))
                 logger.info("updating index for {}".format(str(new_record)))
-                document = json.loads(new_record["document"], parse_float=Decimal)
-                update_indexes(sk, document)
-                # create_indexes_for_collection(sk, document, lambda r: r.update(document))
+                old_document = json.loads(old_record["document"], parse_float=Decimal)
+                new_document = json.loads(new_record["document"], parse_float=Decimal)
+                update_indexes(sk, new_document,old_document)
+                # create_indexes_for_collection(sk, new_document, lambda r: r.update(new_document))
 
             elif record.get('eventName') == 'REMOVE':
                 old_record = deserialize(record['dynamodb']['OldImage'])
                 logger.info('removing index on record  {}'.format(str(old_record)))
-                document = json.loads(old_record["document"], parse_float=Decimal)
-                delete_indexes(sk, document)
-                # id = document[collection_metadata.id_key]
+                old_document = json.loads(old_record["document"], parse_float=Decimal)
+                delete_indexes(sk, old_document)
+                # id = new_document[collection_metadata.id_key]
                 # indexing(lambda r: r.delete(id), system_service, sk,
-                #          collection_metadata, document)
+                #          collection_metadata, new_document)
         else:
             logger.debug('Skipping indexing on record {} - {}'.format(pk, sk))

@@ -221,7 +221,7 @@ def query(collection_name: str, query: dict = None, start_from: str = None,
         if index_matching_conditions is None:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
         ## Since the sk should be built using the index it is necessary to pass the index matching the conditions
-        documents, last_evaluated_key = domain_service.query(predicate,index_matching_conditions.conditions, limit, start_from)
+        documents, last_evaluated_key = domain_service.query(predicate,index_matching_conditions, limit, start_from)
     return documents, last_evaluated_key
 
 
