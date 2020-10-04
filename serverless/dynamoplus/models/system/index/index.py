@@ -8,6 +8,12 @@ class IndexConfiguration(Enum):
     OPTIMIZE_READ = "OPTIMIZE_READ"
     OPTIMIZE_WRITE = "OPTIMIZE_WRITE"
 
+    @staticmethod
+    def value_of(value) -> Enum:
+        for m, mm in IndexConfiguration.__members__.items():
+            if m == value.upper():
+                return mm
+
 
 @auto_str
 class Index(object):

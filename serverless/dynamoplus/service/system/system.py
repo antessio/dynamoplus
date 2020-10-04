@@ -6,7 +6,7 @@ from dynamoplus.repository.models import Query as QueryRepository, Query
 from dynamoplus.repository.repositories import DynamoPlusRepository, IndexDynamoPlusRepository
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType, \
     AttributeConstraint
-from dynamoplus.models.system.index.index import Index
+from dynamoplus.models.system.index.index import Index, IndexConfiguration
 from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
     ClientAuthorizationApiKey, ClientAuthorizationHttpSignature, Scope, ScopesType
 
@@ -25,13 +25,24 @@ def from_collection_to_dict(collection_metadata: Collection):
     return result
 
 
-def from_index_to_dict(index_metadata: Index):
-    return {"name": index_metadata.index_name, "collection": {"name": index_metadata.collection_name},
-            "conditions": index_metadata.conditions}
+# def from_index_to_dict(index_metadata: Index):
+#     d = {"name": index_metadata.index_name,
+#          "collection": {"name": index_metadata.collection_name},
+#          "conditions": index_metadata.conditions}
+#     if index_metadata.ordering_key:
+#         d["ordering_key"] = index_metadata.ordering_key
+#     if index_metadata.index_configuration:
+#         d["configuration"] = index_metadata.index_configuration
+#     return d
+
+
+def from_dict_to_index_configuration(index_config_str:str):
+    return IndexConfiguration.value_of(index_config_str)
 
 
 def from_dict_to_index(d: dict):
-    return Index(d["uid"], d["collection"]["name"], d["conditions"], d["ordering_key"] if "ordering_key" in d else None)
+    index_configuration = from_dict_to_index_configuration(d["configuration"]) if "configuration" in d else IndexConfiguration.OPTIMIZE_READ
+    return Index(d["uid"], d["collection"]["name"], d["conditions"], d["ordering_key"] if "ordering_key" in d else None, index_configuration)
 
 
 def from_client_authorization_http_signature_to_dict(client_authorization: ClientAuthorizationHttpSignature):
@@ -63,16 +74,19 @@ def from_client_authorization_api_key_to_dict(client_authorization: ClientAuthor
 
 
 def from_index_to_dict(index_metadata: Index):
-    return {
+    index = {
         "uid": index_metadata.uid,
         "name": index_metadata.index_name,
         "collection": {
             "name": index_metadata.collection_name
         },
-        "ordering_key": index_metadata._ordering_key,
         "conditions": index_metadata.conditions
-
     }
+    if index_metadata.ordering_key:
+        index["ordering_key"]=index_metadata.ordering_key
+    if index_metadata.index_configuration:
+        index["configuration"] = index_metadata.index_configuration.value
+    return index
 
 
 def from_collection_to_dict(collection: Collection):
