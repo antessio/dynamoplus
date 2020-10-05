@@ -196,7 +196,7 @@ class TestSystemService(unittest.TestCase):
         expected_conditions = ["field1", "field2.field21"]
         target_index = {"uid": "1", "name": expected_id, "collection": {"name": "example"},
                         "conditions": expected_conditions,
-                        "ordering_key": "field2.field21"}
+                        "ordering_key": "field2.field21","configuration":"OPTIMIZE_READ"}
         index_metadata = Collection("index", "name")
         expected_model = Model(index_metadata, target_index)
         mock_repository.return_value = None
@@ -215,7 +215,7 @@ class TestSystemService(unittest.TestCase):
         expected_id = 'field1__field2.field21'
         expected_conditions = ["field1", "field2.field21"]
         target_index = {"uid": "1", "name": expected_id, "collection": {"name": "example"},
-                        "conditions": expected_conditions, "ordering_key": None}
+                        "conditions": expected_conditions, "configuration":"OPTIMIZE_READ"}
         index_metadata = Collection("index", "name")
         expected_model = Model(index_metadata, target_index)
         mock_repository.return_value = None
