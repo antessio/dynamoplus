@@ -25,17 +25,6 @@ def from_collection_to_dict(collection_metadata: Collection):
     return result
 
 
-# def from_index_to_dict(index_metadata: Index):
-#     d = {"name": index_metadata.index_name,
-#          "collection": {"name": index_metadata.collection_name},
-#          "conditions": index_metadata.conditions}
-#     if index_metadata.ordering_key:
-#         d["ordering_key"] = index_metadata.ordering_key
-#     if index_metadata.index_configuration:
-#         d["configuration"] = index_metadata.index_configuration
-#     return d
-
-
 def from_dict_to_index_configuration(index_config_str:str):
     return IndexConfiguration.value_of(index_config_str)
 
@@ -253,21 +242,6 @@ class SystemService:
             index = SystemService.get_index(index_name, collection_name)
             fields_counter = fields_counter - 1
         return index
-
-    ## TODO: add tests
-    @staticmethod
-    def find_indexes_matching_fields(fields: List[str], collection_name: str, ordering_key: str = None):
-        fields_counter = len(fields)
-        indexes = []
-        while  fields_counter >= 1:
-            index_name = Index.index_name_generator(fields[0:fields_counter], ordering_key)
-            index = SystemService.get_index(index_name, collection_name)
-            if index is not None:
-                indexes.append(index)
-            fields_counter = fields_counter - 1
-
-
-        return indexes
 
     @staticmethod
     def get_index(name: str, collection_name: str):
