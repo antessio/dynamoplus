@@ -8,37 +8,37 @@ from dynamoplus.models.system.collection.collection import Collection
 from decimal import Decimal
 from dynamoplus.models.query.query import Index
 from dynamoplus.utils.decimalencoder import DecimalEncoder
-from dynamoplus.utils.utils import convertToString, find_value, get_values_by_key_recursive
+from dynamoplus.utils.utils import convert_to_string, find_value, get_values_by_key_recursive
 from dynamoplus.utils.utils import auto_str
 
 logging.basicConfig(level=logging.INFO)
 
 
-def getPk(document: dict, collectionName: str, idKey: str):
+def get_pk(document: dict, collectionName: str, idKey: str):
     return document["pk"] if "pk" in document else (
         collectionName + "#" + document[idKey] if idKey in document else None)
 
 
-def getSk(document: dict, collectionName: str):
+def get_sk(document: dict, collectionName: str):
     return document["sk"] if "sk" in document else collectionName
 
 
-def getData(document: dict, id_key: str, ordering_key: str = None):
+def get_data(document: dict, id_key: str, ordering_key: str = None):
     if "data" in document:
         return document["data"]
     else:
         if id_key in document:
-            order_value = getOrderValue(document, ordering_key)
+            order_value = get_order_value(document, ordering_key)
             if order_value:
                 data = order_value
             elif "order_unique" in document:
-                data = convertToString(document["order_unique"])
+                data = convert_to_string(document["order_unique"])
             else:
-                data = convertToString(document[id_key])
+                data = convert_to_string(document[id_key])
             return data
 
 
-def getOrderValue(document: dict, orderingKey: str):
+def get_order_value(document: dict, orderingKey: str):
     if orderingKey:
         return find_value(document, orderingKey.split("."))
 
@@ -75,16 +75,16 @@ class Model(object):
         self.document = document
 
     def pk(self):
-        return getPk(self.document, self.collectionName, self.idKey)
+        return get_pk(self.document, self.collectionName, self.idKey)
 
     def sk(self):
-        return getSk(self.document, self.collectionName)
+        return get_sk(self.document, self.collectionName)
 
     def data(self):
-        return getData(self.document, self.idKey, self.ordering_key)
+        return get_data(self.document, self.idKey, self.ordering_key)
 
     def order_value(self):
-        return getOrderValue(self.document, self.ordering_key)
+        return get_order_value(self.document, self.ordering_key)
 
     def to_dynamo_db_item(self):
         return {"document": json.dumps(self.document, cls=DecimalEncoder), "pk": self.pk(), "sk": self.sk(),
@@ -179,7 +179,7 @@ class IndexModel(Model):
             logging.info("Found {} in conditions ".format(values))
 
             if values:
-                data = "#".join(list(map(lambda v: convertToString(v), values)))
+                data = "#".join(list(map(lambda v: convert_to_string(v), values)))
                 if order_value:
                     data = data + "#" + order_value
                 return data
