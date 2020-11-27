@@ -288,14 +288,6 @@ class SystemService:
         result = repository.query_v2(query)
         return list(map(lambda m: from_dict_to_index(m.document), result.data)), result.lastEvaluatedKey
 
-    @staticmethod
-    def find_collections_by_example(example: Collection):
-        repository = DynamoPlusRepository(collectionMetadata, True)
-        query: QueryRepository = QueryRepository(Eq("name", example.name),
-                                                 index_metadata,
-                                                 ["name"])
-        result = repository.query_v2(query)
-        return list(map(lambda m: from_dict_to_collection(m.document), result.data))
 
     @staticmethod
     def create_client_authorization(client_authorization: ClientAuthorization):
