@@ -227,17 +227,6 @@ class TestSystemService(unittest.TestCase):
         self.assertEqual(index_name, expected_id)
         self.assertEqual(call(target_index), mock_create.call_args_list[0])
 
-    @patch.object(DynamoPlusRepository, "query_v2")
-    @patch.object(DynamoPlusRepository, "__init__")
-    def test_queryCollectionByName(self, mock_index_dynamoplus_repository, mock_find):
-        collection_metadata = Collection("example", "name")
-        expected_query = Query(Eq("name", "example"), collection_metadata,["name"])
-        mock_index_dynamoplus_repository.return_value = None
-        mock_find.return_value = QueryResult([Model(Collection("example", "id"), {"name": "example", "id_key": "id"})])
-        collections = self.systemService.find_collections_by_example(collection_metadata)
-        self.assertTrue(len(collections) == 1)
-        self.assertEqual(collections[0].name, "example")
-        self.assertEqual(call(expected_query), mock_find.call_args_list[0])
 
     @patch.object(DynamoPlusRepository, "query_v2")
     @patch.object(DynamoPlusRepository, "__init__")

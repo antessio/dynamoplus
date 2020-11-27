@@ -3,7 +3,6 @@ from typing import *
 
 from dynamoplus.models.query.conditions import Range, AnyMatch
 from dynamoplus.repository.models import Model, IndexModel, QueryModel
-from dynamoplus.models.documents.documentTypes import DocumentTypeConfiguration
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.query.query import Index
 
