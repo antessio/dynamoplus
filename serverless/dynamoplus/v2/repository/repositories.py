@@ -35,7 +35,8 @@ class Model(object):
         pk = dynamo_db_item["pk"] if "pk" in dynamo_db_item else None
         sk = dynamo_db_item["sk"]
         data = dynamo_db_item["data"]
-        document = json.loads(dynamo_db_item["document"], parse_float=Decimal)
+        ## when reading last key it could be None
+        document = json.loads(dynamo_db_item["document"], parse_float=Decimal) if "document" in dynamo_db_item else {}
         return Model(pk,sk,data,document)
 
     def __init__(self, pk: str, sk: str, data: str, document: dict):
@@ -223,10 +224,10 @@ class QueryRepository:
         logger.info("Response from dynamo db {}".format(str(response)))
         last_key = None
         if 'LastEvaluatedKey' in response:
-            last_key = response['LastEvaluatedKey']["pk"].replace(self.collection.name + "#", "")
+            last_key = response['LastEvaluatedKey']
             logging.debug("last key = {}", last_key)
         return QueryResult(list(map(lambda i: Model.from_dynamo_db_item(i), response[u'Items'])),
-                           last_key)
+                           Model.from_dynamo_db_item(last_key) if last_key else None)
 
 
 def get_table_name(is_system: bool):

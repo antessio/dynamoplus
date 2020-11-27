@@ -10,6 +10,7 @@ from dynamoplus.models.system.client_authorization.client_authorization import C
 from dynamoplus.repository.models import QueryModel
 from dynamoplus.utils.utils import get_values_by_key_recursive, convert_to_string
 from dynamoplus.v2.repository.repositories import QueryRepository, get_table_name, Repository, Model, QueryResult
+from dynamoplus.v2.service.model_service import  get_model,get_index_model,get_sk,get_pk
 
 collection_metadata = Collection("collection", "name")
 index_metadata = Collection("index", "uid")
@@ -22,16 +23,16 @@ logger.setLevel(logging.INFO)
 class Converter:
 
     @staticmethod
-    def from_collection_to_dict(collection_metadata: Collection):
-        result = {"name": collection_metadata.name, "id_key": collection_metadata.id_key}
-        if collection_metadata.ordering_key:
-            result["ordering_key"] = collection_metadata.ordering_key
+    def from_collection_to_dict(collection: Collection):
+        result = {"name": collection.name, "id_key": collection.id_key}
+        if collection.ordering_key:
+            result["ordering_key"] = collection.ordering_key
         return result
 
     @staticmethod
-    def from_index_to_dict(index_metadata: Index):
-        return {"name": index_metadata.index_name, "collection": {"name": index_metadata.collection_name},
-                "conditions": index_metadata.conditions}
+    def from_index_to_dict(index: Index):
+        return {"name": index.index_name, "collection": {"name": index.collection_name},
+                "conditions": index.conditions}
 
     @staticmethod
     def from_dict_to_index(d: dict):
@@ -226,11 +227,11 @@ class IndexService:
         if create_index_model:
             created_index = Converter.from_dict_to_index(create_index_model.document)
             index_by_collection_name_model = repo.create(
-                get_index_model(Index(None, "index", ["collection.name"]), index_dict))
+                get_index_model(index_metadata, Index(index.index_name, "index", ["collection.name"]), index_dict))
             logger.info(
                 "{} has been indexed {}".format(created_index.collection_name, index_by_collection_name_model.document))
             index_by_name_model = repo.create(
-                get_index_model(Index(None, "index", ["collection.name", "name"]), index_dict))
+                get_index_model(index_metadata,Index(index.index_name, "index", ["collection.name", "name"]), index_dict))
             logger.info("{} has been indexed {}".format(created_index.collection_name, index_by_name_model.document))
             return created_index
 
@@ -327,8 +328,7 @@ def is_system(collection: Collection) -> bool:
 
 class QueryService:
     @staticmethod
-    def query_begins_with(collection: Collection, predicate: Predicate, fields: List[str], start_from: str,
-                          limit: int) -> QueryResult:
+    def query_begins_with(collection: Collection, predicate: Predicate, fields: List[str], start_from: str = None , limit: int = 20) -> QueryResult:
         table_name = get_table_name(is_system(collection))
         query_model = QueryModel(collection, fields, predicate)
         repo = QueryRepository(table_name)
@@ -348,52 +348,4 @@ class QueryService:
         return repo.query_all(query_model.sk(), last_evaluated_item, limit)
 
 
-def get_sk(collection: Collection):
-    return collection.name
 
-
-def get_pk(collection: Collection, id):
-    return "{}#{}".format(collection.name, id)
-
-
-def get_model(collection_metadata: Collection, document: dict):
-    if collection_metadata.id_key not in document:
-        raise Exception("{} not found in document".format(collection_metadata.id_key))
-    id = document[collection_metadata.id_key]
-    return Model("{}#{}".format(collection_metadata.name,id),
-                 collection_metadata.name,
-                 document[collection_metadata.ordering_key] if collection_metadata.ordering_key in document else id,
-                 document
-                 )
-
-
-def get_index_model(index: Index, document: dict):
-    def build_data():
-        logging.info("orderKey {}".format(index.ordering_key))
-        order_value = None
-        try:
-            order_value = document[index.ordering_key] \
-                if index.ordering_key is not None and index.ordering_key in document \
-                else None
-        except AttributeError:
-            logging.debug("ordering key missing")
-        logging.debug("orderingPart {}".format(order_value))
-        logging.info("Entity {}".format(str(document)))
-
-        logging.info("Index keys {}".format(index.conditions))
-        '''
-            attr1#attr2#attr3#attr4#orderValue
-        '''
-        values = get_values_by_key_recursive(document, index.conditions)
-        logging.info("Found {} in conditions ".format(values))
-
-        if values:
-            data = "#".join(list(map(lambda v: convert_to_string(v), values)))
-            if order_value:
-                data = data + "#" + order_value
-            return data
-
-    sk = index.collection_name + "#" + \
-         "#".join(map(lambda x: x, index.conditions)) if index.conditions else index.collection_name
-    data = build_data()
-    return Model(None, sk, data, document)
