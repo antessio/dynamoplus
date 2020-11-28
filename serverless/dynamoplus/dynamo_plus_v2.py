@@ -5,12 +5,11 @@ import uuid
 from datetime import datetime
 import time
 from enum import Enum
-from dynamoplus.v2.service.system.system_service import is_system, CollectionService, IndexService, \
+from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, \
     AuthorizationService, Converter, Collection
 from dynamoplus.models.query.conditions import Predicate, Range, Eq, And
-from dynamoplus.service.dynamoplus import DynamoPlusService
-from dynamoplus.service.domain.domain import DomainService
-
+from dynamoplus.v2.service.domain.domain_service import DomainService
+from dynamoplus.v2.service.common import is_system
 from dynamoplus.service.validation_service import validate_collection, validate_index, validate_document, \
     validate_client_authorization
 
@@ -131,7 +130,7 @@ def create(collection_name: str, document: dict) -> dict:
             validate_index(document)
             index_metadata = Converter.from_dict_to_index(document)
             index_metadata = IndexService.create_index(index_metadata)
-            logger.info("Created index {}".format(index_metadata.__str__))
+            logger.info("Created index {}".format(index_metadata.__str__()))
             return Converter.from_index_to_dict(index_metadata)
         elif collection_name == 'client_authorization':
             validate_client_authorization(document)
@@ -142,10 +141,10 @@ def create(collection_name: str, document: dict) -> dict:
     else:
         logger.info("Create {} document {}".format(collection_name, document))
         collection_metadata = CollectionService.get_collection(collection_name)
-        validate_document(document, collection_metadata)
         if collection_metadata is None:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                    "{} is not a valid collection".format(collection_name))
+        validate_document(document, collection_metadata)
         timestamp = datetime.utcnow()
         ## TODO: key generator
         if collection_metadata.auto_generate_id:
@@ -189,10 +188,9 @@ def update(collection_name: str, document: dict, document_id: str = None):
 
 def query(collection_name: str, query: dict = None, start_from: str = None,
           limit: int = None):
-    is_system = DynamoPlusService.is_system(Collection(collection_name,None))
+    is_system_collection = is_system(Collection(collection_name,None))
     documents = []
-    last_evaluated_key = None
-    if is_system:
+    if is_system_collection:
         if collection_name == 'collection':
             collections, last_key = CollectionService.get_all_collections(limit, start_from)
             documents = list(map(lambda c: Converter.from_collection_to_dict(c), collections))
@@ -223,10 +221,11 @@ def query(collection_name: str, query: dict = None, start_from: str = None,
         query_id = "__".join(predicate.get_fields())
         index_matching_conditions = IndexService.get_index_matching_fields(predicate.get_fields(), collection_name,
                                                                            None)
+        logger.info("Found index matching {}".format(index_matching_conditions.conditions))
         if index_matching_conditions is None:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
         ## Since the sk should be built using the index it is necessary to pass the index matching the conditions
-        documents, last_evaluated_key = domain_service.query(predicate, index_matching_conditions.conditions, limit,
+        documents, last_evaluated_key = domain_service.query(predicate, index_matching_conditions, limit,
                                                              start_from)
     return documents, last_evaluated_key
 

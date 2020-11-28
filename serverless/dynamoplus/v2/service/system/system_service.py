@@ -1,20 +1,23 @@
 import logging
 from typing import *
 
-from dynamoplus.models.query.conditions import Predicate, AnyMatch, Eq, And
+from dynamoplus.models.query.conditions import Eq, And, AnyMatch
+from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
+    ClientAuthorizationApiKey, ClientAuthorizationHttpSignature, Scope, ScopesType
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType, \
     AttributeConstraint
 from dynamoplus.models.system.index.index import Index
-from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
-    ClientAuthorizationApiKey, ClientAuthorizationHttpSignature, Scope, ScopesType
-from dynamoplus.repository.models import QueryModel
-from dynamoplus.utils.utils import get_values_by_key_recursive, convert_to_string
-from dynamoplus.v2.repository.repositories import QueryRepository, get_table_name, Repository, Model, QueryResult
-from dynamoplus.v2.service.model_service import  get_model,get_index_model,get_sk,get_pk
+from dynamoplus.v2.service.common import get_repository_factory
+from dynamoplus.v2.service.model_service import get_model, get_index_model
+from dynamoplus.v2.service.query_service import QueryService
 
 collection_metadata = Collection("collection", "name")
 index_metadata = Collection("index", "uid")
 client_authorization_metadata = Collection("client_authorization", "client_id")
+
+index_by_collection_and_name_metadata = Index(None,index_metadata.name,["collection.name", "name"],None)
+index_by_collection_metadata = Index(None,index_metadata.name,["collection.name"],None)
+index_by_name_metadata = Index(None,index_metadata.name,["name"],None)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -177,7 +180,8 @@ class CollectionService:
         repo = get_repository_factory(collection_metadata)
         model = get_model(collection_metadata, {"name": collection_name})
         result = repo.get(model.pk, model.sk)
-        return Converter.from_dict_to_collection(result.document)
+        if result:
+            return Converter.from_dict_to_collection(result.document)
 
     @staticmethod
     def create_collection(collection: Collection) -> Collection:
@@ -194,7 +198,7 @@ class CollectionService:
 
     @staticmethod
     def get_all_collections(start_from: str = None, limit: int = None) -> (Collection, dict):
-        result = QueryService.query_all(collection_metadata, limit, start_from)
+        result = QueryService.query(collection_metadata,AnyMatch(), None, limit, start_from)
         if result:
             return list(
                 map(lambda m: Converter.from_dict_to_collection(m.document), result.data)), result.lastEvaluatedKey
@@ -213,13 +217,19 @@ class CollectionService:
 class IndexService:
 
     @staticmethod
+    def get_index_by_name(name:str)->Index:
+        query_result = QueryService.query(index_metadata,Eq("name",name), index_by_name_metadata,None,1)
+        return list(map(lambda m: Converter.from_dict_to_index(m.document), query_result.data)),query_result.lastEvaluatedKey
+
+
+    @staticmethod
     def create_index(index: Index) -> Index:
         index_dict = Converter.from_index_to_dict(index)
 
-        query_result = QueryService.query_begins_with(index_metadata, Eq("name", index.index_name), ["name"])
+        existing_index,last_index_id = IndexService.get_index_by_name(index.index_name)
 
-        if len(query_result.data) != 0:
-            return Converter.from_dict_to_index(query_result.data[0].document)
+        if len(existing_index) > 0:
+            return existing_index[0]
 
         repo = get_repository_factory(index_metadata)
         create_index_model = repo.create(get_model(index_metadata, index_dict))
@@ -237,9 +247,9 @@ class IndexService:
 
     @staticmethod
     def get_index_by_name_and_collection_name(name: str, collection_name: str):
-        query_result = QueryService.query_begins_with(index_metadata,
+        query_result = QueryService.query(index_metadata,
                                                       And([Eq("collection.name", collection_name), Eq("name", name)]),
-                                                      ["collection.name", "name"], None, 1)
+                                                      index_by_collection_and_name_metadata, None, 1)
 
         indexes = list(map(lambda m: Converter.from_dict_to_index(m.document), query_result.data))
         if len(indexes) == 0:
@@ -249,11 +259,11 @@ class IndexService:
 
     @staticmethod
     def get_index_by_collection_name(collection_name: str, start_from: str = None, limit: int = 20):
-        query_result = QueryService.query_begins_with(index_metadata,
-                                                      Eq("collection.name", collection_name),
-                                                      ["collection.name"], start_from, limit)
+        query_result = QueryService.query(index_metadata,
+                                          Eq("collection.name", collection_name),
+                                          index_by_collection_metadata, start_from, limit)
 
-        return list(map(lambda m: Converter.from_dict_to_index(m.document), query_result.data))
+        return list(map(lambda m: Converter.from_dict_to_index(m.document), query_result.data)), query_result.lastEvaluatedKey
 
     @staticmethod
     def get_index_matching_fields(fields: List[str], collection_name: str, ordering_key: str = None):
@@ -277,7 +287,7 @@ class IndexService:
         has_more = True
         while has_more:
             last_evaluated_key = None
-            indexes, last_evaluated_key = IndexService.find_indexes_from_collection_name(collection_name, limit,
+            indexes, last_evaluated_key = IndexService.get_index_by_collection_name(collection_name, limit,
                                                                                          last_evaluated_key)
             has_more = last_evaluated_key is not None
             for i in indexes:
@@ -318,34 +328,9 @@ class AuthorizationService:
         model = get_model(client_authorization_metadata, {client_authorization_metadata.id_key: client_id})
         repo.delete(model.pk, model.sk)
 
-def get_repository_factory(collection: Collection) -> Repository:
-    return Repository(get_table_name(is_system(collection)))
 
 
-def is_system(collection: Collection) -> bool:
-    return collection.name in ["collection", "index", "client_authorization"]
 
-
-class QueryService:
-    @staticmethod
-    def query_begins_with(collection: Collection, predicate: Predicate, fields: List[str], start_from: str = None , limit: int = 20) -> QueryResult:
-        table_name = get_table_name(is_system(collection))
-        query_model = QueryModel(collection, fields, predicate)
-        repo = QueryRepository(table_name)
-        last_evaluated_item = None
-        if start_from:
-            last_evaluated_item = Repository(table_name).get(get_pk(collection, start_from), get_sk(collection))
-        return repo.query_begins_with(query_model.sk(), query_model.data(), last_evaluated_item, limit)
-
-    @staticmethod
-    def query_all(collection: Collection, limit: int, start_from: str = None) -> QueryResult:
-        table_name = get_table_name(is_system(collection))
-        repo = QueryRepository(table_name)
-        last_evaluated_item = None
-        if start_from:
-            last_evaluated_item = Repository(table_name).get(get_pk(collection, start_from), get_sk(collection))
-        query_model = QueryModel(collection, [], AnyMatch())
-        return repo.query_all(query_model.sk(), last_evaluated_item, limit)
 
 
 
