@@ -27,7 +27,7 @@ class DomainService:
     @update_document
     def update_document(self, document: dict):
         model = get_model(self.collection, document)
-        updated_data_model = get_repository_factory(self.collection).create(model)
+        updated_data_model = get_repository_factory(self.collection).update(model)
         if updated_data_model:
             return updated_data_model.document
 

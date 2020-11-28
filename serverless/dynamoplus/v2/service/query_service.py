@@ -2,7 +2,6 @@ from typing import *
 from dynamoplus.models.query.conditions import Predicate, get_range_predicate, AnyMatch
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.system.index.index import Index
-from dynamoplus.repository.models import QueryModel
 from dynamoplus.v2.repository.repositories import QueryResult, get_table_name, QueryRepository, Repository
 from dynamoplus.v2.service.model_service import get_pk, get_sk
 from dynamoplus.v2.service.common import is_system
@@ -30,6 +29,7 @@ class QueryService:
                       limit: int = 20) -> QueryResult:
         table_name = get_table_name(is_system(collection))
         range_predicate = get_range_predicate(predicate)
+        sk = find_sk_query(collection, fields)
         data_prefix = ""
         non_range_values = list(
             filter(lambda v: range_predicate.to_value != v and range_predicate.from_value != v, predicate.get_values()))
@@ -38,12 +38,11 @@ class QueryService:
             data_prefix = data_prefix + "#"
         data1 = data_prefix + range_predicate.from_value
         data2 = data_prefix + range_predicate.to_value
-        query_model = QueryModel(collection, fields, predicate)
         repo = QueryRepository(table_name)
         last_evaluated_item = None
         if start_from:
-            last_evaluated_item = Repository(table_name).get(get_pk(collection, start_from), get_sk(collection))
-        return repo.query_range(query_model.sk(), data1, data2, limit, last_evaluated_item)
+            last_evaluated_item = Repository(table_name).get(get_pk(collection, start_from), sk)
+        return repo.query_range(sk, data1, data2, limit, last_evaluated_item)
 
     @staticmethod
     def __query_begins_with(collection: Collection, predicate: Predicate, fields: List[str], start_from: str = None,
@@ -54,7 +53,8 @@ class QueryService:
         repo = QueryRepository(table_name)
         last_evaluated_item = None
         if start_from:
-            last_evaluated_item = Repository(table_name).get(get_pk(collection, start_from), get_sk(collection))
+            ## should start from last index row
+            last_evaluated_item = Repository(table_name).get(get_pk(collection, start_from), sk)
         return repo.query_begins_with(sk, data, last_evaluated_item, limit)
 
     @staticmethod
@@ -63,6 +63,7 @@ class QueryService:
         repo = QueryRepository(table_name)
         last_evaluated_item = None
         if start_from:
+            ## this is the main row, not the index, since there is no index
             last_evaluated_item = Repository(table_name).get(get_pk(collection, start_from), get_sk(collection))
         sk = find_sk_query(collection, [])
         return repo.query_all(sk, last_evaluated_item, limit)

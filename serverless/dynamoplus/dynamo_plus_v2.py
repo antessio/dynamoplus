@@ -5,6 +5,8 @@ import uuid
 from datetime import datetime
 import time
 from enum import Enum
+
+from dynamoplus.v2.service.query_service import QueryService
 from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, \
     AuthorizationService, Converter, Collection
 from dynamoplus.models.query.conditions import Predicate, Range, Eq, And
@@ -198,7 +200,7 @@ def query(collection_name: str, query: dict = None, start_from: str = None,
         elif collection_name == 'index' and "matches" in query and "eq" in query["matches"] and "value" in \
                 query["matches"]["eq"]:
             target_collection_name = query["matches"]["eq"]["value"]
-            index_metadata_list, last_key = IndexService.find_indexes_from_collection_name(
+            index_metadata_list, last_key = IndexService.get_index_by_collection_name(
                 target_collection_name, limit, start_from)
             documents = list(map(lambda i: Converter.from_index_to_dict(i), index_metadata_list))
             last_evaluated_key = last_key
@@ -225,8 +227,9 @@ def query(collection_name: str, query: dict = None, start_from: str = None,
         if index_matching_conditions is None:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
         ## Since the sk should be built using the index it is necessary to pass the index matching the conditions
-        documents, last_evaluated_key = domain_service.query(predicate, index_matching_conditions, limit,
-                                                             start_from)
+        result = QueryService.query(collection_metadata,predicate,index_matching_conditions,start_from,limit)
+        documents = list(map(lambda m: m.document, result.data))
+        last_evaluated_key = result.lastEvaluatedKey
     return documents, last_evaluated_key
 
 

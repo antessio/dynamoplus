@@ -7,12 +7,13 @@ import logging
 import time
 import jwt
 
+from dynamoplus.v2.service.system.system_service import AuthorizationService
+
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA256
-from dynamoplus.service.system.system import SystemService
 from dynamoplus.models.system.client_authorization.client_authorization import ScopesType, Scope
 
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -24,23 +25,23 @@ BEARER_PREFIX = "Bearer"
 path_regex = r"dynamoplus\/(\w+)(\/query)*(\/.*)*"
 
 
-class AuthorizationService:
+class SecurityService:
 
     @staticmethod
     def is_bearer(headers: dict):
-        return AuthorizationService.is_authorization_of_type(headers, BEARER_PREFIX)
+        return SecurityService.is_authorization_of_type(headers, BEARER_PREFIX)
 
     @staticmethod
     def is_http_signature(headers: dict):
-        return AuthorizationService.is_authorization_of_type(headers, 'signature')
+        return SecurityService.is_authorization_of_type(headers, 'signature')
 
     @staticmethod
     def is_api_key(headers: dict):
-        return AuthorizationService.is_authorization_of_type(headers, API_KEY_PREFIX)
+        return SecurityService.is_authorization_of_type(headers, API_KEY_PREFIX)
 
     @staticmethod
     def is_authorization_of_type(headers: dict, type: str):
-        return AuthorizationService.get_authorization_value(headers, type) != None
+        return SecurityService.get_authorization_value(headers, type) != None
 
     @staticmethod
     def get_authorization_value(headers: dict, type: str):
@@ -52,7 +53,7 @@ class AuthorizationService:
 
     @staticmethod
     def is_basic_auth(headers: dict):
-        return AuthorizationService.is_authorization_of_type(headers, 'basic')
+        return SecurityService.is_authorization_of_type(headers, 'basic')
 
     @staticmethod
     def get_client_authorization_using_http_signature_authorized(headers: dict, method: str, path: str):
@@ -69,7 +70,7 @@ class AuthorizationService:
                     if "keyId" in signature_components:
                         key_id = signature_components["keyId"]
                         logging.info("client {}".format(key_id))
-                        client_authorization = SystemService.get_client_authorization(key_id)
+                        client_authorization = AuthorizationService.get_client_authorization(key_id)
                         if client_authorization:
                             signatory_message = "(request-target): {} {}".format(method, path);
                             for h in filter(lambda header: header.lower() != 'authorization', headers):
@@ -94,7 +95,7 @@ class AuthorizationService:
 
     @staticmethod
     def get_basic_auth_authorized(headers: dict):
-        authorization_value = AuthorizationService.get_authorization_value(headers, "basic")
+        authorization_value = SecurityService.get_authorization_value(headers, "basic")
         username, password = b64decode(authorization_value).decode().split(':', 1)
         if os.environ['ROOT_ACCOUNT'] == username and os.environ['ROOT_PASSWORD'] == password:
             return username
@@ -102,12 +103,12 @@ class AuthorizationService:
 
     @staticmethod
     def get_client_authorization_by_api_key(headers: dict):
-        authorization_value = AuthorizationService.get_authorization_value(headers, API_KEY_PREFIX)
+        authorization_value = SecurityService.get_authorization_value(headers, API_KEY_PREFIX)
         logger.info("authorization value = {}".format(authorization_value))
         if authorization_value and CLIENT_ID_HEADER in headers:
             client_id = headers[CLIENT_ID_HEADER]
             logger.info("client_id = {}".format(client_id))
-            client_authorization = SystemService.get_client_authorization(client_id)
+            client_authorization = AuthorizationService.get_client_authorization(client_id)
             logger.info("found client authorization {}".format(client_authorization))
             if client_authorization.api_key == authorization_value:
                 return client_authorization
@@ -135,7 +136,7 @@ class AuthorizationService:
     @staticmethod
     def get_bearer_authorized(headers: dict):
         jwt_secret = JWT_SECRET if JWT_SECRET is not None else os.getenv("JWT_SECRET")
-        authorization_value = AuthorizationService.get_authorization_value(headers, BEARER_PREFIX)
+        authorization_value = SecurityService.get_authorization_value(headers, BEARER_PREFIX)
         payload = jwt.decode(authorization_value, jwt_secret, algorithms='HS256')
         #payload = json.loads(token_decoded)
         logging.debug("payload = {}".format(payload))
