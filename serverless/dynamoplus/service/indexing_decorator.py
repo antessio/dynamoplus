@@ -1,6 +1,7 @@
 import logging
 
-from dynamoplus.service.indexing_service import create_indexes,update_indexes,delete_indexes
+#from dynamoplus.service.indexing_service import create_indexes,update_indexes,delete_indexes
+from dynamoplus.v2.indexing_service_v2 import create_indexes,update_indexes,delete_indexes
 import os
 
 logger = logging.getLogger()
