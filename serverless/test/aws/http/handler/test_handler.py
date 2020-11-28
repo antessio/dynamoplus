@@ -7,7 +7,7 @@ from typing import *
 import boto3
 from moto import mock_dynamodb2
 
-from aws.http.handler.handler import HttpHandler
+from aws.http.handler.handler_v2 import HttpHandler
 
 
 @mock_dynamodb2

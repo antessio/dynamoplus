@@ -28,22 +28,37 @@ except:
     logger.info("Unable to instantiate")
 
 
-@auto_str
-class Model(object):
+class Model:
+
     @staticmethod
-    def from_dynamo_db_item(dynamo_db_item:dict):
+    def from_dynamo_db_item(dynamo_db_item: dict):
         pk = dynamo_db_item["pk"] if "pk" in dynamo_db_item else None
         sk = dynamo_db_item["sk"]
-        data = dynamo_db_item["data"]
+        data = dynamo_db_item["data"] if "data" in dynamo_db_item else None
         ## when reading last key it could be None
         document = json.loads(dynamo_db_item["document"], parse_float=Decimal) if "document" in dynamo_db_item else {}
-        return Model(pk,sk,data,document)
+        return Model(pk, sk, data, document)
 
     def __init__(self, pk: str, sk: str, data: str, document: dict):
         self.pk = pk
         self.sk = sk
         self.data = data
         self.document = document
+
+    def __members(self):
+        return self.pk, self.sk, self.data, self.document
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.__members() == other.__members()
+        else:
+            return False
+
+    def __str__(self):
+        return "{" + ",".join(map(lambda x: x.__str__(), self.__members()))+ "}"
+
+    def __hash__(self):
+        return hash(self.__members())
 
     def to_dynamo_db_item(self):
         return {
@@ -52,6 +67,7 @@ class Model(object):
             "sk": self.sk,
             "data": self.data
         }
+
 
 class QueryResult(object):
     def __init__(self, data: List["Model"], last_evaluated_key: dict = None):
@@ -114,7 +130,6 @@ class Repository(RepositoryInterface):
         logging.info("Result = {}".format(result))
         return Model.from_dynamo_db_item(result[u'Item']) if 'Item' in result else None
 
-
     def update(self, model: Model):
         dynamo_db_item = model.to_dynamo_db_item()
         if dynamo_db_item.keys():
@@ -129,8 +144,8 @@ class Repository(RepositoryInterface):
             }
             response = self.table.update_item(
                 Key={
-                    'pk': model.pk(),
-                    'sk': model.sk()
+                    'pk': model.pk,
+                    'sk': model.sk
                 },
                 UpdateExpression=update_expression,
                 ExpressionAttributeValues=expression_attributes_values,
@@ -163,19 +178,19 @@ class QueryRepository:
         self.dynamoDB = connection if connection is not None else boto3.resource('dynamodb')
         self.table = self.dynamoDB.Table(self.tableName)
 
-    def query_begins_with(self,sk: str, data:str, last_key: Model = None, limit: int = 20):
+    def query_begins_with(self, sk: str, data: str, last_key: Model = None, limit: int = 20):
         key = Key('sk').eq(sk) & Key('data').begins_with(data)
         logger.info(
             "The key that will be used is sk={} begins with data={}".format(sk, data))
         return self.__query_gsi(key, limit, last_key)
 
-    def query_gt(self,sk: str, data:str, limit: int = 20, last_key: Model = None):
+    def query_gt(self, sk: str, data: str, limit: int = 20, last_key: Model = None):
         key = Key('sk').eq(sk) & Key('data').gt(data)
         logger.info(
             "The key that will be used is sk={} begins with data={}".format(sk, data))
         return self.__query_gsi(key, limit, last_key)
 
-    def query_lt(self,sk: str, data:str, limit: int = 20, last_key: Model = None):
+    def query_lt(self, sk: str, data: str, limit: int = 20, last_key: Model = None):
         key = Key('sk').eq(sk) & Key('data').lt(data)
         logger.info(
             "The key that will be used is sk={} begins with data={}".format(sk, data))
@@ -193,8 +208,7 @@ class QueryRepository:
             "The key that will be used is sk={} begins with data={}".format(sk, data))
         return self.__query_gsi(key, limit, last_key)
 
-
-    def query_all(self,sk: str, last_key: Model = None,limit: int = 20):
+    def query_all(self, sk: str, last_key: Model = None, limit: int = 20):
         key = Key('sk').eq(sk)
         logger.info("The key that will be used is sk={} with no data".format(sk))
         return self.__query_gsi(key, limit, last_key)
@@ -211,7 +225,7 @@ class QueryRepository:
     def __query_gsi(self, key, limit, last_key):
         start_from = None
         if last_key:
-            start_from = {"pk": last_key.pk(), "sk": last_key.sk(), "data": last_key.data()}
+            start_from = {"pk": last_key.pk, "sk": last_key.sk, "data": last_key.data}
         dynamo_query = dict(
             IndexName="sk-data-index",
             KeyConditionExpression=key,
