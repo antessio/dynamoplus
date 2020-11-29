@@ -2,7 +2,7 @@ import decimal
 import unittest
 from datetime import datetime, timezone
 
-from dynamoplus.utils.utils import convertToString, find_value, get_values_by_key_recursive, get_schema_from_conditions
+from dynamoplus.utils.utils import convert_to_string, find_value, get_values_by_key_recursive, get_schema_from_conditions
 
 
 class TestUtils(unittest.TestCase):
@@ -34,17 +34,17 @@ class TestUtils(unittest.TestCase):
         self.assertDictEqual(expected, result)
 
     def test_convertDateTimeToString(self):
-        self.assertEqual(convertToString(datetime(2019, 12, 12, 8, 8, 10, 100, tzinfo=timezone.utc)),
+        self.assertEqual(convert_to_string(datetime(2019, 12, 12, 8, 8, 10, 100, tzinfo=timezone.utc)),
                          "1576138090.0000998973846435546875")
 
     def test_convertDecimaToString(self):
-        self.assertEqual(convertToString(decimal.Decimal('20.00')), "20.00")
+        self.assertEqual(convert_to_string(decimal.Decimal('20.00')), "20.00")
 
     def test_convertBooleanToString(self):
-        self.assertEqual(convertToString(True), "true")
+        self.assertEqual(convert_to_string(True), "true")
 
     def test_convertBooleanStringToString(self):
-        self.assertEqual(convertToString("True"), "true")
+        self.assertEqual(convert_to_string("True"), "true")
 
     def test_findValue(self):
         target = {"attribute_name_1": "value1", "attribute_name_2": "value2"}

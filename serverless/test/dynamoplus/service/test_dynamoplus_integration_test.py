@@ -2,7 +2,7 @@ import unittest
 import logging
 import uuid
 
-from dynamoplus.dynamo_plus import create
+from dynamoplus.dynamo_plus_v2 import create
 
 from moto import mock_dynamodb2
 import boto3
