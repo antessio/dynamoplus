@@ -12,7 +12,7 @@ from dynamoplus.v2.service.model_service import get_model, get_index_model
 from dynamoplus.v2.service.query_service import QueryService
 
 collection_metadata = Collection("collection", "name")
-index_metadata = Collection("index", "uid")
+index_metadata = Collection("index", "name")
 client_authorization_metadata = Collection("client_authorization", "client_id")
 
 index_by_collection_and_name_metadata = Index(None,index_metadata.name,["collection.name", "name"],None)
@@ -39,7 +39,7 @@ class Converter:
 
     @staticmethod
     def from_dict_to_index(d: dict):
-        return Index(d["uid"], d["collection"]["name"], d["conditions"],
+        return Index(None, d["collection"]["name"], d["conditions"],
                      d["ordering_key"] if "ordering_key" in d else None)
 
     @staticmethod
@@ -68,7 +68,6 @@ class Converter:
     @staticmethod
     def from_index_to_dict(index_metadata: Index):
         return {
-            "uid": index_metadata.uid,
             "name": index_metadata.index_name,
             "collection": {
                 "name": index_metadata.collection_name
@@ -232,7 +231,8 @@ class IndexService:
             return existing_index[0]
 
         repo = get_repository_factory(index_metadata)
-        create_index_model = repo.create(get_model(index_metadata, index_dict))
+        model = get_model(index_metadata, index_dict)
+        create_index_model = repo.create(model)
         logger.info("index created {}".format(create_index_model.__str__()))
         if create_index_model:
             created_index = Converter.from_dict_to_index(create_index_model.document)
@@ -267,11 +267,11 @@ class IndexService:
 
     @staticmethod
     def get_index_matching_fields(fields: List[str], collection_name: str, ordering_key: str = None):
-        index_name = Index.index_name_generator(fields, ordering_key)
+        index_name = Index.index_name_generator(collection_name,fields, ordering_key)
         index = IndexService.get_index_by_name_and_collection_name(index_name, collection_name)
         fields_counter = len(fields) - 1
         while index is None and fields_counter >= 1:
-            index_name = Index.index_name_generator(fields[0:fields_counter], ordering_key)
+            index_name = Index.index_name_generator(collection_name,fields[0:fields_counter], ordering_key)
             index = IndexService.get_index_by_name_and_collection_name(index_name, collection_name)
             fields_counter = fields_counter - 1
         return index
@@ -287,8 +287,7 @@ class IndexService:
         has_more = True
         while has_more:
             last_evaluated_key = None
-            indexes, last_evaluated_key = IndexService.get_index_by_collection_name(collection_name, limit,
-                                                                                         last_evaluated_key)
+            indexes, last_evaluated_key = IndexService.get_index_by_collection_name(collection_name, last_evaluated_key,limit)
             has_more = last_evaluated_key is not None
             for i in indexes:
                 yield i

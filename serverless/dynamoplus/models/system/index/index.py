@@ -15,8 +15,7 @@ class Index(object):
         if condition_set_length != len(self._conditions) and condition_set_length == 1:
             self._range_condition = conditions_set.pop()
         self._ordering_key = ordering_key
-        self._index_name = Index.index_name_generator(self._conditions,self._ordering_key)
-        self._uid = uid
+        self._index_name = Index.index_name_generator(self.collection_name, self._conditions,self._ordering_key)
 
     @property
     def range_condition(self):
@@ -27,16 +26,10 @@ class Index(object):
         self.range_condition = value
 
     @staticmethod
-    def index_name_generator(conditions:List[str], ordering_key:str=None):
-        return "__".join(conditions) + ("__ORDER_BY__" + ordering_key if ordering_key is not None else "")
+    def index_name_generator(collection_name:str, conditions:List[str], ordering_key:str=None):
+        return "{}__{}{}".format(collection_name, "__".join(conditions) ,"__ORDER_BY__" + ordering_key if ordering_key is not None else "")
 
-    @property
-    def uid(self):
-        return self._uid
 
-    @uid.setter
-    def uid(self,value):
-        self._uid = value
 
     @property
     def conditions(self):
@@ -71,8 +64,8 @@ class Index(object):
 
     def __eq__(self, o: object) -> bool:
         if isinstance(o, Index):
-            if o.uid and self._uid:
-                return o.uid.__eq__(self._uid)
+            if o.index_name and self.index_name:
+                return o.index_name.__eq__(self.index_name)
             else:
                 return self._collection_name.__eq__(o.collection_name) \
                        and self._conditions.__eq__(o.conditions) \
