@@ -278,17 +278,18 @@ class TestSystemService(unittest.TestCase):
     #     calls = [call("field1__field2__field3","example"),call("field1__field2","example"),call("field1","example")]
     #     mock_get_index.assert_has_calls(calls)
     #
-    # @patch('dynamoplus.service.system.system.SystemService.get_index')
-    # def test_find_index_matching_fields_not_found(self, mock_get_index):
-    #
-    #     mock_get_index.side_effect = [None, None, None]
-    #     index = SystemService.get_index_matching_fields(["field1", "field2", "field3"], "example")
-    #     self.assertIsNone(index)
-    #     calls = [call("field1__field2__field3", "example"), call("field1__field2", "example"),
-    #              call("field1", "example")]
-    #     mock_get_index.assert_has_calls(calls)
-    #
-    #
+
+    @patch('dynamoplus.v2.service.system.system_service.IndexService.get_index_by_name_and_collection_name')
+    def test_find_index_matching_fields_not_found(self, mock_get_index_by_name_and_collection_name):
+
+        mock_get_index_by_name_and_collection_name.side_effect = [None, None, None]
+        index = IndexService.get_index_matching_fields(["field1", "field2", "field3"], "example")
+        self.assertIsNone(index)
+        calls = [call("example__field1__field2__field3", "example"), call("example__field1__field2", "example"),
+                 call("example__field1", "example")]
+        mock_get_index_by_name_and_collection_name.assert_has_calls(calls)
+
+
     def fake_query_result(self, index_name, conditions, collection_name, next = None):
         return QueryResult(
             [Model("index#"+index_name,"index", index_name,
