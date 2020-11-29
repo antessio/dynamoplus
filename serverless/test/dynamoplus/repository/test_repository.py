@@ -1,8 +1,5 @@
 import unittest
-from typing import *
 
-from dynamoplus.models.query.conditions import Eq, And, Range
-from dynamoplus.models.query.query import Index
 from dynamoplus.v2.repository.repositories import Repository, Model, QueryRepository
 from dynamoplus.models.system.collection.collection import Collection
 from moto import mock_dynamodb2
