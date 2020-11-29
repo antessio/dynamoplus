@@ -1,10 +1,11 @@
 import unittest
 import os
 from unittest.mock import patch
-from dynamoplus.service.system.system import SystemService
-from dynamoplus.service.authorization.authorization import AuthorizationService
+from dynamoplus.service.security.security import SecurityService
 from dynamoplus.models.system.client_authorization.client_authorization import Scope, ScopesType, ClientAuthorization, \
     ClientAuthorizationHttpSignature, ClientAuthorizationApiKey
+from dynamoplus.v2.service.system.system_service import AuthorizationService
+
 
 class TestAuthorization(unittest.TestCase):
 
@@ -35,63 +36,63 @@ class TestAuthorization(unittest.TestCase):
 
     def test_is_bearer(self):
         headers = {"Authorization": "Bearer xyz"}
-        result = AuthorizationService.is_bearer(headers)
+        result = SecurityService.is_bearer(headers)
         self.assertEqual(True, result)
 
     def test_is_basic_auth(self):
         headers = {"Authorization": "Basic xyz"}
-        result = AuthorizationService.is_basic_auth(headers)
+        result = SecurityService.is_basic_auth(headers)
         self.assertEqual(True, result)
 
     def test_is_not_basic_auth(self):
         headers = {"Authorization": "Signature xyz"}
-        result = AuthorizationService.is_basic_auth(headers)
+        result = SecurityService.is_basic_auth(headers)
         self.assertEqual(False, result)
 
     def test_is_http_signature(self):
         headers = {"Authorization": "Signature xyz"}
-        result = AuthorizationService.is_http_signature(headers)
+        result = SecurityService.is_http_signature(headers)
         self.assertEqual(True, result)
 
     def test_is_not_http_signature(self):
         headers = {"Authorization": "Basic xyz"}
-        result = AuthorizationService.is_http_signature(headers)
+        result = SecurityService.is_http_signature(headers)
         self.assertEqual(False, result)
 
     def test_is_api_key(self):
         headers = {"Authorization": "dynamoplus-api-key xyz"}
-        result = AuthorizationService.is_api_key(headers)
+        result = SecurityService.is_api_key(headers)
         self.assertEqual(True, result)
 
     def test_is_not_api_key(self):
         headers = {"Authorization": "Basic xyz"}
-        result = AuthorizationService.is_api_key(headers)
+        result = SecurityService.is_api_key(headers)
         self.assertEqual(False, result)
 
     def test_is_authorized_basic_auth(self):
         headers = {"Authorization": "Basic cm9vdDpwYXNzd29yZA=="}
-        result = AuthorizationService.get_basic_auth_authorized(headers)
+        result = SecurityService.get_basic_auth_authorized(headers)
         self.assertEqual("root", result)
 
     def test_is_not_authorized_basic_auth(self):
         headers = {"Authorization": "Basic YWRtaW46cGFzc3dvcmQ="}
-        result = AuthorizationService.get_basic_auth_authorized(headers)
+        result = SecurityService.get_basic_auth_authorized(headers)
         self.assertIsNone(result)
 
     def test_is_authorized_bearer(self):
         headers = {
             "Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6InJvb3QiLCJleHBpcmF0aW9uIjo3MjU4MTE4NDAwMDAwfQ.IFv74hy7vodW_jePgabrgR2GPRc5AsQGgH-bC-IrmQA"
         }
-        result = AuthorizationService.get_bearer_authorized(headers)
+        result = SecurityService.get_bearer_authorized(headers)
         self.assertEqual("root", result)
 
     def test_is_not_authorized_bearer(self):
         headers = {
             "Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6InJvb3QiLCJleHBpcmF0aW9uIjoxNTQ2MzAwODAwMDAwfQ.v-F13TfSZI-eEcTz6u2bGFzxY-EK8NePE2fZG5iCl9g"}
-        result = AuthorizationService.get_bearer_authorized(headers)
+        result = SecurityService.get_bearer_authorized(headers)
         self.assertIsNone(result)
 
-    @patch.object(SystemService, "get_client_authorization")
+    @patch.object(AuthorizationService, "get_client_authorization")
     def test_get_signature(self, get_client_authorization):
         get_client_authorization.return_value = self.client_authorization_http_signature
         headers = {'Content-Type': 'application/json; charset=utf-8',
@@ -105,13 +106,13 @@ class TestAuthorization(unittest.TestCase):
 
         path = "/dynamoplus/category/query"
         method = "post"
-        client_authorization = AuthorizationService.get_client_authorization_using_http_signature_authorized(headers,
+        client_authorization = SecurityService.get_client_authorization_using_http_signature_authorized(headers,
                                                                                                              method,
                                                                                                              path)
         self.assertIsNotNone(client_authorization)
         self.assertEqual(self.client_authorization_http_signature, client_authorization)
 
-    @patch.object(SystemService, "get_client_authorization")
+    @patch.object(AuthorizationService, "get_client_authorization")
     def test_get_client_authorization_http_signature(self, get_client_authorization):
         get_client_authorization.return_value = self.client_authorization_http_signature
         headers = {"Host": "example.com",
@@ -123,17 +124,17 @@ class TestAuthorization(unittest.TestCase):
                    }
         path = "/foo?param=value&pet=dog"
         method = "post"
-        client_authorization = AuthorizationService.get_client_authorization_using_http_signature_authorized(headers,
+        client_authorization = SecurityService.get_client_authorization_using_http_signature_authorized(headers,
                                                                                                              method,
                                                                                                              path)
         self.assertIsNotNone(client_authorization)
         self.assertEqual(self.client_authorization_http_signature, client_authorization)
 
-    @patch.object(SystemService, "get_client_authorization")
+    @patch.object(AuthorizationService, "get_client_authorization")
     def test_get_scopes_api_key(self, get_client_authorization):
         get_client_authorization.return_value = self.client_authorization_api_key
         headers = {"Authorization": "dynamoplus-api-key my-api-key", "dynamoplus-client-id": "my-client-id"}
-        client_authorization = AuthorizationService.get_client_authorization_by_api_key(headers)
+        client_authorization = SecurityService.get_client_authorization_by_api_key(headers)
         self.assertEqual("my-client-id", client_authorization.client_id)
         self.assertEqual(1, len(client_authorization.client_scopes))
         self.assertEqual("foo", client_authorization.client_scopes[0].collection_name)
@@ -142,20 +143,20 @@ class TestAuthorization(unittest.TestCase):
 
     def test_check_scope_authorized_create(self):
         client_scopes = [Scope("whatever", ScopesType.CREATE), Scope("example", ScopesType.CREATE)]
-        result = AuthorizationService.check_scope("/dynamoplus/example", "POST", client_scopes)
+        result = SecurityService.check_scope("/dynamoplus/example", "POST", client_scopes)
         self.assertEqual(True, result)
 
     def test_check_scope_authorized_query(self):
         client_scopes = [Scope("whatever", ScopesType.CREATE), Scope("example", ScopesType.QUERY)]
-        result = AuthorizationService.check_scope("/dynamoplus/example/query/by_key", "POST", client_scopes)
+        result = SecurityService.check_scope("/dynamoplus/example/query/by_key", "POST", client_scopes)
         self.assertEqual(True, result)
 
     def test_check_scope_authorized_query_all(self):
         client_scopes = [Scope("example", ScopesType.QUERY), Scope("example", ScopesType.GET)]
-        result = AuthorizationService.check_scope("/dynamoplus/example/query", "POST", client_scopes)
+        result = SecurityService.check_scope("/dynamoplus/example/query", "POST", client_scopes)
         self.assertEqual(True, result)
 
     def test_check_scope_not_authorized_query(self):
         client_scopes = [Scope("whatever", ScopesType.CREATE), Scope("example", ScopesType.CREATE)]
-        result = AuthorizationService.check_scope("/dynamoplus/example/query/by_key", "POST", client_scopes)
+        result = SecurityService.check_scope("/dynamoplus/example/query/by_key", "POST", client_scopes)
         self.assertEqual(False, result)

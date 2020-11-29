@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from fastjsonschema import JsonSchemaException
 
-from dynamoplus.dynamo_plus import get as dynamoplus_get, update as dynamoplus_update, query as dynamoplus_query, \
+from dynamoplus.dynamo_plus_v2 import get as dynamoplus_get, update as dynamoplus_update, query as dynamoplus_query, \
     create as dynamoplus_create, delete as dynamoplus_delete, get_all as dynamoplus_get_all, HandlerException
 
 from dynamoplus.utils.decimalencoder import DecimalEncoder
@@ -102,7 +102,7 @@ class HttpHandler(object):
                                           body=self.format_json(
                                               {"msg": "Error in create entity {}".format(collection)}))
 
-    def delete(self, path_parameters, queryStringParameters=[], body=None, headers=None):
+    def delete(self, path_parameters, query_string_parameters=[], body=None, headers=None):
         document_id = path_parameters['id']
         collection = self.get_document_type_from_path_parameters(path_parameters)
         logger.info("delete {} by document_id {}".format(collection, document_id))

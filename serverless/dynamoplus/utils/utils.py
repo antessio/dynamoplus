@@ -20,7 +20,7 @@ def auto_str(cls):
     return cls
 
 
-def convertToString(val):
+def convert_to_string(val):
     if isinstance(val, datetime):
         logging.debug("converting datetime {} to string ".format(val))
         return str(decimal.Decimal(datetime.timestamp(val)))
@@ -44,7 +44,7 @@ def find_value(d: dict, keys: List[str]):
         elif isinstance(v, List):
             return v
         else:
-            return convertToString(v)
+            return convert_to_string(v)
     else:
         return None
 

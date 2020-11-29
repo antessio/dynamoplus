@@ -1,7 +1,7 @@
 import logging
 
 ## TODO: use an interface and not directly the repo
-from dynamoplus.repository.repositories import create_tables,cleanup_tables
+from dynamoplus.v2.repository.repositories import create_tables,cleanup_tables
 
 
 logging.basicConfig(level=logging.INFO)
