@@ -62,7 +62,6 @@ provider:
 functions:
   auth:
     handler: aws/http/authorizer.authorize
-    cors: true
   handleStream:
     handler: aws/events/dynamodb.dynamo_stream_handler
     events:

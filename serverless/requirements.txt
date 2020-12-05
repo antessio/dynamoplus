@@ -17,7 +17,6 @@ DateTime==4.3
 decorator==4.4.2
 docker==4.2.0
 docutils==0.14
-ecdsa==0.15
 fastjsonschema==2.14.4
 future==0.18.2
 idna==2.9
