@@ -7,7 +7,7 @@ from typing import *
 import boto3
 from moto import mock_dynamodb2
 
-from aws.http.handler.handler import HttpHandler
+from aws.http.handler.handler_v2 import HttpHandler
 
 
 @mock_dynamodb2
@@ -60,26 +60,26 @@ class TestHttpHandler(unittest.TestCase):
                                         "data": "example-client-id",
                                         "document": "{\"type\":\"api_key\",\"client_id\":\"example-client-id\",\"api_key\":\"test-api-key\",\"client_scopes\":[{\"collection_name\":\"example\",\"scope_type\":\"GET\"}]}"})
         ## index 1 - field1__field2.field21
-        self.systemTable.put_item(Item={"pk": "index#1", "sk": "index", "data": "1",
+        self.systemTable.put_item(Item={"pk": "index#example__field1__field2.field21", "sk": "index", "data": "example__field1__field2.field21",
                                         "document": "{\"uid\": \"1\",\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
-        self.systemTable.put_item(Item={"pk": "index#1", "sk": "index#collection.name", "data": "example",
+        self.systemTable.put_item(Item={"pk": "index#example__field1__field2.field21", "sk": "index#collection.name", "data": "example",
                                         "document": "{\"uid\": \"1\",\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
-        self.systemTable.put_item(Item={"pk": "index#1", "sk": "index#collection.name#name", "data": "example#field",
+        self.systemTable.put_item(Item={"pk": "index#example__field1__field2.field21", "sk": "index#collection.name#name", "data": "example#example__field1__field2.field21",
                                         "document": "{\"uid\": \"1\",\"name\":\"collection.name\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"field1\",\"field2.field21\"],\"fields\": [{\"field1\": \"string\"}, {\"field2.field21\": \"string\"}]}"})
 
         ##index 2 - even
-        self.systemTable.put_item(Item={"pk": "index#2", "sk": "index", "data": "2",
+        self.systemTable.put_item(Item={"pk": "index#example__even", "sk": "index", "data": "example__even",
                                         "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
-        self.systemTable.put_item(Item={"pk": "index#2", "sk": "index#name", "data": "example",
+        self.systemTable.put_item(Item={"pk": "index#example__even", "sk": "index#name", "data": "example",
                                         "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
-        self.systemTable.put_item(Item={"pk": "index#2", "sk": "index#collection.name#name", "data": "example#even",
+        self.systemTable.put_item(Item={"pk": "index#example__even", "sk": "index#collection.name#name", "data": "example#example__even",
                                         "document": "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}"})
         ## index 3 - starting
-        self.systemTable.put_item(Item={"pk": "index#3", "sk": "index", "data": "3",
+        self.systemTable.put_item(Item={"pk": "index#example__starting", "sk": "index", "data": "example__starting",
                                         "document": "{\"uid\": \"3\",\"name\":\"starting\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"starting\"]}"})
-        self.systemTable.put_item(Item={"pk": "index#3", "sk": "index#collection.name", "data": "example",
+        self.systemTable.put_item(Item={"pk": "index#example__starting", "sk": "index#collection.name", "data": "example",
                                         "document": "{\"uid\": \"3\",\"name\":\"starting\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"starting\"]}"})
-        self.systemTable.put_item(Item={"pk": "index#3", "sk": "index#collection.name#name", "data": "example#starting",
+        self.systemTable.put_item(Item={"pk": "index#example__starting", "sk": "index#collection.name#name", "data": "example#example__starting",
                                         "document": "{\"uid\": \"3\",\"name\":\"starting\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"starting\"]}"})
 
     def fill_data(self):

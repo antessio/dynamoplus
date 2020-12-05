@@ -71,7 +71,7 @@ functions:
           arn: { Fn::GetAtt: [ DomainDynamoDbTable, StreamArn ] }
           batchSize: 1
   custom:
-    handler: aws/http/http.custom
+    handler: aws/http/http_v2.custom
     events:
       - http:
           path: /custom/{proxy+}
@@ -126,7 +126,7 @@ functions:
           cors: true
 
   create:
-    handler: aws/http/http.create
+    handler: aws/http/http_v2.create
     events:
       - http:
           path: dynamoplus/{collection}
@@ -137,7 +137,7 @@ functions:
             type: request
 
   query:
-    handler: aws/http/http.query
+    handler: aws/http/http_v2.query
     events:
       - http:
           path: dynamoplus/{collection}/query
@@ -148,7 +148,7 @@ functions:
             type: request
 
   getAll:
-    handler: aws/http/http.get
+    handler: aws/http/http_v2.get
     events:
       - http:
           path: dynamoplus/{collection}
@@ -158,7 +158,7 @@ functions:
             name: auth
             type: request
   get:
-    handler: aws/http/http.get
+    handler: aws/http/http_v2.get
     events:
       - http:
           path: dynamoplus/{collection}/{id}
@@ -169,7 +169,7 @@ functions:
             type: request
 
   update:
-    handler: aws/http/http.update
+    handler: aws/http/http_v2.update
     events:
       - http:
           path: dynamoplus/{collection}/{id}
@@ -180,7 +180,7 @@ functions:
             type: request
 
   delete:
-    handler: aws/http/http.delete
+    handler: aws/http/http_v2.delete
     events:
       - http:
           path: dynamoplus/{collection}/{id}

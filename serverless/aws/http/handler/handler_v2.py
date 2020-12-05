@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from fastjsonschema import JsonSchemaException
 
-from dynamoplus.dynamo_plus import get as dynamoplus_get, update as dynamoplus_update, query as dynamoplus_query, \
+from dynamoplus.dynamo_plus_v2 import get as dynamoplus_get, update as dynamoplus_update, query as dynamoplus_query, \
     create as dynamoplus_create, delete as dynamoplus_delete, get_all as dynamoplus_get_all, HandlerException
 
 from dynamoplus.utils.decimalencoder import DecimalEncoder

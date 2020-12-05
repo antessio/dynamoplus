@@ -20,7 +20,7 @@ def auto_str(cls):
     return cls
 
 
-def convertToString(val):
+def convert_to_string(val):
     if isinstance(val, datetime):
         logging.debug("converting datetime {} to string ".format(val))
         return str(decimal.Decimal(datetime.timestamp(val)))
@@ -44,7 +44,7 @@ def find_value(d: dict, keys: List[str]):
         elif isinstance(v, List):
             return v
         else:
-            return convertToString(v)
+            return convert_to_string(v)
     else:
         return None
 
@@ -151,10 +151,10 @@ def filter_out_not_included_fields(d: dict, included_fields: List[str]):
     return result
 
 
-def find_removed_values(before: dict, after: dict):
+def find_removed_values(before: dict, after: dict, include_changed_values: bool = False):
     removed_values = {}
     for k in before.keys():
-        if k not in after:
+        if after is None or k not in after:
             removed_values[k] = before[k]
         elif isinstance(before[k], dict) and (isinstance(after[k], dict)):
             v = find_removed_values(before[k], after[k])
@@ -174,15 +174,14 @@ def find_removed_values(before: dict, after: dict):
                 removed_values_list = []
                 for i, after_value in enumerate(after[k]):
                     if isinstance(after_value, dict):
-                        v = find_removed_values(before[k][i], after_value)
+                        v = find_removed_values(before[k][i], after_value, True)
                         if v is not None:
                             removed_values_list.append(v)
                     elif after_value != before[k][i]:
                         removed_values_list.append(before[k][i])
                 if len(removed_values_list) > 0:
                     removed_values[k] = removed_values_list
-
-        elif before[k] != after[k]:
+        elif before[k] != after[k] and include_changed_values:
             removed_values[k] = before[k]
     return removed_values if len(removed_values.keys()) > 0 else None
 
@@ -190,7 +189,7 @@ def find_removed_values(before: dict, after: dict):
 def find_added_values(before: dict, after: dict):
     added_values = {}
     for k in after.keys():
-        if k not in before:
+        if before is None or k not in before:
             added_values[k] = after[k]
         elif isinstance(before[k], dict) and (isinstance(after[k], dict)):
             v = find_added_values(before[k], after[k])

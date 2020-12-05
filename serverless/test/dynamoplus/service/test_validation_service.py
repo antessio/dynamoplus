@@ -150,7 +150,6 @@ class TestValidationService(unittest.TestCase):
 
     def test_validate_index_success(self):
         index = {
-            "uid": str(uuid.uuid4()),
             "name": "index_name",
             "collection": {
                 "id_key": "x",
@@ -175,7 +174,6 @@ class TestValidationService(unittest.TestCase):
         }
         self.assertRaises(JsonSchemaException, validate_index, index)
         index = {
-            "uid": str(uuid.uuid4()),
             "name": "index_name",
             "conditions": [
                 "c.1", "c.2", "c.3"
@@ -183,7 +181,6 @@ class TestValidationService(unittest.TestCase):
         }
         self.assertRaises(JsonSchemaException, validate_index, index)
         index = {
-            "uid": str(uuid.uuid4()),
             "collection": {
                 "id_key": "x",
                 "name": "y",
