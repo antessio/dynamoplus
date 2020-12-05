@@ -43,13 +43,11 @@ COLLECTION_SCHEMA_DEFINITION = {
 
 INDEX_SCHEMA_DEFINITION = {
     "properties": {
-        "uid": {"type": "string", "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"},
         "collection": COLLECTION_SCHEMA_DEFINITION,
         "conditions": {"type": "array", "items": {"type": "string"}},
         "configuration":{"type":"string","enum":["OPTIMIZE_READ","OPTIMIZE_WRITE"]}
     },
     "required": [
-        "uid",
         "collection",
         "conditions"
     ]
