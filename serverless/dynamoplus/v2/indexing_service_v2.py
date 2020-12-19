@@ -1,9 +1,6 @@
 import logging
 
-from typing import Callable
-
 from dynamoplus.models.system.index.index import IndexConfiguration
-from dynamoplus.v2.repository.repositories import Repository, Model, get_table_name
 from dynamoplus.v2.service.system.system_service import Collection
 from dynamoplus.v2.service.system.system_service import IndexService,CollectionService
 from dynamoplus.v2.service.model_service import get_index_model
@@ -16,21 +13,6 @@ from dynamoplus.utils.utils import find_added_values, find_removed_values, find_
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-
-# def __indexing(model_action: Callable[[Model], None],
-#                collection: Collection,
-#                new_record: dict):
-#     is_system_collection = is_system(collection)
-#     if not is_system_collection:
-#         logger.debug("{} is not system".format(collection.name))
-#         indexes_by_collection_name = IndexService.get_indexes_from_collection_name_generator(
-#             collection.name)
-#         for index in indexes_by_collection_name:
-#             logger.debug("found index {}".format(str(index)))
-#
-#             index_model = get_index_model(collection,index,new_record)
-#             if index_model.data:
-#                 model_action(index_model)
 
 def __indexing(collection_metadata: Collection,
                new_record: dict,
