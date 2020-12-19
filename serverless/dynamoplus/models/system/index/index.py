@@ -17,8 +17,8 @@ class IndexConfiguration(Enum):
 
 @auto_str
 class Index(object):
-    def __init__(self, collection_name: str, conditions: List[str], ordering_key: str = None,
-                 index_configuration: IndexConfiguration = IndexConfiguration.OPTIMIZE_READ):
+    def __init__(self, collection_name: str, conditions: List[str],
+                 index_configuration: IndexConfiguration = IndexConfiguration.OPTIMIZE_READ, ordering_key: str = None):
         self._collection_name = collection_name
         self._conditions = conditions
         conditions_set = set(self._conditions)

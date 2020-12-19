@@ -81,7 +81,7 @@ class QueryResult(object):
         return ".".join(map(lambda model: model.document, self.data))
 
     def __eq__(self, o: object) -> bool:
-        if o is isinstance(QueryResult):
+        if isinstance(o,QueryResult):
             if len(o.data) == len(self.data):
                 # return self.data == o.data
                 return True
