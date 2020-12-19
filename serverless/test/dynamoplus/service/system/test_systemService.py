@@ -5,7 +5,7 @@ import uuid
 
 from dynamoplus.models.query.conditions import Eq
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
-from dynamoplus.models.system.index.index import Index
+from dynamoplus.models.system.index.index import Index, IndexConfiguration
 from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
     ClientAuthorizationHttpSignature, ClientAuthorizationApiKey, Scope, ScopesType
 
@@ -196,7 +196,7 @@ class TestSystemService(unittest.TestCase):
             "conditions": expected_conditions,
             "ordering_key": "field2.field21"}
         mock_repository.return_value = None
-        index = Index("example", expected_conditions, "field2.field21")
+        index = Index("example", expected_conditions,IndexConfiguration.OPTIMIZE_READ, "field2.field21")
         expected_index_model = Model("index#" + expected_name, "index", expected_name, target_index)
         mock_query.return_value = QueryResult([expected_index_model], None)
         created_index = IndexService.create_index(index)
@@ -227,7 +227,7 @@ class TestSystemService(unittest.TestCase):
         mock_repository.return_value = None
         mock_create.return_value = expected_index_model
         mock_query.return_value = QueryResult([], None)
-        index = Index("example", expected_conditions, "field2.field21")
+        index = Index("example", expected_conditions, IndexConfiguration.OPTIMIZE_READ, "field2.field21")
         created_index = IndexService.create_index(index)
         index_name = created_index.index_name
         self.assertEqual(index_name, expected_name)
