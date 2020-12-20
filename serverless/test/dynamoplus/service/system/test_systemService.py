@@ -214,13 +214,12 @@ class TestSystemService(unittest.TestCase):
     def test_createIndexWithOrdering(self, mock_repository, mock_create, mock_query):
         expected_name = 'example__field1__field2.field21__ORDER_BY__field2.field21'
         expected_conditions = ["field1", "field2.field21"]
-        expected_id = uuid.uuid4().__str__()
         target_index = {
             "name": expected_name,
             "collection": {"name": "example"},
             "conditions": expected_conditions,
+            "configuration": "OPTIMIZE_READ",
             "ordering_key": "field2.field21"}
-        index_metadata = Collection("index", "name")
         # expected_model = Model(index_metadata, target_index)
         expected_index_model = Model("index#" + expected_name, "index", expected_name, target_index)
 
@@ -231,7 +230,10 @@ class TestSystemService(unittest.TestCase):
         created_index = IndexService.create_index(index)
         index_name = created_index.index_name
         self.assertEqual(index_name, expected_name)
-        self.assertEqual(call(expected_index_model), mock_create.call_args_list[0])
+        #self.assertEqual(call(expected_index_model), mock_create.call_args_list[0])
+        calls = [call(expected_index_model),
+                 call(Model("index#"+expected_name, "index#collection.name","example",target_index))]
+        mock_create.assert_has_calls(calls)
 
 
 

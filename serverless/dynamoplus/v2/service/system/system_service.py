@@ -34,9 +34,12 @@ class Converter:
 
     @staticmethod
     def from_index_to_dict(index: Index):
-        d = {"name": index.index_name, "collection": {"name": index.collection_name},
+        d = {"name": index.index_name,
+             "collection": {"name": index.collection_name},
                  "conditions": index.conditions}
-        if index.index_configuration is not None:
+        if index.ordering_key:
+            d["ordering_key"] = index.ordering_key
+        if index.index_configuration:
             d["configuration"]=index.index_configuration.name
         return d
 
@@ -237,9 +240,9 @@ class IndexService:
                 get_index_model(index_metadata, Index("index", ["collection.name"]), index_dict))
             logger.info(
                 "{} has been indexed {}".format(created_index.collection_name, index_by_collection_name_model.document))
-            index_by_name_model = repo.create(
-                get_index_model(index_metadata, Index("index", ["collection.name", "name"]), index_dict))
-            logger.info("{} has been indexed {}".format(created_index.collection_name, index_by_name_model.document))
+            # index_by_name_model = repo.create(
+            #     get_index_model(index_metadata, Index("index", ["collection.name", "name"]), index_dict))
+            # logger.info("{} has been indexed {}".format(created_index.collection_name, index_by_name_model.document))
             return created_index
 
     @staticmethod
