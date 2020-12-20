@@ -24,7 +24,7 @@ class QueryService:
             result = QueryService.__query_all(collection, limit, start_from)
         else:
             result = QueryService.__query_begins_with(collection, predicate, index.conditions, start_from, limit)
-        if index.index_configuration == IndexConfiguration.OPTIMIZE_WRITE:
+        if index is not None and index.index_configuration == IndexConfiguration.OPTIMIZE_WRITE:
             result = QueryResult(list(map(lambda m: Repository(get_table_name(is_system(collection))).get(m.pk, collection.name), result.data)), result.lastEvaluatedKey)
         return result
 

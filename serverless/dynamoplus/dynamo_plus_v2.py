@@ -88,7 +88,7 @@ def get(collection_name: str, document_id: str):
             logger.info("Found collection {}".format(collection_metadata.__str__))
             return collection_metadata.__dict__
         elif collection_name == 'index':
-            index_metadata = IndexService.get_index(document_id, collection_name)
+            index_metadata = IndexService.get_index_by_name_and_collection_name(document_id, collection_name)
             if index_metadata is None:
                 raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
                                        "{} not found with name {}".format(collection_name, document_id))

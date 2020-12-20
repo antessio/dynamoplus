@@ -34,8 +34,12 @@ class Converter:
 
     @staticmethod
     def from_index_to_dict(index: Index):
-        return {"name": index.index_name, "collection": {"name": index.collection_name},
-                "conditions": index.conditions, "configuration": index.index_configuration.name}
+        d = {"name": index.index_name, "collection": {"name": index.collection_name},
+                 "conditions": index.conditions}
+        if index.index_configuration is not None:
+            d["configuration"]=index.index_configuration.name
+        return d
+
 
     @staticmethod
     def from_dict_to_index(d: dict):
@@ -66,17 +70,7 @@ class Converter:
             result["whitelist_hosts"] = client_authorization.whitelist_hosts
         return result
 
-    @staticmethod
-    def from_index_to_dict(index_metadata: Index):
-        return {
-            "name": index_metadata.index_name,
-            "collection": {
-                "name": index_metadata.collection_name
-            },
-            "ordering_key": index_metadata._ordering_key,
-            "conditions": index_metadata.conditions
 
-        }
 
     @staticmethod
     def from_collection_to_dict(collection: Collection):
@@ -224,7 +218,9 @@ class IndexService:
 
     @staticmethod
     def create_index(index: Index) -> Index:
+        logger.debug("index : {} ".format(index.__str__()))
         index_dict = Converter.from_index_to_dict(index)
+        logger.debug("index dict : {} ".format(index_dict))
 
         existing_index,last_index_id = IndexService.get_index_by_name(index.index_name)
 
