@@ -240,9 +240,9 @@ class IndexService:
                 get_index_model(index_metadata, Index("index", ["collection.name"]), index_dict))
             logger.info(
                 "{} has been indexed {}".format(created_index.collection_name, index_by_collection_name_model.document))
-            # index_by_name_model = repo.create(
-            #     get_index_model(index_metadata, Index("index", ["collection.name", "name"]), index_dict))
-            # logger.info("{} has been indexed {}".format(created_index.collection_name, index_by_name_model.document))
+            index_by_name_model = repo.create(
+                get_index_model(index_metadata, Index("index", ["collection.name", "name"]), index_dict))
+            logger.info("{} has been indexed {}".format(created_index.collection_name, index_by_name_model.document))
             return created_index
 
     @staticmethod
