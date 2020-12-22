@@ -42,7 +42,7 @@ class TestDynamoPlusHandler(unittest.TestCase):
     def test_get_documents_by_index(self, mock_get_collection,mock_get_index_matching_fields,mock_query):
         expected_collection = Collection("example", "id", "ordering")
         mock_get_collection.return_value = expected_collection
-        expected_index = Index("1","example", ["attribute1"])
+        expected_index = Index("example", ["attribute1"])
         expected_predicate = Eq("attribute1","1")
         mock_get_index_matching_fields.return_value=expected_index
         expected_documents = [

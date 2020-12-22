@@ -6,7 +6,7 @@ from dynamoplus.models.system.client_authorization.client_authorization import C
     ClientAuthorizationApiKey, ClientAuthorizationHttpSignature, Scope, ScopesType
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType, \
     AttributeConstraint
-from dynamoplus.models.system.index.index import Index
+from dynamoplus.models.system.index.index import Index, IndexConfiguration
 from dynamoplus.v2.service.common import get_repository_factory
 from dynamoplus.v2.service.model_service import get_model, get_index_model
 from dynamoplus.v2.service.query_service import QueryService
@@ -15,9 +15,9 @@ collection_metadata = Collection("collection", "name")
 index_metadata = Collection("index", "name")
 client_authorization_metadata = Collection("client_authorization", "client_id")
 
-index_by_collection_and_name_metadata = Index(None,index_metadata.name,["collection.name", "name"],None)
-index_by_collection_metadata = Index(None,index_metadata.name,["collection.name"],None)
-index_by_name_metadata = Index(None,index_metadata.name,["name"],None)
+index_by_collection_and_name_metadata = Index(index_metadata.name, ["collection.name", "name"], None)
+index_by_collection_metadata = Index(index_metadata.name, ["collection.name"], None)
+index_by_name_metadata = Index(index_metadata.name, ["name"], None)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -34,12 +34,20 @@ class Converter:
 
     @staticmethod
     def from_index_to_dict(index: Index):
-        return {"name": index.index_name, "collection": {"name": index.collection_name},
-                "conditions": index.conditions}
+        d = {"name": index.index_name,
+             "collection": {"name": index.collection_name},
+                 "conditions": index.conditions}
+        if index.ordering_key:
+            d["ordering_key"] = index.ordering_key
+        if index.index_configuration:
+            d["configuration"]=index.index_configuration.name
+        return d
+
 
     @staticmethod
     def from_dict_to_index(d: dict):
-        return Index(None, d["collection"]["name"], d["conditions"],
+        return Index(d["collection"]["name"], d["conditions"],
+                     IndexConfiguration.value_of(d["configuration"]) if "configuration" in d else None,
                      d["ordering_key"] if "ordering_key" in d else None)
 
     @staticmethod
@@ -65,17 +73,7 @@ class Converter:
             result["whitelist_hosts"] = client_authorization.whitelist_hosts
         return result
 
-    @staticmethod
-    def from_index_to_dict(index_metadata: Index):
-        return {
-            "name": index_metadata.index_name,
-            "collection": {
-                "name": index_metadata.collection_name
-            },
-            "ordering_key": index_metadata._ordering_key,
-            "conditions": index_metadata.conditions
 
-        }
 
     @staticmethod
     def from_collection_to_dict(collection: Collection):
@@ -223,7 +221,9 @@ class IndexService:
 
     @staticmethod
     def create_index(index: Index) -> Index:
+        logger.debug("index : {} ".format(index.__str__()))
         index_dict = Converter.from_index_to_dict(index)
+        logger.debug("index dict : {} ".format(index_dict))
 
         existing_index,last_index_id = IndexService.get_index_by_name(index.index_name)
 
@@ -237,11 +237,11 @@ class IndexService:
         if create_index_model:
             created_index = Converter.from_dict_to_index(create_index_model.document)
             index_by_collection_name_model = repo.create(
-                get_index_model(index_metadata, Index(index.index_name, "index", ["collection.name"]), index_dict))
+                get_index_model(index_metadata, Index("index", ["collection.name"]), index_dict))
             logger.info(
                 "{} has been indexed {}".format(created_index.collection_name, index_by_collection_name_model.document))
             index_by_name_model = repo.create(
-                get_index_model(index_metadata,Index(index.index_name, "index", ["collection.name", "name"]), index_dict))
+                get_index_model(index_metadata, Index("index", ["collection.name", "name"]), index_dict))
             logger.info("{} has been indexed {}".format(created_index.collection_name, index_by_name_model.document))
             return created_index
 

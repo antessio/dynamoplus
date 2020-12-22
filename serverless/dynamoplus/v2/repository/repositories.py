@@ -81,7 +81,7 @@ class QueryResult(object):
         return ".".join(map(lambda model: model.document, self.data))
 
     def __eq__(self, o: object) -> bool:
-        if o is isinstance(QueryResult):
+        if isinstance(o,QueryResult):
             if len(o.data) == len(self.data):
                 # return self.data == o.data
                 return True
@@ -136,11 +136,15 @@ class Repository(RepositoryInterface):
             # only updates attributes in the id_key or pk or sk
             logger.info("updating {} ".format(dynamo_db_item))
 
-            update_expression = "SET document=:document, data=:data"
+            update_expression = "SET #document=:document, #data=:data"
 
             expression_attributes_values = {
                 ":document": model.document,
                 ":data": model.data
+            }
+            expression_attribute_name={
+                "#data": "data",
+                "#document": "document"
             }
             response = self.table.update_item(
                 Key={
@@ -149,6 +153,7 @@ class Repository(RepositoryInterface):
                 },
                 UpdateExpression=update_expression,
                 ExpressionAttributeValues=expression_attributes_values,
+                ExpressionAttributeNames=expression_attribute_name,
                 ReturnValues="UPDATED_NEW"
             )
             logger.info("Response from update operation is " + response.__str__())
