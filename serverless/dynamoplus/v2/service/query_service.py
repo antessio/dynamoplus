@@ -1,7 +1,7 @@
 from typing import *
 from dynamoplus.models.query.conditions import Predicate, get_range_predicate, AnyMatch
 from dynamoplus.models.system.collection.collection import Collection
-from dynamoplus.models.system.index.index import Index
+from dynamoplus.models.system.index.index import Index, IndexConfiguration
 from dynamoplus.v2.repository.repositories import QueryResult, get_table_name, QueryRepository, Repository
 from dynamoplus.v2.service.model_service import get_pk, get_sk
 from dynamoplus.v2.service.common import is_system
@@ -17,12 +17,16 @@ class QueryService:
     @staticmethod
     def query(collection: Collection, predicate: Predicate, index: Index, start_from: str = None,
               limit: int = 20) -> QueryResult:
+        result = None
         if predicate.is_range():
-            return QueryService.__query_range(collection, predicate, index.conditions, start_from, limit)
+            result = QueryService.__query_range(collection, predicate, index.conditions, start_from, limit)
         elif isinstance(predicate, AnyMatch):
-            return QueryService.__query_all(collection, limit, start_from)
+            result = QueryService.__query_all(collection, limit, start_from)
         else:
-            return QueryService.__query_begins_with(collection, predicate, index.conditions, start_from, limit)
+            result = QueryService.__query_begins_with(collection, predicate, index.conditions, start_from, limit)
+        if index is not None and index.index_configuration == IndexConfiguration.OPTIMIZE_WRITE:
+            result = QueryResult(list(map(lambda m: Repository(get_table_name(is_system(collection))).get(m.pk, collection.name), result.data)), result.lastEvaluatedKey)
+        return result
 
     @staticmethod
     def __query_range(collection: Collection, predicate: Predicate, fields: List[str], start_from: str = None,

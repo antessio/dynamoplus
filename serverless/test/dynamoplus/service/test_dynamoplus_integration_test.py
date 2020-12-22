@@ -59,7 +59,6 @@ class TestDynamoPlusService(unittest.TestCase):
             ]
         })
         index = {
-            "uid": str(uuid.uuid4()),
             "name": "index",
             "collection":{
                 "id_key": "id",

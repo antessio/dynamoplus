@@ -98,7 +98,7 @@ class TestDomainService(unittest.TestCase):
             Model("example#2", "example", "2", {"id": "2", "attribute1": "1"})
         ])
         # when
-        index = Index("1", "example", ["attribute1"])
+        index = Index("example", ["attribute1"])
         predicate = Eq("attribute1", "1")
         documents, last_evaluated_key = self.domainService.query(predicate, index)
         # then

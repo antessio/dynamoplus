@@ -44,7 +44,8 @@ COLLECTION_SCHEMA_DEFINITION = {
 INDEX_SCHEMA_DEFINITION = {
     "properties": {
         "collection": COLLECTION_SCHEMA_DEFINITION,
-        "conditions": {"type": "array", "items": {"type": "string"}}
+        "conditions": {"type": "array", "items": {"type": "string"}},
+        "configuration":{"type":"string","enum":["OPTIMIZE_READ","OPTIMIZE_WRITE"]}
     },
     "required": [
         "collection",
