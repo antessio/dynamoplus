@@ -112,3 +112,4 @@ venv.bak/
 .mypy_cache/
 
 .idea/
+/dynamodb-docker-data/*
