@@ -2,6 +2,7 @@ import fastjsonschema
 import logging
 from fastjsonschema import JsonSchemaDefinitionException, JsonSchemaException
 
+from dynamoplus.models.system.aggregation.aggregation import AggregationType, AggregationTrigger
 from dynamoplus.models.system.collection.collection import Collection, AttributeConstraint, AttributeType, \
     AttributeDefinition
 
@@ -11,7 +12,7 @@ logger.setLevel(logging.INFO)
 COLLECTION_ATTRIBUTE_BASE_SCHEMA_DEFINITION = {
     "name": {"type": "string"},
     "type": {"type": "string", "enum": ["STRING", "OBJECT", "NUMBER", "DATE", "ARRAY"]},
-    "constraints": {"type": "array", "items": {"type":"string","enum": ["NULLABLE", "NOT_NULL"]}}
+    "constraints": {"type": "array", "items": {"type": "string", "enum": ["NULLABLE", "NOT_NULL"]}}
 }
 
 COLLECTION_ATTRIBUTE_SCHEMA_DEFINITION = {
@@ -29,7 +30,7 @@ COLLECTION_SCHEMA_DEFINITION = {
         "id_key": {"type": "string"},
         "name": {"type": "string"},
         "ordering": {"type": "string"},
-        "auto_generate_id": {"type":"boolean"},
+        "auto_generate_id": {"type": "boolean"},
         "attributes": {
             "type": "array",
             "items": COLLECTION_ATTRIBUTE_SCHEMA_DEFINITION
@@ -41,11 +42,61 @@ COLLECTION_SCHEMA_DEFINITION = {
     ]
 }
 
+BASE_COLLECTION_SCHEMA_DEFINITION = {
+    "properties": {
+        "name": {"type": "string"}
+    },
+    "required": ["name"]
+}
+PREDICATE_SCHEMA_DEFINITION = {
+    "properties": {
+        "field_name": {"type": "string"},
+        "value": {"type": "string"}
+    },
+    "required": [
+        "field_name",
+        "value"
+    ]
+}
+MATCHES_SCHEMA_DEFINITION = {
+    "properties": {
+        "eq": PREDICATE_SCHEMA_DEFINITION,
+        "and": {
+            "type": "array",
+            "items": {
+                "properties": {
+                    "eq": PREDICATE_SCHEMA_DEFINITION
+                },
+                "required": ["eq"]
+            }
+        }
+    }
+}
+AGGREGATION_SCHEMA_DEFINITION = {
+    "properties": {
+        "collection": BASE_COLLECTION_SCHEMA_DEFINITION,
+        "type": {
+            "type": "string", "enum": AggregationType.types()
+        },
+        "aggregation": {
+            "properties": {
+                "on": {"type": "array", "items":{"type": "string", "enum": AggregationTrigger.types()}},
+                "target_field": {"type": "string"},
+                "matches": MATCHES_SCHEMA_DEFINITION
+            },
+            "required": ["on"]
+        }
+    },
+    "required":[
+        "collection","type","aggregation"
+    ]
+}
+
 INDEX_SCHEMA_DEFINITION = {
     "properties": {
-        "collection": COLLECTION_SCHEMA_DEFINITION,
+        "collection": BASE_COLLECTION_SCHEMA_DEFINITION,
         "conditions": {"type": "array", "items": {"type": "string"}},
-        "configuration":{"type":"string","enum":["OPTIMIZE_READ","OPTIMIZE_WRITE"]}
+        "configuration": {"type": "string", "enum": ["OPTIMIZE_READ", "OPTIMIZE_WRITE"]}
     },
     "required": [
         "collection",
@@ -86,23 +137,7 @@ CLIENT_AUTHORIZATION_API_KEY_SCHEMA_DEFINITION = {
 QUERY_SCHEMA_DEFINITION = {
     "type": "object",
     "properties": {
-        "matches": {
-            "type": "object",
-            "properties": {
-                "collection": {
-                    "type": "object",
-                    "properties": {
-                        "name": {
-                            "type": "string",
-                            "description": "collection name"
-                        }
-
-                    },
-                    "required": ["name"]
-                }
-            },
-            "required": ["collection"]
-        }
+        "matches": MATCHES_SCHEMA_DEFINITION
     },
     "required": ["matches"]
 }
@@ -144,6 +179,14 @@ def validate_client_authorization_http_signature(client_authorization: dict):
 def validate_client_authorization_api_key(client_authorization: dict):
     __validate(client_authorization, CLIENT_AUTHORIZATION_SCHEMA_DEFINITION)
     __validate(client_authorization, CLIENT_AUTHORIZATION_API_KEY_SCHEMA_DEFINITION)
+
+
+def validate_query(query: dict):
+    __validate(query, QUERY_SCHEMA_DEFINITION)
+
+
+def validate_aggregation(aggregation: dict):
+    __validate(aggregation, AGGREGATION_SCHEMA_DEFINITION)
 
 
 def validate_document(document: dict, collection_metadata: Collection):

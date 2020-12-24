@@ -4,7 +4,8 @@ import uuid
 from fastjsonschema import JsonSchemaException
 
 from dynamoplus.service.validation_service import is_collection_schema_valid, validate_document, validate_collection, \
-    validate_index, validate_client_authorization_api_key, __validate as validate, validate_client_authorization
+    validate_index, validate_client_authorization_api_key, __validate as validate, validate_client_authorization,\
+    validate_query,validate_aggregation
 
 
 class TestValidationService(unittest.TestCase):
@@ -164,7 +165,6 @@ class TestValidationService(unittest.TestCase):
 
     def test_validate_index_error(self):
         index = {
-            "uid": str(uuid.uuid4()),
             "name": "index_name",
             "collection": {
                 "id_key": "x",
@@ -172,6 +172,7 @@ class TestValidationService(unittest.TestCase):
                 "ordering": "z"
             }
         }
+
         self.assertRaises(JsonSchemaException, validate_index, index)
         index = {
             "name": "index_name",
@@ -240,3 +241,143 @@ class TestValidationService(unittest.TestCase):
         }
         self.assertRaises(JsonSchemaException, validate_client_authorization_api_key, client_authorization)
         self.assertRaises(JsonSchemaException, validate_client_authorization, client_authorization)
+
+    def test_validate_query_errors(self):
+        query = {
+
+        }
+        self.assertRaises(JsonSchemaException, validate_query, query)
+
+        query = {
+            "matches":{
+                "eq":{
+
+                }
+            }
+        }
+        self.assertRaises(JsonSchemaException, validate_query, query)
+
+        query = {
+            "matches": {
+                "and": {
+
+                }
+            }
+        }
+        self.assertRaises(JsonSchemaException, validate_query, query)
+
+        query = {
+            "matches": {
+                "and": [
+                    {
+                        "whatever": "x"
+                    }
+                ]
+            }
+        }
+        self.assertRaises(JsonSchemaException, validate_query, query)
+
+    def test_validate_query_valid(self):
+        query = {
+            "matches":{
+                "eq":{
+                    "field_name": "x",
+                    "value": "y"
+                }
+            }
+        }
+        validate_query(query)
+
+        query = {
+            "matches": {
+                "and":[
+                    {
+                        "eq": {
+                            "field_name": "x",
+                            "value": "y"
+                        }
+                    },
+                    {
+                        "eq": {
+                            "field_name": "Z",
+                            "value": "1"
+                        }
+                    }
+                ]
+
+            }
+        }
+        validate_query(query)
+
+    def test_validate_aggregation_valid(self):
+        aggregation = {
+            "collection": {
+                "name": "example"
+            },
+            "type": "AVG_JOIN",
+            "aggregation": {
+                "on": ["INSERT"],
+                "target_field": "x",
+                "join": {
+                    "collection_name": "restaurant",
+                    "using_field": "restaurant_id"
+                }
+            }
+        }
+        validate_aggregation(aggregation)
+
+    def test_validate_aggregation_errors(self):
+        aggregation = {
+
+        }
+        self.assertRaises(JsonSchemaException, validate_aggregation, aggregation)
+        aggregation = {
+            "collection": {
+
+            },
+            "type": "AVG_JOIN",
+            "aggregation":{
+                "on":["INSERT"],
+                "target_field": "x",
+                "join": {
+                    "collection_name": "restaurant",
+                    "using_field": "restaurant_id"
+                }
+            }
+        }
+        self.assertRaises(JsonSchemaException, validate_aggregation, aggregation)
+        aggregation = {
+            "collection": {
+                "name": "example"
+            },
+            "aggregation": {
+                "on": ["INSERT"],
+                "target_field": "x",
+                "join": {
+                    "collection_name": "restaurant",
+                    "using_field": "restaurant_id"
+                }
+            }
+        }
+        self.assertRaises(JsonSchemaException, validate_aggregation, aggregation)
+        aggregation = {
+            "collection": {
+                "name": "example"
+            },
+            "type": "AVG_JOIN"
+        }
+        self.assertRaises(JsonSchemaException, validate_aggregation, aggregation)
+        aggregation = {
+            "collection": {
+                "name": "example"
+            },
+            "type": "AVG_JOIN",
+            "aggregation": {
+                "target_field": "x",
+                "join": {
+                    "collection_name": "restaurant",
+                    "using_field": "restaurant_id"
+                }
+            }
+        }
+        self.assertRaises(JsonSchemaException, validate_aggregation, aggregation)
