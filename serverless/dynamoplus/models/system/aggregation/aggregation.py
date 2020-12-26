@@ -19,6 +19,12 @@ class AggregationType(str, Enum):
     def types(cls):
         return [t for t,v in cls.__members__.items()]
 
+    @staticmethod
+    def value_of(value) -> Enum:
+        for m, mm in AggregationType.__members__.items():
+            if m == value.upper():
+                return mm
+
 
 class AggregationTrigger(Enum):
     INSERT = "INSERT"
@@ -29,6 +35,12 @@ class AggregationTrigger(Enum):
     def types(cls):
         return [t for t, v in cls.__members__.items()]
 
+    @staticmethod
+    def value_of(value) -> Enum:
+        for m, mm in AggregationTrigger.__members__.items():
+            if m == value.upper():
+                return mm
+
 
 @auto_str
 class AggregationJoin(object):
@@ -37,6 +49,20 @@ class AggregationJoin(object):
         self.collection_name = collection_name
         self.using_field = using_field
 
+    def __members(self):
+        return self.collection_name, self.using_field
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.__members() == other.__members()
+        else:
+            return False
+
+    def __str__(self):
+        return "{" + ",".join(map(lambda x: x.__str__(), self.__members())) + "}"
+
+    def __hash__(self):
+        return hash(self.__members())
 
 @auto_str
 class Aggregation(object):
@@ -49,21 +75,24 @@ class Aggregation(object):
         self.target_field = target_field
         self.matches = matches
         self.join = join
+        self.name = Aggregation.get_name(collection_name,type,target_field,matches,join)
 
-    def name(self):
+    @staticmethod
+    def get_name(collection_name: str, type: AggregationType, target_field: str,
+                 matches: Predicate, join: AggregationJoin):
         matches_part = ""
         join_part = ""
         target_part = ""
-        if self.target_field:
-            target_part = "_{}".format(self.target_field)
-        if self.matches:
-            matches_part = "_{}".format("_".join(self.matches.get_fields() + self.matches.get_values()))
-        if self.join:
-            join_part = "by_{}".format("_".join(self.join.collection_name))
-        return "{}{}_{}{}{}".format(self.collection_name, matches_part, self.type.name.lower(), target_part, join_part)
+        if target_field:
+            target_part = "_{}".format(target_field)
+        if matches:
+            matches_part = "_{}".format("_".join(matches.get_fields() + matches.get_values()))
+        if join:
+            join_part = "by_{}".format(join.collection_name)
+        return "{}{}_{}{}{}".format(collection_name, matches_part, type.name.lower(), target_part, join_part)
 
     def __members(self):
-        return self.collection_name, self.type,self.on,self.target_field,self.matches,self.join
+        return self.collection_name, self.type,self.on,self.target_field,self.matches,self.join, self.name
 
     def __eq__(self, other):
         if type(other) is type(self):

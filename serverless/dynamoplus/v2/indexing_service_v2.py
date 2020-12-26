@@ -1,14 +1,13 @@
 import logging
 
+from dynamoplus.models.system.aggregation.aggregation import AggregationTrigger
 from dynamoplus.models.system.index.index import IndexConfiguration
-from dynamoplus.v2.service.system.system_service import Collection
-from dynamoplus.v2.service.system.system_service import IndexService,CollectionService
+from dynamoplus.models.system.collection.collection import Collection
+from dynamoplus.v2.service.system.system_service import IndexService, CollectionService
 from dynamoplus.v2.service.model_service import get_index_model
 from dynamoplus.v2.service.common import is_system, get_repository_factory
 from dynamoplus.utils.utils import find_added_values, find_removed_values, find_updated_values, \
     filter_out_not_included_fields
-
-
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -19,9 +18,10 @@ def __indexing(collection_metadata: Collection,
                old_record: dict):
     is_system_collection = is_system(collection_metadata)
     if not is_system_collection:
-        to_remove_index_models = get_index_models_to_remove(collection_metadata, new_record,old_record)
-        to_add_index_models = get_index_models_to_add(collection_metadata, new_record,old_record)
-        to_update_index_models = get_index_models_to_update(collection_metadata, new_record,old_record)
+        ## This doesn't work, if an attribute not indexed it's updated then it doesn't update it
+        to_remove_index_models = get_index_models_to_remove(collection_metadata, new_record, old_record)
+        to_add_index_models = get_index_models_to_add(collection_metadata, new_record, old_record)
+        to_update_index_models = get_index_models_to_update(collection_metadata, new_record, old_record)
 
         repository = get_repository_factory(collection_metadata)
         for remove in to_remove_index_models:
@@ -32,6 +32,17 @@ def __indexing(collection_metadata: Collection,
 
         for update in to_update_index_models:
             repository.update(update)
+
+        # aggregations = AggregationService.get_aggregations_by_collection_name(collection_metadata.name)
+        # trigger = AggregationTrigger.UPDATE
+        # if old_record is None:
+        #     trigger = AggregationTrigger.INSERT
+        # elif new_record is None:
+        #     trigger = AggregationTrigger.DELETE
+
+        # for a in aggregations:
+        #     if trigger in a.on:
+        #         AggregationService.execute_aggregation(a,new_record)
 
 
 def get_index_models_to_remove(collection_metadata, new_record: dict, old_record: dict):
@@ -69,7 +80,8 @@ def find_matching_indexes(values: dict,
         for index in IndexService.get_indexes_from_collection_name_generator(collection_metadata.name):
             for field in changed_fields:
                 if field in index.conditions:
-                    document = record if index and (index.index_configuration is None or index.index_configuration == IndexConfiguration.OPTIMIZE_READ) \
+                    document = record if index and (
+                                index.index_configuration is None or index.index_configuration == IndexConfiguration.OPTIMIZE_READ) \
                         else filter_out_not_included_fields(record, index.conditions + [collection_metadata.id_key])
                     index_model = get_index_model(collection_metadata, index, document)
                     if not index_model in result:
@@ -89,20 +101,19 @@ def get_all_keys(d):
     return keys
 
 
-
 def create_indexes(collection_name: str, new_record: dict):
     collection_metadata = CollectionService.get_collection(collection_name)
 
     if collection_metadata:
-        __indexing(collection_metadata,new_record,None)
+        __indexing(collection_metadata, new_record, None)
     else:
         logger.debug('Skipping creating indexes on record of type {}:  collection not found'.format(collection_name))
 
 
-def update_indexes(collection_name: str, old_record:dict, new_record: dict):
+def update_indexes(collection_name: str, old_record: dict, new_record: dict):
     collection_metadata = CollectionService.get_collection(collection_name)
     if collection_metadata:
-        __indexing(collection_metadata,new_record,old_record)
+        __indexing(collection_metadata, new_record, old_record)
     else:
         logger.debug('Skipping creating indexes on record of type {}:  collection not found'.format(collection_name))
 
@@ -111,6 +122,6 @@ def delete_indexes(collection_name: str, new_record: dict):
     collection_metadata = CollectionService.get_collection(collection_name)
 
     if collection_metadata:
-        __indexing(collection_metadata,None, new_record)
+        __indexing(collection_metadata, None, new_record)
     else:
         logger.debug('Skipping deleting indexes on record of type {}:  collection not found'.format(collection_name))
