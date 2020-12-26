@@ -15,6 +15,17 @@ def find_sk_query(collection: Collection, fields: List[str]) -> str:
 class QueryService:
 
     @staticmethod
+    def query_generator(collection: Collection, predicate: Predicate, index: Index):
+        has_more = True
+        while has_more:
+            start_from = None
+            result, start_from = QueryService.query(collection,predicate,index, start_from, 20)
+            has_more = start_from is not None
+            for c in result:
+                yield c
+
+
+    @staticmethod
     def query(collection: Collection, predicate: Predicate, index: Index, start_from: str = None,
               limit: int = 20) -> QueryResult:
         result = None

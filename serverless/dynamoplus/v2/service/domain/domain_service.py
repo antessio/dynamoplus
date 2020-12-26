@@ -1,10 +1,17 @@
-from dynamoplus.models.query.conditions import Predicate, AnyMatch
+# from dynamoplus.models.query.conditions import Predicate, AnyMatch
+# from dynamoplus.models.system.collection.collection import Collection
+# from dynamoplus.models.system.index.index import Index
+# from dynamoplus.service.indexing_decorator import create_document, update_document, delete_document
+# from dynamoplus.v2.service.model_service import get_model
+# from dynamoplus.v2.service.system.system_service import QueryService
+# from dynamoplus.v2.service.common import get_repository_factory
+from dynamoplus.models.query.conditions import AnyMatch, Predicate
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.system.index.index import Index
 from dynamoplus.service.indexing_decorator import create_document, update_document, delete_document
-from dynamoplus.v2.service.model_service import get_model
-from dynamoplus.v2.service.system.system_service import QueryService
 from dynamoplus.v2.service.common import get_repository_factory
+from dynamoplus.v2.service.model_service import get_model
+from dynamoplus.v2.service.query_service import QueryService
 
 
 class DomainService:

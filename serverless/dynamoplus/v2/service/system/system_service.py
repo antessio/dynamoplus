@@ -1,19 +1,25 @@
 import logging
+from decimal import Decimal
 from typing import *
 
-from dynamoplus.models.query.conditions import Eq, And, AnyMatch
+from dynamoplus.models.query.conditions import Eq, And, AnyMatch, Predicate, match_predicate
+from dynamoplus.models.system.aggregation.aggregation import Aggregation, AggregationTrigger, AggregationJoin, \
+    AggregationType
 from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
     ClientAuthorizationApiKey, ClientAuthorizationHttpSignature, Scope, ScopesType
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType, \
     AttributeConstraint
 from dynamoplus.models.system.index.index import Index, IndexConfiguration
+from dynamoplus.v2.repository.repositories import Repository, AtomicIncrement, Counter
 from dynamoplus.v2.service.common import get_repository_factory
+from dynamoplus.v2.service.domain.domain_service import DomainService
 from dynamoplus.v2.service.model_service import get_model, get_index_model
 from dynamoplus.v2.service.query_service import QueryService
 
 collection_metadata = Collection("collection", "name")
 index_metadata = Collection("index", "name")
 client_authorization_metadata = Collection("client_authorization", "client_id")
+aggregation_metadata = Collection("aggregation", "name")
 
 index_by_collection_and_name_metadata = Index(index_metadata.name, ["collection.name", "name"], None)
 index_by_collection_metadata = Index(index_metadata.name, ["collection.name"], None)
@@ -36,13 +42,12 @@ class Converter:
     def from_index_to_dict(index: Index):
         d = {"name": index.index_name,
              "collection": {"name": index.collection_name},
-                 "conditions": index.conditions}
+             "conditions": index.conditions}
         if index.ordering_key:
             d["ordering_key"] = index.ordering_key
         if index.index_configuration:
-            d["configuration"]=index.index_configuration.name
+            d["configuration"] = index.index_configuration.name
         return d
-
 
     @staticmethod
     def from_dict_to_index(d: dict):
@@ -72,8 +77,6 @@ class Converter:
         if client_authorization.whitelist_hosts:
             result["whitelist_hosts"] = client_authorization.whitelist_hosts
         return result
-
-
 
     @staticmethod
     def from_collection_to_dict(collection: Collection):
@@ -169,6 +172,67 @@ class Converter:
     def from_dict_to_client_authorization(d: dict):
         return Converter.from_dict_to_client_authorization_factory()[d["type"]](d)
 
+    @staticmethod
+    def from_aggregation_to_dict(aggregation: Aggregation):
+        a = {
+            "on": list(map(lambda o: o.name, aggregation.on))
+        }
+        d = {
+            "collection": {
+                "name": aggregation.collection_name
+            },
+            "type": aggregation.type.name
+        }
+        if aggregation.join:
+            a["join"] = {
+                "collection_name": aggregation.join.collection_name,
+                "using_field": aggregation.join.using_field
+            }
+        if aggregation.target_field:
+            a["target_field"] = aggregation.target_field
+        if aggregation.matches:
+            a["matches"] = Converter.from_predicate_to_dict(aggregation.matches)
+        d["aggregation"] = a
+        d["name"] = aggregation.name
+        return d
+
+    @staticmethod
+    def from_predicate_to_dict(predicate: Predicate):
+        d = {}
+        if isinstance(predicate, And):
+            d["and"] = list(map(lambda p: Converter.from_predicate_to_dict(p), predicate.conditions))
+        elif isinstance(predicate, Eq):
+            d["eq"] = {
+                "field_name": predicate.field_name,
+                "value": predicate.value
+            }
+        return d
+
+    @staticmethod
+    def from_dict_to_predicate(document: dict):
+        if "and" in document:
+            and_predicate = list(map(lambda p: Converter.from_dict_to_predicate(p), document["and"]))
+            return And(and_predicate)
+        elif "eq" in document:
+            e = document["eq"]
+            return Eq(e["field_name"], e["value"])
+
+    @staticmethod
+    def from_dict_to_aggregation(document: dict):
+        collection_name = document["collection"]["name"]
+        t = AggregationType.value_of(document["type"])
+        inner_aggregation_document = document["aggregation"]
+        on = list(map(lambda o: AggregationTrigger.value_of(o), inner_aggregation_document["on"]))
+        if "target_field" in inner_aggregation_document:
+            target_field = inner_aggregation_document["target_field"]
+        if "join" in inner_aggregation_document:
+            join = AggregationJoin(inner_aggregation_document["join"]["collection_name"],
+                                   inner_aggregation_document["join"]["using_field"])
+        if "matches" in inner_aggregation_document:
+            matches = Converter.from_dict_to_predicate(inner_aggregation_document["matches"])
+
+        return Aggregation(collection_name, t, on, target_field, matches, join)
+
 
 class CollectionService:
 
@@ -195,7 +259,7 @@ class CollectionService:
 
     @staticmethod
     def get_all_collections(start_from: str = None, limit: int = None) -> (Collection, dict):
-        result = QueryService.query(collection_metadata,AnyMatch(), None, limit, start_from)
+        result = QueryService.query(collection_metadata, AnyMatch(), None, limit, start_from)
         if result:
             return list(
                 map(lambda m: Converter.from_dict_to_collection(m.document), result.data)), result.lastEvaluatedKey
@@ -214,10 +278,10 @@ class CollectionService:
 class IndexService:
 
     @staticmethod
-    def get_index_by_name(name:str)->Index:
-        query_result = QueryService.query(index_metadata,Eq("name",name), index_by_name_metadata,None,1)
-        return list(map(lambda m: Converter.from_dict_to_index(m.document), query_result.data)),query_result.lastEvaluatedKey
-
+    def get_index_by_name(name: str) -> Index:
+        query_result = QueryService.query(index_metadata, Eq("name", name), index_by_name_metadata, None, 1)
+        return list(
+            map(lambda m: Converter.from_dict_to_index(m.document), query_result.data)), query_result.lastEvaluatedKey
 
     @staticmethod
     def create_index(index: Index) -> Index:
@@ -225,7 +289,7 @@ class IndexService:
         index_dict = Converter.from_index_to_dict(index)
         logger.debug("index dict : {} ".format(index_dict))
 
-        existing_index,last_index_id = IndexService.get_index_by_name(index.index_name)
+        existing_index, last_index_id = IndexService.get_index_by_name(index.index_name)
 
         if len(existing_index) > 0:
             return existing_index[0]
@@ -248,8 +312,8 @@ class IndexService:
     @staticmethod
     def get_index_by_name_and_collection_name(name: str, collection_name: str):
         query_result = QueryService.query(index_metadata,
-                                                      And([Eq("collection.name", collection_name), Eq("name", name)]),
-                                                      index_by_collection_and_name_metadata, None, 1)
+                                          And([Eq("collection.name", collection_name), Eq("name", name)]),
+                                          index_by_collection_and_name_metadata, None, 1)
 
         indexes = list(map(lambda m: Converter.from_dict_to_index(m.document), query_result.data))
         if len(indexes) == 0:
@@ -263,15 +327,16 @@ class IndexService:
                                           Eq("collection.name", collection_name),
                                           index_by_collection_metadata, start_from, limit)
 
-        return list(map(lambda m: Converter.from_dict_to_index(m.document), query_result.data)), query_result.lastEvaluatedKey
+        return list(
+            map(lambda m: Converter.from_dict_to_index(m.document), query_result.data)), query_result.lastEvaluatedKey
 
     @staticmethod
     def get_index_matching_fields(fields: List[str], collection_name: str, ordering_key: str = None):
-        index_name = Index.index_name_generator(collection_name,fields, ordering_key)
+        index_name = Index.index_name_generator(collection_name, fields, ordering_key)
         index = IndexService.get_index_by_name_and_collection_name(index_name, collection_name)
         fields_counter = len(fields) - 1
         while index is None and fields_counter >= 1:
-            index_name = Index.index_name_generator(collection_name,fields[0:fields_counter], ordering_key)
+            index_name = Index.index_name_generator(collection_name, fields[0:fields_counter], ordering_key)
             index = IndexService.get_index_by_name_and_collection_name(index_name, collection_name)
             fields_counter = fields_counter - 1
         return index
@@ -287,7 +352,8 @@ class IndexService:
         has_more = True
         while has_more:
             last_evaluated_key = None
-            indexes, last_evaluated_key = IndexService.get_index_by_collection_name(collection_name, last_evaluated_key,limit)
+            indexes, last_evaluated_key = IndexService.get_index_by_collection_name(collection_name, last_evaluated_key,
+                                                                                    limit)
             has_more = last_evaluated_key is not None
             for i in indexes:
                 yield i
@@ -295,10 +361,10 @@ class IndexService:
 
 class AuthorizationService:
     @staticmethod
-    def get_client_authorization(id:str):
+    def get_client_authorization(id: str):
         repo = get_repository_factory(client_authorization_metadata)
         model = get_model(client_authorization_metadata, {client_authorization_metadata.id_key: id})
-        result = repo.get(model.pk,model.sk)
+        result = repo.get(model.pk, model.sk)
         if result:
             return Converter.from_dict_to_client_authorization(result.document)
 
@@ -328,8 +394,150 @@ class AuthorizationService:
         repo.delete(model.pk, model.sk)
 
 
+def extract_sum_and_count(aggregation: Aggregation, new_record, old_record):
+    if new_record and old_record:
+        ## update
+        if aggregation.target_field in old_record and aggregation.target_field in new_record:
+            old_value = old_record[aggregation.target_field]
+            new_value = new_record[aggregation.target_field]
+            increase = new_value - old_value
+            counters = [
+                Counter("{}_sum".format(aggregation.target_field),
+                        Decimal(abs(increase)), increase > 0)
+            ]
+    elif new_record is not None and old_record is None:
+        ##insert
+        if aggregation.target_field in new_record:
+            counters = [
+                Counter("{}_count".format(aggregation.target_field), Decimal(1)),
+                Counter("{}_sum".format(aggregation.target_field), Decimal(new_record[aggregation.target_field]))
+            ]
+    elif old_record is not None:
+        ## delete
+        if aggregation.target_field in old_record:
+            counters = [
+                Counter("{}_count".format(aggregation.target_field), Decimal(1), False),
+                Counter("{}_sum".format(aggregation.target_field),
+                        Decimal(old_record[aggregation.target_field]), False)
+            ]
+    return counters
 
 
+class AggregationService:
 
+    @staticmethod
+    def create_aggregation(aggregation: Aggregation):
+        aggregation_document = Converter.from_aggregation_to_dict(aggregation)
+        repo = get_repository_factory(aggregation_metadata)
+        created_aggregation_model = repo.create(get_model(aggregation_metadata, aggregation_document))
+        if created_aggregation_model:
+            created_aggregation = Converter.from_dict_to_aggregation(created_aggregation_model.document)
+            aggregation_by_collection_name = repo.create(
+                get_index_model(aggregation_metadata, Index("aggregation", ["collection.name"]),
+                                created_aggregation_model.document))
+            logger.info(
+                "{} has been indexed {}".format(aggregation.name, aggregation.collection_name))
 
+            return created_aggregation
 
+    @staticmethod
+    def get_aggregations_by_collection_name(collection_name: str):
+        return [Aggregation(None, None, None, None, None, None)]
+
+    def aggregate(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
+        repo = Repository(get_repository_factory(collection))
+
+        target_collection = CollectionService.get_collection(aggregation.join.collection_name)
+        r = new_record or old_record
+        if aggregation.join.using_field in r:
+            id = r[aggregation.join.using_field]
+            join_document = DomainService(target_collection).get_document(id)
+
+        counters = extract_sum_and_count(aggregation, new_record, old_record)
+
+        if len(counters) > 0:
+            if join_document:
+                model = get_model(target_collection, join_document)
+            else:
+                model = get_model(collection_metadata, {"name": aggregation.collection_name})
+            repo.increment_counter(AtomicIncrement(model.pk,
+                                                   model.sk,
+                                                   counters))
+
+    def avg(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
+        repo = Repository(get_repository_factory(collection_metadata))
+        model = get_model(collection_metadata, {"name": aggregation.collection_name})
+        counters = extract_sum_and_count(aggregation, new_record, old_record)
+
+        if len(counters) > 0:
+            repo.increment_counter(AtomicIncrement(model.pk,
+                                                   model.sk,
+                                                   counters))
+
+    def collection_count(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
+        repo = Repository(get_repository_factory(collection_metadata))
+        model = get_model(collection_metadata, {"name": aggregation.collection_name})
+
+        is_increment = True if new_record is not None else False
+        increment = AtomicIncrement(model.pk, model.sk, [Counter("count", Decimal(1), is_increment)])
+        repo.increment_counter(increment)
+
+    def avg_join(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
+        repo = Repository(get_repository_factory(collection))
+
+        target_collection = CollectionService.get_collection(aggregation.join.collection_name)
+        r = new_record or old_record
+        if aggregation.join.using_field in r:
+            id = r[aggregation.join.using_field]
+            join_document = DomainService(target_collection).get_document(id)
+
+        counters = extract_sum_and_count(aggregation, new_record, old_record)
+
+        if len(counters) > 0 and join_document:
+            model = get_model(target_collection, join_document)
+            repo.increment_counter(AtomicIncrement(model.pk,
+                                                   model.sk,
+                                                   counters))
+
+        return None
+
+    def max(aggregation: Aggregation, document: dict):
+        return None
+
+    def min(aggregation: Aggregation, document: dict):
+        return None
+
+    def sum(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
+        repo = Repository(get_repository_factory(collection))
+
+        target_collection = CollectionService.get_collection(aggregation.join.collection_name)
+        r = new_record or old_record
+        if aggregation.join.using_field in r:
+            id = r[aggregation.join.using_field]
+            join_document = DomainService(target_collection).get_document(id)
+
+        counters = extract_sum_and_count(aggregation, new_record, old_record)
+
+        if len(counters) > 0 and join_document:
+            model = get_model(target_collection, join_document)
+            repo.increment_counter(AtomicIncrement(model.pk,
+                                                   model.sk,
+                                                   counters))
+
+    aggregation_executor_factory = {
+        AggregationType.AVG: aggregate,
+        AggregationType.COLLECTION_COUNT: aggregate,
+        AggregationType.AVG_JOIN: aggregate,
+        AggregationType.MAX: max,
+        AggregationType.MIN: min,
+        AggregationType.SUM: aggregate,
+        AggregationType.SUM_COUNT: aggregate
+    }
+
+    @staticmethod
+    def execute_aggregation(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
+        if aggregation.matches:
+            if not match_predicate(new_record, aggregation.matches):
+                return
+        AggregationService.aggregation_executor_factory[aggregation.type](aggregation, collection, new_record,
+                                                                          old_record)
