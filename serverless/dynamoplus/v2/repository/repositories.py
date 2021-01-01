@@ -39,7 +39,9 @@ class Counter:
 
     def __eq__(self, other):
         if type(other) is type(self):
-            return self.__members() == other.__members()
+            return self.field_name.__eq__(other.field_name) and \
+                   self.count.__eq__(other.count) and \
+                   self.is_increment.__eq__(other.is_increment)
         else:
             return False
 

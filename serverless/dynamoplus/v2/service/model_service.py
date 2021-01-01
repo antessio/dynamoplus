@@ -10,7 +10,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def get_model(collection: Collection, document: dict):
+def get_model(collection: Collection, document: dict) -> Model:
     if collection.id_key not in document:
         raise Exception("{} not found in document".format(collection.id_key))
     id = document[collection.id_key]
@@ -21,7 +21,7 @@ def get_model(collection: Collection, document: dict):
                  )
 
 
-def get_index_model(collection:Collection, index: Index, document: dict):
+def get_index_model(collection: Collection, index: Index, document: dict):
     def build_data():
         logging.info("orderKey {}".format(index.ordering_key))
         order_value = None
@@ -50,7 +50,7 @@ def get_index_model(collection:Collection, index: Index, document: dict):
     sk = index.collection_name + "#" + \
          "#".join(map(lambda x: x, index.conditions)) if index.conditions else index.collection_name
     data = build_data()
-    return Model(get_pk(collection,document[collection.id_key]), sk, data, document)
+    return Model(get_pk(collection, document[collection.id_key]), sk, data, document)
 
 
 def get_sk(collection: Collection):

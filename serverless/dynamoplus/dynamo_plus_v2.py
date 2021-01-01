@@ -14,6 +14,7 @@ from dynamoplus.v2.service.domain.domain_service import DomainService
 from dynamoplus.v2.service.common import is_system
 from dynamoplus.service.validation_service import validate_collection, validate_index, validate_document, \
     validate_client_authorization
+from dynamoplus.service.indexing_decorator import create_document, update_document, delete_document
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -53,7 +54,7 @@ def from_dict_to_predicate(d: dict):
 
 
 def get_all(collection_name: str, last_key: str, limit: int):
-    is_system_collection = is_system(Collection(collection_name,None))
+    is_system_collection = is_system(Collection(collection_name, None))
     last_evaluated_key = None
     if is_system_collection:
         logger.info("Get {} metadata from system".format(collection_name))
@@ -63,7 +64,8 @@ def get_all(collection_name: str, last_key: str, limit: int):
             documents = list(map(lambda c: Converter.from_collection_to_dict(c), collections))
             return documents, last_evaluated_key
         else:
-            raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "{} not valid collection".format(collection_name))
+            raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
+                                   "{} not valid collection".format(collection_name))
     else:
         logger.info("get all  {} collection limit = {} last_key = {} ".format(collection_name, limit, last_key))
         collection_metadata = CollectionService.get_collection(collection_name)
@@ -77,7 +79,7 @@ def get_all(collection_name: str, last_key: str, limit: int):
 
 
 def get(collection_name: str, document_id: str):
-    is_system_collection = is_system(Collection(collection_name,None))
+    is_system_collection = is_system(Collection(collection_name, None))
     if is_system_collection:
         logger.info("Get {} metadata from system".format(collection_name))
         if collection_name == 'collection':
@@ -118,8 +120,9 @@ def get(collection_name: str, document_id: str):
         return document
 
 
+@create_document
 def create(collection_name: str, document: dict) -> dict:
-    is_system_collection = is_system(Collection(collection_name,None))
+    is_system_collection = is_system(Collection(collection_name, None))
     if is_system_collection:
         logger.info("Creating {} metadata {}".format(collection_name, document))
         if collection_name == 'collection':
@@ -157,9 +160,9 @@ def create(collection_name: str, document: dict) -> dict:
         logger.info("Created document {}".format(d))
         return d
 
-
+@update_document
 def update(collection_name: str, document: dict, document_id: str = None):
-    is_system_collection = is_system(Collection(collection_name,None))
+    is_system_collection = is_system(Collection(collection_name, None))
     if is_system_collection:
         if collection_name == "client_authorization":
             if document_id:
@@ -190,7 +193,7 @@ def update(collection_name: str, document: dict, document_id: str = None):
 
 def query(collection_name: str, query: dict = None, start_from: str = None,
           limit: int = None):
-    is_system_collection = is_system(Collection(collection_name,None))
+    is_system_collection = is_system(Collection(collection_name, None))
     documents = []
     if is_system_collection:
         if collection_name == 'collection':
@@ -227,14 +230,14 @@ def query(collection_name: str, query: dict = None, start_from: str = None,
         if index_matching_conditions is None:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
         ## Since the sk should be built using the index it is necessary to pass the index matching the conditions
-        result = QueryService.query(collection_metadata,predicate,index_matching_conditions,start_from,limit)
+        result = QueryService.query(collection_metadata, predicate, index_matching_conditions, start_from, limit)
         documents = list(map(lambda m: m.document, result.data))
         last_evaluated_key = result.lastEvaluatedKey
     return documents, last_evaluated_key
 
-
+@delete_document
 def delete(collection_name: str, id: str):
-    is_system_collection = is_system(Collection(collection_name,None))
+    is_system_collection = is_system(Collection(collection_name, None))
     if is_system_collection:
         logger.info("delete {} metadata from system".format(collection_name))
         if collection_name == 'collection':
