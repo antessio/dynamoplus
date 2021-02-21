@@ -1,4 +1,8 @@
 # from jsonschema import ValidationError,SchemaError
+try:
+  import unzip_requirements
+except ImportError:
+  pass
 from aws.http.handler.handler_v2 import HttpHandler
 import logging
 
