@@ -36,7 +36,14 @@ class Model:
         sk = dynamo_db_item["sk"]
         data = dynamo_db_item["data"] if "data" in dynamo_db_item else None
         ## when reading last key it could be None
-        document = json.loads(dynamo_db_item["document"], parse_float=Decimal) if "document" in dynamo_db_item else {}
+        document = None
+        if "document" in dynamo_db_item:
+            if isinstance(dynamo_db_item["document"], dict):
+                document = dynamo_db_item["document"]
+            else:
+                document = json.loads(dynamo_db_item["document"],
+                                      parse_float=Decimal) if "document" in dynamo_db_item else {}
+
         return Model(pk, sk, data, document)
 
     def __init__(self, pk: str, sk: str, data: str, document: dict):
@@ -235,6 +242,7 @@ class QueryRepository:
             IndexName="sk-data-index",
             KeyConditionExpression=key,
             Limit=limit,
+            ScanIndexForward=False,
             ExclusiveStartKey=start_from
         )
         response = self.table.query(

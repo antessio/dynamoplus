@@ -1,6 +1,9 @@
+try:
+  import unzip_requirements
+except ImportError:
+  pass
 import os
 import logging
-
 import json
 from dynamoplus.service.security.security import SecurityService
 
@@ -31,6 +34,7 @@ def issue_jwt(event, context):
 
 def authorize(event, context):
     headers = dict((k.lower(), v) for k, v in event["headers"].items())
+    logging.info("event is {}".format(event))
     http_method = event["httpMethod"]
     path = event["path"]
     method_arn = event["methodArn"]

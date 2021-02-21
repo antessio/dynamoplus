@@ -1,10 +1,15 @@
+try:
+  import unzip_requirements
+except ImportError:
+  pass
+
 import json
 import logging
 from apispec import APISpec
 
 from aws.http.info import VERSION
 from dynamoplus.models.system.index.index import Index
-from dynamoplus.service.system.system import SystemService
+from dynamoplus.v2.service.system.system_service import CollectionService, IndexService
 from dynamoplus.service.validation_service import COLLECTION_SCHEMA_DEFINITION, INDEX_SCHEMA_DEFINITION, \
     CLIENT_AUTHORIZATION_SCHEMA_DEFINITION, CLIENT_AUTHORIZATION_HTTP_SIGNATURE_SCHEMA_DEFINITION, \
     CLIENT_AUTHORIZATION_API_KEY_SCHEMA_DEFINITION, QUERY_SCHEMA_DEFINITION, CLIENT_SCOPE_SCHEMA_DEFINITION
@@ -413,7 +418,7 @@ def swagger_json(event, context):
             }
         })
     else:
-        c = SystemService.get_collection_by_name(target_collection_name)
+        c = CollectionService.get_collection(target_collection_name)
         add_collection(c, spec)
     # last_evaluted_key = None
     # collections, last_evaluted_key = SystemService.get_all_collections(10, last_evaluted_key)
@@ -551,7 +556,7 @@ def add_collection(c, spec):
             }
         }
     })
-    for i in SystemService.get_indexes_from_collection_name_generator(c.name):
+    for i in IndexService.get_indexes_from_collection_name_generator(c.name):
         add_query_to_spec(i, spec)
 
 
