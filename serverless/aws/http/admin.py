@@ -1,3 +1,7 @@
+try:
+  import unzip_requirements
+except ImportError:
+  pass
 import logging
 
 ## TODO: use an interface and not directly the repo
