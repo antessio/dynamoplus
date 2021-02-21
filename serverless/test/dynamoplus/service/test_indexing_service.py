@@ -9,8 +9,8 @@ from mock import call
 from unittest.mock import patch
 
 from dynamoplus.v2.repository.repositories import Repository, Model
-from dynamoplus.v2.service.system.aggregation_service import AggregationService
-from dynamoplus.v2.service.system.system_service import CollectionService, IndexService
+from dynamoplus.v2.service.system.aggregation_service import AggregationProcessingService
+from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, AggregationService
 
 domain_table_name = "domain"
 system_table_name = "system"
@@ -22,7 +22,7 @@ class TestIndexService(unittest.TestCase):
         os.environ["DYNAMODB_DOMAIN_TABLE"] = domain_table_name
         os.environ["DYNAMODB_SYSTEM_TABLE"] = system_table_name
 
-    @patch.object(AggregationService,"get_aggregations_by_collection_name")
+    @patch.object(AggregationService, "get_aggregations_by_collection_name")
     @patch.object(Repository, "create")
     @patch.object(Repository,"__init__")
     @patch.object(IndexService,"get_indexes_from_collection_name_generator")

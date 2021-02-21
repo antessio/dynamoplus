@@ -22,6 +22,7 @@ aggregation_metadata = Collection("aggregation", "name")
 index_by_collection_and_name_metadata = Index(index_metadata.name, ["collection.name", "name"], None)
 index_by_collection_metadata = Index(index_metadata.name, ["collection.name"], None)
 index_by_name_metadata = Index(index_metadata.name, ["name"], None)
+aggregation_index_by_collection_name = Index("aggregation", ["collection.name"])
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -221,6 +222,9 @@ class Converter:
         t = AggregationType.value_of(document["type"])
         inner_aggregation_document = document["aggregation"]
         on = list(map(lambda o: AggregationTrigger.value_of(o), inner_aggregation_document["on"]))
+        target_field = None
+        matches = None
+        join = None
         if "target_field" in inner_aggregation_document:
             target_field = inner_aggregation_document["target_field"]
         if "join" in inner_aggregation_document:
@@ -392,5 +396,30 @@ class AuthorizationService:
         repo.delete(model.pk, model.sk)
 
 
+
+class AggregationService:
+
+    @staticmethod
+    def create_aggregation(aggregation: Aggregation):
+        aggregation_document = Converter.from_aggregation_to_dict(aggregation)
+        repo = get_repository_factory(aggregation_metadata)
+        created_aggregation_model = repo.create(get_model(aggregation_metadata, aggregation_document))
+        if created_aggregation_model:
+            created_aggregation = Converter.from_dict_to_aggregation(created_aggregation_model.document)
+            aggregation_by_collection_name = repo.create(
+                get_index_model(aggregation_metadata, aggregation_index_by_collection_name,
+                                created_aggregation_model.document))
+            logger.info(
+                "{} has been indexed {}".format(aggregation.name, aggregation.collection_name))
+
+            return created_aggregation
+
+    @staticmethod
+    def get_aggregations_by_collection_name(collection_name: str):
+        return map(lambda a: Converter.from_dict_to_aggregation(a.document),
+                   QueryService.query_generator(
+                       aggregation_metadata,
+                       Eq("collection.name",collection_name),
+                       aggregation_index_by_collection_name))
 
 
