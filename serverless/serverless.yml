@@ -27,7 +27,6 @@ custom:
       migrate: true
   system_collections: "collection,index,client_authorization"
   allowed_origins: ${file(./secrets.json):ALLOWED_ORIGINS}
-frameworkVersion: ">=1.1.0 <2.0.0"
 
 provider:
   name: aws
