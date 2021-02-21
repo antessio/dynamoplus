@@ -11,67 +11,18 @@ from mock import call
 from unittest.mock import patch
 
 from dynamoplus.v2.repository.repositories import Model, Repository, QueryResult, AtomicIncrement, Counter
-from dynamoplus.v2.service.system.aggregation_service import AggregationService
+from dynamoplus.v2.service.system.aggregation_service import AggregationProcessingService
 
 domain_table_name = "domain"
 system_table_name = "system"
 
 
-class TestAggregationService(unittest.TestCase):
+class TestAggregationProcessingService(unittest.TestCase):
 
     def setUp(self):
         os.environ["DYNAMODB_DOMAIN_TABLE"] = domain_table_name
         os.environ["DYNAMODB_SYSTEM_TABLE"] = system_table_name
 
-    @patch.object(Repository, "create")
-    @patch.object(Repository, "__init__")
-    def test_create_aggregation(self, mock_repository, mock_create):
-        collection_name = "example"
-        type = AggregationType.AVG
-        on = [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE]
-        target_field = "field_1"
-        predicate = And([Eq("field_x", "value1"), Eq("field_y", "value2")])
-        join = AggregationJoin("my_collection", "field_example_1")
-        aggregation = Aggregation(collection_name, type,
-                                  on,
-                                  target_field, predicate,
-                                  join)
-        target_agg = {
-            "name": aggregation.name,
-            "collection": {"name": collection_name}, "type": type.name,
-            "aggregation": {
-                "on": [AggregationTrigger.INSERT.name, AggregationTrigger.DELETE.name, AggregationTrigger.UPDATE.name],
-                "target_field": target_field,
-                "join": {"collection_name": join.collection_name, "using_field": join.using_field},
-                "matches": {"and": [
-                    {
-                        "eq": {
-                            "field_name": "field_x",
-                            "value": "value1"
-                        }
-                    },
-                    {
-                        "eq": {
-                            "field_name": "field_y",
-                            "value": "value2"
-                        }
-                    }
-                ]
-                }
-            }
-        }
-        expected_model = Model("aggregation#" + aggregation.name, "aggregation", aggregation.name, target_agg)
-        mock_repository.return_value = None
-        mock_create.return_value = expected_model
-
-        created_aggregation = AggregationService.create_aggregation(aggregation)
-        mock_repository.assert_called_once_with(system_table_name)
-        aggregation_name = created_aggregation.name
-        self.assertEqual(aggregation_name, aggregation.name)
-        calls = [call(expected_model),
-                 call(Model("aggregation#" + aggregation.name, "aggregation#collection.name",
-                            aggregation.collection_name, target_agg))]
-        mock_create.assert_has_calls(calls)
 
     @patch.object(Repository, "increment_counter")
     @patch.object(Repository, "__init__")
@@ -83,7 +34,7 @@ class TestAggregationService(unittest.TestCase):
             "name": "whatever"
         }
         example_collection = Collection("example", "id")
-        AggregationService.execute_aggregation(aggregation, example_collection, document, None)
+        AggregationProcessingService.execute_aggregation(aggregation, example_collection, document, None)
         self.assertTrue(mock_repository.called)
         self.assertTrue(mock_increment_counter.called)
         self.assertEqual(call(AtomicIncrement("collection#example", "collection", [Counter("count", Decimal(1))])),
@@ -99,7 +50,7 @@ class TestAggregationService(unittest.TestCase):
             "name": "whatever"
         }
         example_collection = Collection("example", "id")
-        AggregationService.execute_aggregation(aggregation, example_collection, None, document)
+        AggregationProcessingService.execute_aggregation(aggregation, example_collection, None, document)
         self.assertTrue(mock_repository.called)
         self.assertEqual(
             call(AtomicIncrement("collection#example", "collection", [Counter("count", Decimal(1), False)])),
@@ -119,7 +70,7 @@ class TestAggregationService(unittest.TestCase):
             "rate": 4
         }
         example_collection = Collection("example", "id")
-        AggregationService.execute_aggregation(aggregation, example_collection, document, None)
+        AggregationProcessingService.execute_aggregation(aggregation, example_collection, document, None)
         self.assertTrue(mock_repository.called)
         self.assertEqual(
             call(AtomicIncrement("collection#example", "collection",
@@ -140,7 +91,7 @@ class TestAggregationService(unittest.TestCase):
             "name": "whatever",
             "rate": 4
         }
-        AggregationService.execute_aggregation(aggregation, example_collection, None, document)
+        AggregationProcessingService.execute_aggregation(aggregation, example_collection, None, document)
         self.assertTrue(mock_repository.called)
         expected_increment = AtomicIncrement("collection#example", "collection",
                                              [Counter("rate_count", Decimal(1), False),
@@ -167,7 +118,7 @@ class TestAggregationService(unittest.TestCase):
             "name": "whatever",
             "rate": 2
         }
-        AggregationService.execute_aggregation(aggregation, example_collection, new_record, old_document)
+        AggregationProcessingService.execute_aggregation(aggregation, example_collection, new_record, old_document)
         self.assertTrue(mock_repository.called)
         self.assertEqual(
             call(AtomicIncrement("collection#example", "collection",
@@ -195,7 +146,7 @@ class TestAggregationService(unittest.TestCase):
             "name": "whatever",
             "rate": 6
         }
-        AggregationService.execute_aggregation(aggregation, example_collection, new_record, old_document)
+        AggregationProcessingService.execute_aggregation(aggregation, example_collection, new_record, old_document)
         self.assertTrue(mock_repository.called)
         self.assertEqual(
             call(AtomicIncrement("collection#example", "collection",
@@ -223,7 +174,7 @@ class TestAggregationService(unittest.TestCase):
             "name": "whatever",
             "rate": 6
         }
-        AggregationService.execute_aggregation(aggregation, example_collection, new_record, old_document)
+        AggregationProcessingService.execute_aggregation(aggregation, example_collection, new_record, old_document)
         self.assertFalse(mock_repository.called)
         self.assertFalse(mock_increment_counter.called)
 
