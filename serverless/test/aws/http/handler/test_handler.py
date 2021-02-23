@@ -269,9 +269,9 @@ class TestHttpHandler(unittest.TestCase):
                                         headers={"origin": origin})
         self.assertEqual(result["statusCode"], 200)
         body = json.loads(result["body"])
-        self.assertEqual(len(body["data"]), 2)
+        self.assertEqual(len(body["data"]), 1)
         self.assertIn("has_more", body)
-        self.assertEqual(True, body["has_more"])
+        self.assertEqual(False, body["has_more"])
         headers = result["headers"]
         self.assertIn("Access-Control-Allow-Origin", headers)
         self.assertEqual(origin, headers["Access-Control-Allow-Origin"])
