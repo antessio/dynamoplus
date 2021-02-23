@@ -19,9 +19,9 @@ class QueryService:
         has_more = True
         while has_more:
             start_from = None
-            result, start_from = QueryService.query(collection,predicate,index, start_from, 20)
-            has_more = start_from is not None
-            for c in result:
+            query_result = QueryService.query(collection,predicate,index, start_from, 20)
+            has_more = query_result.lastEvaluatedKey is not None
+            for c in query_result.data:
                 yield c
 
 
