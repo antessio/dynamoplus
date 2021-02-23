@@ -5,9 +5,17 @@ plugins:
   - serverless-dynamodb-local
   - serverless-offline
 
+package:
+  individually: true
+
 custom:
   pythonRequirements:
-    dockerizePip: false
+    dockerizePip: true
+    zip: true
+    slim: true
+    layer: true
+    noDeploy:
+      - pytest
   serverless-offline:
     host: 0.0.0.0
   dynamodb:
@@ -19,7 +27,6 @@ custom:
       migrate: true
   system_collections: "collection,index,client_authorization"
   allowed_origins: ${file(./secrets.json):ALLOWED_ORIGINS}
-
 
 provider:
   name: aws
@@ -62,8 +69,13 @@ provider:
 functions:
   auth:
     handler: aws/http/authorizer.authorize
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    cors: true
   handleStream:
     handler: aws/events/dynamodb.dynamo_stream_handler
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - stream:
           type: dynamodb
@@ -71,6 +83,8 @@ functions:
           batchSize: 1
   custom:
     handler: aws/http/http_v2.custom
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: /custom/{proxy+}
@@ -82,6 +96,8 @@ functions:
 
   adminLogin:
     handler: aws/http/authorizer.issue_jwt
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: admin/login
@@ -90,6 +106,8 @@ functions:
 
   adminSetup:
     handler: aws/http/admin.setup
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: admin/setup
@@ -100,6 +118,8 @@ functions:
             type: request
   adminCleanup:
     handler: aws/http/admin.cleanup
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: admin/cleanup
@@ -111,6 +131,8 @@ functions:
 
   info:
     handler: aws/http/info.info
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: system/info
@@ -118,6 +140,8 @@ functions:
           cors: true
   documentation:
     handler: aws/http/doc.swagger_json
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: system/documentation/swagger.json
@@ -126,6 +150,8 @@ functions:
 
   create:
     handler: aws/http/http_v2.create
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: dynamoplus/{collection}
@@ -137,6 +163,8 @@ functions:
 
   query:
     handler: aws/http/http_v2.query
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: dynamoplus/{collection}/query
@@ -148,6 +176,8 @@ functions:
 
   getAll:
     handler: aws/http/http_v2.get
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: dynamoplus/{collection}
@@ -158,6 +188,8 @@ functions:
             type: request
   get:
     handler: aws/http/http_v2.get
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: dynamoplus/{collection}/{id}
@@ -169,6 +201,8 @@ functions:
 
   update:
     handler: aws/http/http_v2.update
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: dynamoplus/{collection}/{id}
@@ -180,6 +214,8 @@ functions:
 
   delete:
     handler: aws/http/http_v2.delete
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: dynamoplus/{collection}/{id}
@@ -233,17 +269,17 @@ resources:
           WriteCapacityUnits: 1
         TableName: ${self:provider.environment.DYNAMODB_SYSTEM_TABLE}
         GlobalSecondaryIndexes:
-        - IndexName: sk-data-index
-          KeySchema:
-          - AttributeName: sk
-            KeyType: HASH
-          - AttributeName: data
-            KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-          ProvisionedThroughput:
-            ReadCapacityUnits: '1'
-            WriteCapacityUnits: '1'
+          - IndexName: sk-data-index
+            KeySchema:
+              - AttributeName: sk
+                KeyType: HASH
+              - AttributeName: data
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: '1'
+              WriteCapacityUnits: '1'
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
     DomainDynamoDbTable:
@@ -267,17 +303,17 @@ resources:
           WriteCapacityUnits: 1
         TableName: ${self:provider.environment.DYNAMODB_DOMAIN_TABLE}
         GlobalSecondaryIndexes:
-        - IndexName: sk-data-index
-          KeySchema:
-          - AttributeName: sk
-            KeyType: HASH
-          - AttributeName: data
-            KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-          ProvisionedThroughput:
-            ReadCapacityUnits: '1'
-            WriteCapacityUnits: '1'
+          - IndexName: sk-data-index
+            KeySchema:
+              - AttributeName: sk
+                KeyType: HASH
+              - AttributeName: data
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: '1'
+              WriteCapacityUnits: '1'
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES 
       

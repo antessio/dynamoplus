@@ -11,7 +11,7 @@ before_install:
   - pip install coveralls
 
 install:
-  - cd $TRAVIS_BUILD_DIR/serverless && pip install -r requirements.txt
+  - cd $TRAVIS_BUILD_DIR/serverless && pip install -r requirements_test.txt
   
 script:
   -  cd $TRAVIS_BUILD_DIR/serverless && coverage run --source ./ -m unittest
