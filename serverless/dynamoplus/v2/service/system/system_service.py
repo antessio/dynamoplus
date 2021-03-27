@@ -396,8 +396,21 @@ class AuthorizationService:
         repo.delete(model.pk, model.sk)
 
 
-
 class AggregationService:
+
+    @staticmethod
+    def get_all_aggregations(limit: int, start_from: str):
+        result = QueryService.query(aggregation_metadata, AnyMatch(), None, limit, start_from)
+        if result:
+            return list(map(lambda m: Converter.from_dict_to_aggregation(m.document), result.data)), result.lastEvaluatedKey
+
+    @staticmethod
+    def get_aggregation_by_name(name: str):
+        repo = get_repository_factory(aggregation_metadata)
+        model = get_model(aggregation_metadata, {aggregation_metadata.id_key: name})
+        result = repo.get(model.pk, model.sk)
+        if result:
+            return Converter.from_dict_to_aggregation(result.document)
 
     @staticmethod
     def create_aggregation(aggregation: Aggregation):
@@ -419,7 +432,5 @@ class AggregationService:
         return map(lambda a: Converter.from_dict_to_aggregation(a.document),
                    QueryService.query_generator(
                        aggregation_metadata,
-                       Eq("collection.name",collection_name),
+                       Eq("collection.name", collection_name),
                        aggregation_index_by_collection_name))
-
-

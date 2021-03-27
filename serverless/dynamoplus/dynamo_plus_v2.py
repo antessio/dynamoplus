@@ -8,12 +8,12 @@ from enum import Enum
 
 from dynamoplus.v2.service.query_service import QueryService
 from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, \
-    AuthorizationService, Converter, Collection
+    AuthorizationService, Converter, Collection,AggregationService
 from dynamoplus.models.query.conditions import Predicate, Range, Eq, And
 from dynamoplus.v2.service.domain.domain_service import DomainService
 from dynamoplus.v2.service.common import is_system
 from dynamoplus.service.validation_service import validate_collection, validate_index, validate_document, \
-    validate_client_authorization
+    validate_client_authorization, validate_aggregation
 from dynamoplus.service.indexing_decorator import create_document, update_document, delete_document
 
 logger = logging.getLogger()
@@ -63,6 +63,10 @@ def get_all(collection_name: str, last_key: str, limit: int):
             collections, last_evaluated_key = CollectionService.get_all_collections(limit, last_key)
             documents = list(map(lambda c: Converter.from_collection_to_dict(c), collections))
             return documents, last_evaluated_key
+        elif collection_name == 'aggregation':
+            aggregations, last_evaluated_key = AggregationService.get_all_aggregations(limit, last_key)
+            documents = list(map(lambda c: Converter.from_aggregation_to_dict(c), aggregations))
+            return documents, last_evaluated_key
         else:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                    "{} not valid collection".format(collection_name))
@@ -104,6 +108,13 @@ def get(collection_name: str, document_id: str):
                                        "{} not found with name {}".format(collection_name, document_id))
             logger.info("Found client_authorization {}".format(client_authorization.__str__))
             return Converter.from_client_authorization_to_dict(client_authorization)
+        elif collection_name == 'aggregation':
+            aggregation = AggregationService.get_aggregation_by_name(document_id)
+            if aggregation is None:
+                raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
+                                       "{} not found with name {}".format(collection_name, document_id))
+            logger.info("Found aggregation {}".format(aggregation.__str__))
+            return Converter.from_aggregation_to_dict(aggregation)
         else:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "{} not a valid collection", collection_name)
 
@@ -143,6 +154,15 @@ def create(collection_name: str, document: dict) -> dict:
             client_authorization = AuthorizationService.create_client_authorization(client_authorization)
             logging.info("created client_authorization {}".format(client_authorization.__str__()))
             return Converter.from_client_authorization_to_dict(client_authorization)
+        elif collection_name == "aggregation":
+            validate_aggregation(document)
+            aggregation = Converter.from_dict_to_aggregation(document)
+            aggregation = AggregationService.create_aggregation(aggregation)
+            logging.info("created aggregation {}".format(aggregation.__str__()))
+            return Converter.from_aggregation_to_dict(aggregation)
+        else:
+            raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
+                                   "{} is not a valid collection".format(collection_name))
     else:
         logger.info("Create {} document {}".format(collection_name, document))
         collection_metadata = CollectionService.get_collection(collection_name)

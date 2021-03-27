@@ -222,6 +222,9 @@ def validate_client_authorization(client_authorization: dict):
     else:
         raise JsonSchemaException("type not valid")
 
+def validate_aggregation(aggregation: dict):
+    __validate(aggregation,AGGREGATION_SCHEMA_DEFINITION)
+
 
 # def validate_document(document: dict, collection_schema: dict):
 #    __validate(document, collection_schema)
