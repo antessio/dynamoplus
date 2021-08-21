@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import *
 
 from dynamoplus.models.query.conditions import Eq, And, AnyMatch, Predicate
-from dynamoplus.models.system.aggregation.aggregation import Aggregation, AggregationTrigger, AggregationJoin, \
+from dynamoplus.models.system.aggregation.aggregation_configuration import AggregationConfiguration, AggregationTrigger, AggregationJoin, \
     AggregationType
 from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
     ClientAuthorizationApiKey, ClientAuthorizationHttpSignature, Scope, ScopesType
@@ -17,12 +17,12 @@ from dynamoplus.v2.service.query_service import QueryService
 collection_metadata = Collection("collection", "name")
 index_metadata = Collection("index", "name")
 client_authorization_metadata = Collection("client_authorization", "client_id")
-aggregation_metadata = Collection("aggregation", "name")
+aggregation_configuration_metadata = Collection("aggregation_configuration", "name")
 
 index_by_collection_and_name_metadata = Index(index_metadata.name, ["collection.name", "name"], None)
 index_by_collection_metadata = Index(index_metadata.name, ["collection.name"], None)
 index_by_name_metadata = Index(index_metadata.name, ["name"], None)
-aggregation_index_by_collection_name = Index("aggregation", ["collection.name"])
+aggregation_configuration_index_by_collection_name = Index("aggregation_configuration", ["collection.name"])
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -172,7 +172,7 @@ class Converter:
         return Converter.from_dict_to_client_authorization_factory()[d["type"]](d)
 
     @staticmethod
-    def from_aggregation_to_dict(aggregation: Aggregation):
+    def from_aggregation_to_dict(aggregation: AggregationConfiguration):
         a = {
             "on": list(map(lambda o: o.name, aggregation.on))
         }
@@ -217,7 +217,7 @@ class Converter:
             return Eq(e["field_name"], e["value"])
 
     @staticmethod
-    def from_dict_to_aggregation(document: dict):
+    def from_dict_to_aggregation_configuration(document: dict):
         collection_name = document["collection"]["name"]
         t = AggregationType.value_of(document["type"])
         inner_aggregation_document = document["aggregation"]
@@ -233,7 +233,7 @@ class Converter:
         if "matches" in inner_aggregation_document:
             matches = Converter.from_dict_to_predicate(inner_aggregation_document["matches"])
 
-        return Aggregation(collection_name, t, on, target_field, matches, join)
+        return AggregationConfiguration(collection_name, t, on, target_field, matches, join)
 
 
 class CollectionService:
@@ -396,31 +396,31 @@ class AuthorizationService:
         repo.delete(model.pk, model.sk)
 
 
-class AggregationService:
+class AggregationConfigurationService:
 
     @staticmethod
-    def get_all_aggregations(limit: int, start_from: str):
-        result = QueryService.query(aggregation_metadata, AnyMatch(), None, limit, start_from)
+    def get_all_aggregation_configurations(limit: int, start_from: str):
+        result = QueryService.query(aggregation_configuration_metadata, AnyMatch(), None, limit, start_from)
         if result:
-            return list(map(lambda m: Converter.from_dict_to_aggregation(m.document), result.data)), result.lastEvaluatedKey
+            return list(map(lambda m: Converter.from_dict_to_aggregation_configuration(m.document), result.data)), result.lastEvaluatedKey
 
     @staticmethod
-    def get_aggregation_by_name(name: str):
-        repo = get_repository_factory(aggregation_metadata)
-        model = get_model(aggregation_metadata, {aggregation_metadata.id_key: name})
+    def get_aggregation_configuration_by_name(name: str):
+        repo = get_repository_factory(aggregation_configuration_metadata)
+        model = get_model(aggregation_configuration_metadata, {aggregation_configuration_metadata.id_key: name})
         result = repo.get(model.pk, model.sk)
         if result:
-            return Converter.from_dict_to_aggregation(result.document)
+            return Converter.from_dict_to_aggregation_configuration(result.document)
 
     @staticmethod
-    def create_aggregation(aggregation: Aggregation):
+    def create_aggregation_configuration(aggregation: AggregationConfiguration):
         aggregation_document = Converter.from_aggregation_to_dict(aggregation)
-        repo = get_repository_factory(aggregation_metadata)
-        created_aggregation_model = repo.create(get_model(aggregation_metadata, aggregation_document))
+        repo = get_repository_factory(aggregation_configuration_metadata)
+        created_aggregation_model = repo.create(get_model(aggregation_configuration_metadata, aggregation_document))
         if created_aggregation_model:
-            created_aggregation = Converter.from_dict_to_aggregation(created_aggregation_model.document)
+            created_aggregation = Converter.from_dict_to_aggregation_configuration(created_aggregation_model.document)
             aggregation_by_collection_name = repo.create(
-                get_index_model(aggregation_metadata, aggregation_index_by_collection_name,
+                get_index_model(aggregation_configuration_metadata, aggregation_configuration_index_by_collection_name,
                                 created_aggregation_model.document))
             logger.info(
                 "{} has been indexed {}".format(aggregation.name, aggregation.collection_name))
@@ -428,9 +428,9 @@ class AggregationService:
             return created_aggregation
 
     @staticmethod
-    def get_aggregations_by_collection_name(collection_name: str):
-        return map(lambda a: Converter.from_dict_to_aggregation(a.document),
+    def get_aggregation_configurations_by_collection_name(collection_name: str):
+        return map(lambda a: Converter.from_dict_to_aggregation_configuration(a.document),
                    QueryService.query_generator(
-                       aggregation_metadata,
+                       aggregation_configuration_metadata,
                        Eq("collection.name", collection_name),
-                       aggregation_index_by_collection_name))
+                       aggregation_configuration_index_by_collection_name))

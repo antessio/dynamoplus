@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from dynamoplus.v2.repository.repositories import Repository, Model
 from dynamoplus.v2.service.system.aggregation_service import AggregationProcessingService
-from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, AggregationService
+from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, AggregationConfigurationService
 
 domain_table_name = "domain"
 system_table_name = "system"
@@ -22,7 +22,7 @@ class TestIndexService(unittest.TestCase):
         os.environ["DYNAMODB_DOMAIN_TABLE"] = domain_table_name
         os.environ["DYNAMODB_SYSTEM_TABLE"] = system_table_name
 
-    @patch.object(AggregationService, "get_aggregations_by_collection_name")
+    @patch.object(AggregationConfigurationService, "get_aggregation_configurations_by_collection_name")
     @patch.object(Repository, "create")
     @patch.object(Repository,"__init__")
     @patch.object(IndexService,"get_indexes_from_collection_name_generator")
@@ -53,7 +53,7 @@ class TestIndexService(unittest.TestCase):
                                                  call(Model("example#1","example#attribute_2#attribute_1","value_2#value_1",example_record)),
                                                  call(Model("example#1","example#attribute_3.attribute_31","value_31#value_1",example_record, ))])
 
-    @patch.object(AggregationService, "get_aggregations_by_collection_name")
+    @patch.object(AggregationConfigurationService, "get_aggregation_configurations_by_collection_name")
     @patch.object(Repository, "update")
     @patch.object(Repository, "__init__")
     @patch.object(IndexService, "get_indexes_from_collection_name_generator")
@@ -93,7 +93,7 @@ class TestIndexService(unittest.TestCase):
              call(Model("example#1", "example#attribute_2#attribute_1", "value_2#value_1", example_record)),
              call(Model("example#1", "example#attribute_3.attribute_31", "value_31#value_1", example_record, ))])
 
-    @patch.object(AggregationService, "get_aggregations_by_collection_name")
+    @patch.object(AggregationConfigurationService, "get_aggregation_configurations_by_collection_name")
     @patch.object(Repository, "delete")
     @patch.object(Repository, "__init__")
     @patch.object(IndexService, "get_indexes_from_collection_name_generator")

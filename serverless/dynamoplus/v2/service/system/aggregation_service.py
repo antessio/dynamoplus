@@ -1,19 +1,18 @@
 from _pydecimal import Decimal
 
 from dynamoplus.models.query.conditions import match_predicate
-from dynamoplus.v2.repository.repositories import Counter
-from dynamoplus.models.system.aggregation.aggregation import Aggregation, AggregationType
+from dynamoplus.models.system.aggregation.aggregation_configuration import AggregationConfiguration, AggregationType
 from dynamoplus.models.system.collection.collection import Collection
-from dynamoplus.models.system.index.index import Index
+from dynamoplus.v2.repository.repositories import Counter
 from dynamoplus.v2.repository.repositories import Repository, AtomicIncrement
 from dynamoplus.v2.service.common import get_repository_factory
 from dynamoplus.v2.service.domain.domain_service import DomainService
-from dynamoplus.v2.service.model_service import get_model, get_index_model
-from dynamoplus.v2.service.system.system_service import Converter, aggregation_metadata, logger, CollectionService, \
-    collection_metadata
+from dynamoplus.v2.service.model_service import get_model
+from dynamoplus.v2.service.system.system_service import CollectionService, \
+    collection_metadata, aggregation_configuration_metadata
 
 
-def extract_sum_and_count(aggregation: Aggregation, new_record, old_record):
+def extract_sum_and_count(aggregation: AggregationConfiguration, new_record, old_record):
     counters = []
     if new_record and old_record:
         ## update
@@ -48,15 +47,15 @@ def extract_sum_and_count(aggregation: Aggregation, new_record, old_record):
 
 class AggregationProcessingService:
 
-    def aggregate(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
-        r = new_record or old_record
+    def aggregate(aggregation: AggregationConfiguration, collection: Collection, new_record: dict, old_record: dict):
+        record = new_record or old_record
         target_collection = collection_metadata
         join_document = None
         if aggregation.join:
             if aggregation.join.collection_name:
                 target_collection = CollectionService.get_collection(aggregation.join.collection_name)
-            if aggregation.join.using_field in r:
-                id = r[aggregation.join.using_field]
+            if aggregation.join.using_field in record:
+                id = record[aggregation.join.using_field]
                 join_document = DomainService(target_collection).get_document(id)
 
         repo = Repository(get_repository_factory(target_collection))
@@ -72,7 +71,7 @@ class AggregationProcessingService:
                                                    model.sk,
                                                    counters))
 
-    def avg(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
+    def avg(aggregation: AggregationConfiguration, collection: Collection, new_record: dict, old_record: dict):
         repo = Repository(get_repository_factory(collection_metadata))
         model = get_model(collection_metadata, {"name": aggregation.collection_name})
         counters = extract_sum_and_count(aggregation, new_record, old_record)
@@ -82,9 +81,12 @@ class AggregationProcessingService:
                                                    model.sk,
                                                    counters))
 
-    def collection_count(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
-        repo = Repository(get_repository_factory(collection_metadata))
+    def collection_count(aggregation: AggregationConfiguration, collection: Collection, new_record: dict, old_record: dict):
+        ## load from aggregation
+        repo = Repository(get_repository_factory(aggregation_configuration_metadata))
         model = get_model(collection_metadata, {"name": aggregation.collection_name})
+
+
 
         is_increment = True if new_record is not None else False
         increment = AtomicIncrement(model.pk, model.sk, [Counter("count", Decimal(1), is_increment)])
@@ -109,10 +111,10 @@ class AggregationProcessingService:
     #
     #     return None
 
-    def max(aggregation: Aggregation, document: dict):
+    def max(aggregation: AggregationConfiguration, document: dict):
         return None
 
-    def min(aggregation: Aggregation, document: dict):
+    def min(aggregation: AggregationConfiguration, document: dict):
         return None
 
     # def sum(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
@@ -143,7 +145,7 @@ class AggregationProcessingService:
     }
 
     @staticmethod
-    def execute_aggregation(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
+    def execute_aggregation(aggregation: AggregationConfiguration, collection: Collection, new_record: dict, old_record: dict):
         if aggregation.matches:
             if not match_predicate(new_record, aggregation.matches):
                 return

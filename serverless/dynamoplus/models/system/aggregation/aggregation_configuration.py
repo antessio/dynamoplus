@@ -65,7 +65,7 @@ class AggregationJoin(object):
         return hash(self.__members())
 
 @auto_str
-class Aggregation(object):
+class AggregationConfiguration(object):
 
     def __init__(self, collection_name: str, type: AggregationType, on: List[AggregationTrigger], target_field: str,
                  matches: Predicate, join: AggregationJoin):
@@ -75,7 +75,7 @@ class Aggregation(object):
         self.target_field = target_field
         self.matches = matches
         self.join = join
-        self.name = Aggregation.get_name(collection_name,type,target_field,matches,join)
+        self.name = AggregationConfiguration.get_name(collection_name, type, target_field, matches, join)
 
     @staticmethod
     def get_name(collection_name: str, type: AggregationType, target_field: str,

@@ -113,6 +113,8 @@ class HttpHandler(object):
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
                                           body=self.format_json({"msg": e.message}))
 
+    # TODO: implement aggregations endpoint
+
     def query(self, path_parameters, query_string_parameters={}, body=None, headers=None):
         logger.info("headers received {}".format(str(headers)))
         collection = self.get_document_type_from_path_parameters(path_parameters)

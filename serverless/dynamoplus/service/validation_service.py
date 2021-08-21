@@ -2,7 +2,7 @@ import fastjsonschema
 import logging
 from fastjsonschema import JsonSchemaDefinitionException, JsonSchemaException
 
-from dynamoplus.models.system.aggregation.aggregation import AggregationType, AggregationTrigger
+from dynamoplus.models.system.aggregation.aggregation_configuration import AggregationType, AggregationTrigger
 from dynamoplus.models.system.collection.collection import Collection, AttributeConstraint, AttributeType, \
     AttributeDefinition
 
