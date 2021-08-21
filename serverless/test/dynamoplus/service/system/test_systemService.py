@@ -3,7 +3,7 @@ import unittest
 from decimal import Decimal
 
 from dynamoplus.models.query.conditions import Eq, And, AnyMatch
-from dynamoplus.models.system.aggregation.aggregation import Aggregation, AggregationType, AggregationTrigger, \
+from dynamoplus.models.system.aggregation.aggregation_configuration import AggregationConfiguration, AggregationType, AggregationTrigger, \
     AggregationJoin
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.system.index.index import Index, IndexConfiguration
@@ -17,7 +17,7 @@ from dynamoplus.v2.repository.repositories import Model, Repository, QueryResult
 from dynamoplus.v2.service.query_service import QueryService
 from dynamoplus.v2.service.system.system_service import AuthorizationService, CollectionService, IndexService, \
     Converter
-from dynamoplus.v2.service.system.system_service import AggregationService
+from dynamoplus.v2.service.system.system_service import AggregationConfigurationService
 
 domain_table_name = "domain"
 system_table_name = "system"
@@ -36,10 +36,10 @@ class TestSystemService(unittest.TestCase):
         target_field = "field_1"
         predicate = And([Eq("field_x", "value1"), Eq("field_y", "value2")])
         join = AggregationJoin("my_collection", "field_example_1")
-        aggregation = Aggregation(collection_name, type,
-                                  on,
-                                  target_field, predicate,
-                                  join)
+        aggregation = AggregationConfiguration(collection_name, type,
+                                               on,
+                                               target_field, predicate,
+                                               join)
         d = Converter.from_aggregation_to_dict(aggregation)
         self.maxDiff = None
         expected = {
@@ -74,7 +74,7 @@ class TestSystemService(unittest.TestCase):
             }
         }
         self.assertDictEqual(d, expected)
-        aggregation_result = Converter.from_dict_to_aggregation(expected)
+        aggregation_result = Converter.from_dict_to_aggregation_configuration(expected)
         self.assertEqual(aggregation, aggregation_result)
 
     @patch.object(Repository, "update")
@@ -354,10 +354,10 @@ class TestSystemService(unittest.TestCase):
         target_field = "field_1"
         predicate = And([Eq("field_x", "value1"), Eq("field_y", "value2")])
         join = AggregationJoin("my_collection", "field_example_1")
-        aggregation = Aggregation(collection_name, type,
-                                  on,
-                                  target_field, predicate,
-                                  join)
+        aggregation = AggregationConfiguration(collection_name, type,
+                                               on,
+                                               target_field, predicate,
+                                               join)
         target_agg = {
             "name": aggregation.name,
             "collection": {"name": collection_name}, "type": type.name,
@@ -382,16 +382,16 @@ class TestSystemService(unittest.TestCase):
                 }
             }
         }
-        expected_model = Model("aggregation#" + aggregation.name, "aggregation", aggregation.name, target_agg)
+        expected_model = Model("aggregation_configuration#" + aggregation.name, "aggregation_configuration", aggregation.name, target_agg)
         mock_repository.return_value = None
         mock_create.return_value = expected_model
 
-        created_aggregation = AggregationService.create_aggregation(aggregation)
+        created_aggregation = AggregationConfigurationService.create_aggregation_configuration(aggregation)
         mock_repository.assert_called_once_with(system_table_name)
         aggregation_name = created_aggregation.name
         self.assertEqual(aggregation_name, aggregation.name)
         calls = [call(expected_model),
-                 call(Model("aggregation#" + aggregation.name, "aggregation#collection.name",
+                 call(Model("aggregation_configuration#" + aggregation.name, "aggregation_configuration#collection.name",
                             aggregation.collection_name, target_agg))]
         mock_create.assert_has_calls(calls)
 
@@ -409,13 +409,13 @@ class TestSystemService(unittest.TestCase):
         expected_model = Model(collection_name + "#" + expected_name, collection_name, expected_name,
                                document)
         mock_get.return_value = expected_model
-        result = AggregationService.get_aggregation_by_name(expected_name)
+        result = AggregationConfigurationService.get_aggregation_configuration_by_name(expected_name)
         mock_repository.assert_called_once_with(system_table_name)
         self.assertTrue(mock_get.called_with(collection_name + "#" + expected_name, collection_name))
         self.assertEqual(expected_name, result.name)
-        self.assertIsInstance(result, Aggregation)
+        self.assertIsInstance(result, AggregationConfiguration)
 
-    @patch.object(Converter, "from_dict_to_aggregation")
+    @patch.object(Converter, "from_dict_to_aggregation_configuration")
     @patch.object(QueryService, "query_generator")
     def test_get_aggregations_by_collection_name(self, mock_query, mock_converter):
         collection_name = "example"
@@ -435,12 +435,12 @@ class TestSystemService(unittest.TestCase):
             yield from expected_results
 
         mock_query.side_effect = fake
-        mock_converter.return_value = Aggregation("example", AggregationType.COLLECTION_COUNT,
-                                                  [AggregationTrigger.INSERT], "whatever", None, None)
+        mock_converter.return_value = AggregationConfiguration("example", AggregationType.COLLECTION_COUNT,
+                                                               [AggregationTrigger.INSERT], "whatever", None, None)
 
-        aggregation_metadata = Collection("aggregation", "name")
+        aggregation_metadata = Collection("aggregation_configuration", "name")
         index_by_collection_metadata = Index(aggregation_metadata.name, ["collection.name"])
-        aggregations = AggregationService.get_aggregations_by_collection_name(collection_name)
+        aggregations = AggregationConfigurationService.get_aggregation_configurations_by_collection_name(collection_name)
 
         names = list(map(lambda a: a.name, aggregations))
         self.assertEqual(3, len(names))
@@ -451,7 +451,7 @@ class TestSystemService(unittest.TestCase):
             mock_query.call_args_list[0])
         self.assertEqual(3, mock_converter.call_count)
 
-    @patch.object(Converter, "from_dict_to_aggregation")
+    @patch.object(Converter, "from_dict_to_aggregation_configuration")
     @patch.object(QueryService, "query")
     def test_get_all_aggregations(self, mock_query, mock_converter):
         expected_results = [
@@ -468,11 +468,11 @@ class TestSystemService(unittest.TestCase):
         ]
 
         mock_query.return_value = QueryResult(expected_results, None)
-        mock_converter.return_value = Aggregation("example", AggregationType.COLLECTION_COUNT,
-                                                  [AggregationTrigger.INSERT], "whatever", None, None)
+        mock_converter.return_value = AggregationConfiguration("example", AggregationType.COLLECTION_COUNT,
+                                                               [AggregationTrigger.INSERT], "whatever", None, None)
 
-        aggregation_metadata = Collection("aggregation", "name")
-        aggregations, last_key = AggregationService.get_all_aggregations(20, None)
+        aggregation_metadata = Collection("aggregation_configuration", "name")
+        aggregations, last_key = AggregationConfigurationService.get_all_aggregation_configurations(20, None)
 
         names = list(map(lambda a: a.name, aggregations))
         self.assertEqual(3, len(names))
@@ -492,4 +492,4 @@ class TestSystemService(unittest.TestCase):
                     "conditions": conditions})], next)
 
     def fake_query_result_aggregation(self, aggregation_name, collection_name, d: dict):
-        return Model("aggregation#" + aggregation_name, "aggregation", aggregation_name, d)
+        return Model("aggregation_configuration#" + aggregation_name, "aggregation_configuration", aggregation_name, d)

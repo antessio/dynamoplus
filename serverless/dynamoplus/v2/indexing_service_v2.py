@@ -1,10 +1,10 @@
 import logging
 
 #from dynamoplus.models.system.aggregation.aggregation import AggregationTrigger
-from dynamoplus.models.system.aggregation.aggregation import AggregationTrigger
+from dynamoplus.models.system.aggregation.aggregation_configuration import AggregationTrigger
 from dynamoplus.models.system.index.index import IndexConfiguration
 from dynamoplus.models.system.collection.collection import Collection
-from dynamoplus.v2.service.system.system_service import IndexService, CollectionService, AggregationService
+from dynamoplus.v2.service.system.system_service import IndexService, CollectionService, AggregationConfigurationService
 from dynamoplus.v2.service.model_service import get_index_model
 from dynamoplus.v2.service.common import is_system, get_repository_factory
 from dynamoplus.utils.utils import find_added_values, find_removed_values, find_updated_values, \
@@ -36,7 +36,7 @@ def __indexing(collection_metadata: Collection,
         for update in to_update_index_models:
             repository.update(update)
 
-        aggregations = AggregationService.get_aggregations_by_collection_name(collection_metadata.name)
+        aggregations = AggregationConfigurationService.get_aggregation_configurations_by_collection_name(collection_metadata.name)
         trigger = AggregationTrigger.UPDATE
         if old_record is None:
             trigger = AggregationTrigger.INSERT

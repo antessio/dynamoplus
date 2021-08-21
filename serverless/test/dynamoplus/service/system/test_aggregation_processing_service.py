@@ -3,7 +3,7 @@ import unittest
 from decimal import Decimal
 
 from dynamoplus.models.query.conditions import Eq, And
-from dynamoplus.models.system.aggregation.aggregation import Aggregation, AggregationType, AggregationTrigger, \
+from dynamoplus.models.system.aggregation.aggregation_configuration import AggregationConfiguration, AggregationType, AggregationTrigger, \
     AggregationJoin
 from dynamoplus.models.system.collection.collection import Collection
 
@@ -28,8 +28,8 @@ class TestAggregationProcessingService(unittest.TestCase):
     @patch.object(Repository, "__init__")
     def test_collection_count_aggregation(self, mock_repository, mock_increment_counter):
         mock_repository.return_value = None
-        aggregation = Aggregation("example", AggregationType.COLLECTION_COUNT,
-                                  [AggregationTrigger.INSERT, AggregationTrigger.DELETE], None, None, None)
+        aggregation = AggregationConfiguration("example", AggregationType.COLLECTION_COUNT,
+                                               [AggregationTrigger.INSERT, AggregationTrigger.DELETE], None, None, None)
         document = {
             "name": "whatever"
         }
@@ -44,8 +44,8 @@ class TestAggregationProcessingService(unittest.TestCase):
     @patch.object(Repository, "__init__")
     def test_collection_count_aggregation_remove(self, mock_repository, mock_increment_counter):
         mock_repository.return_value = None
-        aggregation = Aggregation("example", AggregationType.COLLECTION_COUNT,
-                                  [AggregationTrigger.INSERT, AggregationTrigger.DELETE], None, None, None)
+        aggregation = AggregationConfiguration("example", AggregationType.COLLECTION_COUNT,
+                                               [AggregationTrigger.INSERT, AggregationTrigger.DELETE], None, None, None)
         document = {
             "name": "whatever"
         }
@@ -61,8 +61,8 @@ class TestAggregationProcessingService(unittest.TestCase):
     def test_collection_avg_insert(self, mock_repository, mock_increment_counter):
         mock_repository.return_value = None
 
-        aggregation = Aggregation("example", AggregationType.AVG,
-                                  [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE],
+        aggregation = AggregationConfiguration("example", AggregationType.AVG,
+                                               [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE],
                                   "rate", None, None)
         document = {
             "id": 1,
@@ -83,8 +83,8 @@ class TestAggregationProcessingService(unittest.TestCase):
     def test_collection_avg_delete(self, mock_repository, mock_increment_counter):
         mock_repository.return_value = None
         example_collection = Collection("example", "id")
-        aggregation = Aggregation("example", AggregationType.AVG,
-                                  [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE],
+        aggregation = AggregationConfiguration("example", AggregationType.AVG,
+                                               [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE],
                                   "rate", None, None)
         document = {
             "id": 1,
@@ -105,8 +105,8 @@ class TestAggregationProcessingService(unittest.TestCase):
     def test_collection_avg_update_decrease(self, mock_repository, mock_increment_counter):
         mock_repository.return_value = None
         example_collection = Collection("example", "id")
-        aggregation = Aggregation("example", AggregationType.AVG,
-                                  [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE],
+        aggregation = AggregationConfiguration("example", AggregationType.AVG,
+                                               [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE],
                                   "rate", None, None)
         old_document = {
             "id": 1,
@@ -133,8 +133,8 @@ class TestAggregationProcessingService(unittest.TestCase):
     def test_collection_avg_update_increase(self, mock_repository, mock_increment_counter):
         mock_repository.return_value = None
         example_collection = Collection("example", "id")
-        aggregation = Aggregation("example", AggregationType.AVG,
-                                  [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE],
+        aggregation = AggregationConfiguration("example", AggregationType.AVG,
+                                               [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE],
                                   "rate", None, None)
         old_document = {
             "id": 1,
@@ -161,8 +161,8 @@ class TestAggregationProcessingService(unittest.TestCase):
     def test_not_matching_predicate(self, mock_repository, mock_increment_counter):
         mock_repository.return_value = None
         example_collection = Collection("example", "id")
-        aggregation = Aggregation("example", AggregationType.AVG,
-                                  [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE],
+        aggregation = AggregationConfiguration("example", AggregationType.AVG,
+                                               [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE],
                                   "rate", Eq("name", "example-name"), None)
         old_document = {
             "id": 1,

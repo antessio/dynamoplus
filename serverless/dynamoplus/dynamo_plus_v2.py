@@ -8,7 +8,7 @@ from enum import Enum
 
 from dynamoplus.v2.service.query_service import QueryService
 from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, \
-    AuthorizationService, Converter, Collection,AggregationService
+    AuthorizationService, Converter, Collection,AggregationConfigurationService
 from dynamoplus.models.query.conditions import Predicate, Range, Eq, And
 from dynamoplus.v2.service.domain.domain_service import DomainService
 from dynamoplus.v2.service.common import is_system
@@ -64,7 +64,7 @@ def get_all(collection_name: str, last_key: str, limit: int):
             documents = list(map(lambda c: Converter.from_collection_to_dict(c), collections))
             return documents, last_evaluated_key
         elif collection_name == 'aggregation':
-            aggregations, last_evaluated_key = AggregationService.get_all_aggregations(limit, last_key)
+            aggregations, last_evaluated_key = AggregationConfigurationService.get_all_aggregation_configurations(limit, last_key)
             documents = list(map(lambda c: Converter.from_aggregation_to_dict(c), aggregations))
             return documents, last_evaluated_key
         else:
@@ -108,8 +108,8 @@ def get(collection_name: str, document_id: str):
                                        "{} not found with name {}".format(collection_name, document_id))
             logger.info("Found client_authorization {}".format(client_authorization.__str__))
             return Converter.from_client_authorization_to_dict(client_authorization)
-        elif collection_name == 'aggregation':
-            aggregation = AggregationService.get_aggregation_by_name(document_id)
+        elif collection_name == 'aggregation_configuration':
+            aggregation = AggregationConfigurationService.get_aggregation_configuration_by_name(document_id)
             if aggregation is None:
                 raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
                                        "{} not found with name {}".format(collection_name, document_id))
@@ -154,10 +154,10 @@ def create(collection_name: str, document: dict) -> dict:
             client_authorization = AuthorizationService.create_client_authorization(client_authorization)
             logging.info("created client_authorization {}".format(client_authorization.__str__()))
             return Converter.from_client_authorization_to_dict(client_authorization)
-        elif collection_name == "aggregation":
+        elif collection_name == "aggregation_configuration":
             validate_aggregation(document)
-            aggregation = Converter.from_dict_to_aggregation(document)
-            aggregation = AggregationService.create_aggregation(aggregation)
+            aggregation = Converter.from_dict_to_aggregation_configuration(document)
+            aggregation = AggregationConfigurationService.create_aggregation_configuration(aggregation)
             logging.info("created aggregation {}".format(aggregation.__str__()))
             return Converter.from_aggregation_to_dict(aggregation)
         else:
