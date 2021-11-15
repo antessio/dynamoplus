@@ -407,6 +407,7 @@ def cleanup_tables():
 
 
 def create_tables():
+    logger.info("create tables")
     dynamo_db = connection if connection is not None else boto3.resource('dynamodb')
     try:
         domain_table = dynamo_db.create_table(TableName=os.environ['DYNAMODB_DOMAIN_TABLE'],

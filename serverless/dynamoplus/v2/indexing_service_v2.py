@@ -1,7 +1,7 @@
 import logging
 
 #from dynamoplus.models.system.aggregation.aggregation import AggregationTrigger
-from dynamoplus.models.system.aggregation.aggregation_configuration import AggregationTrigger
+from dynamoplus.models.system.aggregation.aggregation import AggregationTrigger
 from dynamoplus.models.system.index.index import IndexConfiguration
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.v2.service.system.system_service import IndexService, CollectionService, AggregationConfigurationService
@@ -44,7 +44,7 @@ def __indexing(collection_metadata: Collection,
             trigger = AggregationTrigger.DELETE
         for a in aggregations:
             if trigger in a.on:
-                AggregationProcessingService.execute_aggregation(a, new_record)
+                AggregationProcessingService.execute_aggregation(a, collection_metadata,new_record,old_record)
 
 
 def get_index_models_to_remove(collection_metadata, new_record: dict, old_record: dict):

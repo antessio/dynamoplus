@@ -7,6 +7,7 @@ from dynamoplus.utils.utils import auto_str
 
 
 class AggregationType(str, Enum):
+    COUNT = "COUNT"
     COLLECTION_COUNT = "COLLECTION_COUNT"
     AVG = "AVG"
     AVG_JOIN = "AVG_JOIN"
@@ -63,6 +64,52 @@ class AggregationJoin(object):
 
     def __hash__(self):
         return hash(self.__members())
+
+
+
+@auto_str
+class Aggregation(object):
+    def __init__(self, name: str):
+        self.name = name
+
+    def __members(self):
+        return self.name
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.__members() == other.__members()
+        else:
+            return False
+
+    def __str__(self):
+        return "{" + ",".join(map(lambda x: x.__str__(), self.__members())) + "}"
+
+    def __hash__(self):
+        return hash(self.__members())
+
+@auto_str
+class AggregationCount(Aggregation):
+    count: int
+
+    def __init__(self, name:str, count: int):
+        super().__init__(name)
+        self.count = count
+
+    def __members(self):
+        return self.name, self.count
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.__members() == other.__members()
+        else:
+            return False
+
+    def __str__(self):
+        return "{" + ",".join(map(lambda x: x.__str__(), self.__members())) + "}"
+
+    def __hash__(self):
+        return hash(self.__members())
+
 
 @auto_str
 class AggregationConfiguration(object):

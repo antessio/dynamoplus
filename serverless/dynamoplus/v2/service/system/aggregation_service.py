@@ -1,16 +1,28 @@
+import logging
 from _pydecimal import Decimal
+from typing import List
 
 from dynamoplus.models.query.conditions import match_predicate
-from dynamoplus.models.system.aggregation.aggregation_configuration import AggregationConfiguration, AggregationType
+from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationType, Aggregation, \
+    AggregationCount
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.v2.repository.repositories import Counter
 from dynamoplus.v2.repository.repositories import Repository, AtomicIncrement
 from dynamoplus.v2.service.common import get_repository_factory
-from dynamoplus.v2.service.domain.domain_service import DomainService
-from dynamoplus.v2.service.model_service import get_model
-from dynamoplus.v2.service.system.system_service import CollectionService, \
-    collection_metadata, aggregation_configuration_metadata
 
+from dynamoplus.v2.service.model_service import get_model
+from dynamoplus.v2.service.system.system_service import AggregationConfigurationService,\
+    AggregationService
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# TODO
+#
+# - for MAX and MIN: an index by the field must be present so if it doesn't exist, then create it and make it unmodifiable
+#   - in the API or whatever may change the index, the update must be forbidden
+# - for count and sum: they are strictly connected, if avg is defined then sum is automatically created
+#
 
 def extract_sum_and_count(aggregation: AggregationConfiguration, new_record, old_record):
     counters = []
@@ -47,50 +59,61 @@ def extract_sum_and_count(aggregation: AggregationConfiguration, new_record, old
 
 class AggregationProcessingService:
 
-    def aggregate(aggregation: AggregationConfiguration, collection: Collection, new_record: dict, old_record: dict):
-        record = new_record or old_record
-        target_collection = collection_metadata
-        join_document = None
-        if aggregation.join:
-            if aggregation.join.collection_name:
-                target_collection = CollectionService.get_collection(aggregation.join.collection_name)
-            if aggregation.join.using_field in record:
-                id = record[aggregation.join.using_field]
-                join_document = DomainService(target_collection).get_document(id)
+    # def aggregate(aggregation_configuration: AggregationConfiguration, collection: Collection, new_record: dict, old_record: dict):
+    #     record = new_record or old_record
+    #
+    #     aggregation = AggregationService.get_aggregation_by_name(aggregation_configuration.name)
+    #
+    #     count = aggregation.count or 0
+    #     max = aggregation.max or [0.0]
+    #     avg = aggregation.avg or 0.0
+    #
+    #
+    #
+    #     counters = extract_sum_and_count(aggregation_configuration, new_record, old_record)
+    #
+    #     if len(counters) > 0:
+    #             model = get_model(collection_metadata, {"name": aggregation_configuration.collection_name})
+    #
+    #     repo.increment_counter(AtomicIncrement(model.pk,
+    #                                                model.sk,
+    #                                                counters))
+    #
+    # def avg(aggregation: AggregationConfiguration, collection: Collection, new_record: dict, old_record: dict):
+    #     repo = Repository(get_repository_factory(collection_metadata))
+    #     model = get_model(collection_metadata, {"name": aggregation.collection_name})
+    #     counters = extract_sum_and_count(aggregation, new_record, old_record)
+    #
+    #     if len(counters) > 0:
+    #         repo.increment_counter(AtomicIncrement(model.pk,
+    #                                                model.sk,
+    #                                                counters))
 
-        repo = Repository(get_repository_factory(target_collection))
+    def collection_count(aggregation_configuration: AggregationConfiguration,
+                         collection: Collection,
+                         new_record: dict,
+                         old_record: dict):
+        ## load aggregation
+        aggregation = AggregationService.get_aggregation_by_name(aggregation_configuration.name)
 
-        counters = extract_sum_and_count(aggregation, new_record, old_record)
+        if aggregation:
+            if isinstance(aggregation, AggregationCount):
+                is_increment = True if old_record is None else False
+                is_decrement = True if new_record is None else False
+                if is_increment:
+                    if AggregationService.incrementCount(aggregation):
+                        aggregation.count = aggregation.count + 1
 
-        if len(counters) > 0:
-            if join_document:
-                model = get_model(target_collection, join_document)
-            else:
-                model = get_model(collection_metadata, {"name": aggregation.collection_name})
-            repo.increment_counter(AtomicIncrement(model.pk,
-                                                   model.sk,
-                                                   counters))
+                elif is_decrement:
+                    if AggregationService.decrementCount(aggregation):
+                        aggregation.count = aggregation.count - 1
+            return aggregation
 
-    def avg(aggregation: AggregationConfiguration, collection: Collection, new_record: dict, old_record: dict):
-        repo = Repository(get_repository_factory(collection_metadata))
-        model = get_model(collection_metadata, {"name": aggregation.collection_name})
-        counters = extract_sum_and_count(aggregation, new_record, old_record)
+        else:
+            ## create the aggregation if it doesn't exist
+            logger.info("found aggregation configuration {}".format(aggregation_configuration))
+            return AggregationService.createAggregation(AggregationCount(aggregation_configuration.name,1))
 
-        if len(counters) > 0:
-            repo.increment_counter(AtomicIncrement(model.pk,
-                                                   model.sk,
-                                                   counters))
-
-    def collection_count(aggregation: AggregationConfiguration, collection: Collection, new_record: dict, old_record: dict):
-        ## load from aggregation
-        repo = Repository(get_repository_factory(aggregation_configuration_metadata))
-        model = get_model(collection_metadata, {"name": aggregation.collection_name})
-
-
-
-        is_increment = True if new_record is not None else False
-        increment = AtomicIncrement(model.pk, model.sk, [Counter("count", Decimal(1), is_increment)])
-        repo.increment_counter(increment)
 
     # def avg_join(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
     #     repo = Repository(get_repository_factory(collection))
@@ -111,10 +134,12 @@ class AggregationProcessingService:
     #
     #     return None
 
-    def max(aggregation: AggregationConfiguration, document: dict):
+    def max(aggregation: AggregationConfiguration, old_document: dict,new_document:dict):
+        ## create "normal" index by field ordered by itself
         return None
 
-    def min(aggregation: AggregationConfiguration, document: dict):
+    def min(aggregation: AggregationConfiguration, old_document: dict,new_document:dict):
+        ## create "normal" index by field order by itself
         return None
 
     # def sum(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
@@ -135,13 +160,13 @@ class AggregationProcessingService:
     #                                                counters))
 
     aggregation_executor_factory = {
-        AggregationType.AVG: aggregate,
-        AggregationType.COLLECTION_COUNT: aggregate,
-        AggregationType.AVG_JOIN: aggregate,
-        AggregationType.MAX: max,
-        AggregationType.MIN: min,
-        AggregationType.SUM: aggregate,
-        AggregationType.SUM_COUNT: aggregate
+        # AggregationType.AVG: aggregate,
+        AggregationType.COLLECTION_COUNT: collection_count,
+        #AggregationType.AVG_JOIN: aggregate,
+        # AggregationType.MAX: max,
+        # AggregationType.MIN: min,
+        # AggregationType.SUM: aggregate,
+        #AggregationType.SUM_COUNT: aggregate
     }
 
     @staticmethod
@@ -149,5 +174,4 @@ class AggregationProcessingService:
         if aggregation.matches:
             if not match_predicate(new_record, aggregation.matches):
                 return
-        AggregationProcessingService.aggregation_executor_factory[aggregation.type](aggregation, collection, new_record,
-                                                                                    old_record)
+        AggregationProcessingService.aggregation_executor_factory[aggregation.type](aggregation, collection, new_record, old_record)
