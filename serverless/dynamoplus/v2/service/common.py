@@ -8,4 +8,4 @@ def get_repository_factory(collection: Collection) -> Repository:
 
 
 def is_system(collection: Collection) -> bool:
-    return collection.name in ["collection", "index", "client_authorization","aggregation_configuration"]
+    return collection.name in ["collection", "index", "client_authorization","aggregation_configuration","aggregation"]

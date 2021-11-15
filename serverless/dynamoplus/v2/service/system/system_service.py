@@ -3,13 +3,15 @@ from decimal import Decimal
 from typing import *
 
 from dynamoplus.models.query.conditions import Eq, And, AnyMatch, Predicate
-from dynamoplus.models.system.aggregation.aggregation_configuration import AggregationConfiguration, AggregationTrigger, AggregationJoin, \
-    AggregationType
+from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationTrigger, \
+    AggregationJoin, \
+    AggregationType, Aggregation, AggregationCount
 from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
     ClientAuthorizationApiKey, ClientAuthorizationHttpSignature, Scope, ScopesType
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType, \
     AttributeConstraint
 from dynamoplus.models.system.index.index import Index, IndexConfiguration
+from dynamoplus.v2.repository.repositories import AtomicIncrement,Counter
 from dynamoplus.v2.service.common import get_repository_factory
 from dynamoplus.v2.service.model_service import get_model, get_index_model
 from dynamoplus.v2.service.query_service import QueryService
@@ -18,7 +20,7 @@ collection_metadata = Collection("collection", "name")
 index_metadata = Collection("index", "name")
 client_authorization_metadata = Collection("client_authorization", "client_id")
 aggregation_configuration_metadata = Collection("aggregation_configuration", "name")
-
+aggregation_metadata = Collection("aggregation", "name")
 index_by_collection_and_name_metadata = Index(index_metadata.name, ["collection.name", "name"], None)
 index_by_collection_metadata = Index(index_metadata.name, ["collection.name"], None)
 index_by_name_metadata = Index(index_metadata.name, ["name"], None)
@@ -172,7 +174,7 @@ class Converter:
         return Converter.from_dict_to_client_authorization_factory()[d["type"]](d)
 
     @staticmethod
-    def from_aggregation_to_dict(aggregation: AggregationConfiguration):
+    def from_aggregation_configuration_to_dict(aggregation: AggregationConfiguration):
         a = {
             "on": list(map(lambda o: o.name, aggregation.on))
         }
@@ -194,6 +196,16 @@ class Converter:
         d["aggregation"] = a
         d["name"] = aggregation.name
         return d
+
+    @staticmethod
+    def from_aggregation_to_dict(aggregation: Aggregation):
+        a = {
+            "name": aggregation.name
+        }
+        if isinstance(aggregation, AggregationCount):
+            a["count"] = aggregation.count
+        return a
+
 
     @staticmethod
     def from_predicate_to_dict(predicate: Predicate):
@@ -234,6 +246,13 @@ class Converter:
             matches = Converter.from_dict_to_predicate(inner_aggregation_document["matches"])
 
         return AggregationConfiguration(collection_name, t, on, target_field, matches, join)
+
+    @staticmethod
+    def from_dict_to_aggregation(document: dict):
+        name = document["name"]
+        if "count" in document:
+            return AggregationCount(name, document["count"])
+        return Aggregation(name)
 
 
 class CollectionService:
@@ -396,6 +415,42 @@ class AuthorizationService:
         repo.delete(model.pk, model.sk)
 
 
+class AggregationService:
+    @staticmethod
+    def get_aggregation_by_name(name:str):
+        repo = get_repository_factory(aggregation_metadata)
+        model = get_model(aggregation_metadata, {aggregation_metadata.id_key: name})
+        result = repo.get(model.pk, model.sk)
+        if result:
+            return Converter.from_dict_to_aggregation(result.document)
+
+    @staticmethod
+    def incrementCount(aggregation: AggregationCount):
+        repo = get_repository_factory(aggregation_metadata)
+        aggregation_dict = Converter.from_aggregation_to_dict(aggregation)
+        model = get_model(aggregation_metadata, aggregation_dict)
+
+        repo.increment_counter(AtomicIncrement(model.pk,model.sk,[Counter("count", 1,True)]))
+
+    @staticmethod
+    def decrementCount(aggregation: AggregationCount):
+        repo = get_repository_factory(aggregation_metadata)
+        aggregation_dict = Converter.from_aggregation_to_dict(aggregation)
+        model = get_model(aggregation_metadata, aggregation_dict)
+
+        repo.increment_counter(AtomicIncrement(model.pk, model.sk, [Counter("count", 1, False)]))
+
+
+    @staticmethod
+    def createAggregation(aggregation:Aggregation):
+        repo = get_repository_factory(aggregation_metadata)
+        aggregation_dict = Converter.from_aggregation_to_dict(aggregation)
+        model = get_model(aggregation_metadata, aggregation_dict)
+        created_model = repo.create(model)
+        return Converter.from_dict_to_aggregation(created_model.document)
+
+
+
 class AggregationConfigurationService:
 
     @staticmethod
@@ -414,7 +469,7 @@ class AggregationConfigurationService:
 
     @staticmethod
     def create_aggregation_configuration(aggregation: AggregationConfiguration):
-        aggregation_document = Converter.from_aggregation_to_dict(aggregation)
+        aggregation_document = Converter.from_aggregation_configuration_to_dict(aggregation)
         repo = get_repository_factory(aggregation_configuration_metadata)
         created_aggregation_model = repo.create(get_model(aggregation_configuration_metadata, aggregation_document))
         if created_aggregation_model:

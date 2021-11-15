@@ -1,15 +1,25 @@
 # aggregations dynamo db table
 
 
+- for MAX and MIN: an index by the field must be present so if it doesn't exist, then create it and make it unmodifiable
+    - in the API or whatever may change the index, the update must be forbidden
+    - aggregate function should just check if the index is present, if not create it
+    - to query the value of min max: ensure that the is possible to query by the field ordered by the field itself (desc/asc)
+- for count and sum: they are strictly connected, if avg is defined then sum is automatically created
+    - to safe store the values the atomic increment should be performed, that's why the aggregation must have
+    three different rows
+    - to query the index by count just query aggregation#$ID and extract count 
+
 ## system collection metadata
 
-pk                                              | sk                                                | data
----                                             |---                                                |---
-aggregation_configuration#$ID                   |aggregation_configuration                          |$ID
-aggregation_configuration#$ID                   |aggregation_configuration#collection_name          |$collection-name
-collection#$collection_name                     |collection                                         |$collection-name
-collection_document_count#$collection_name      |collection_document_count                          |
-aggregation#$ID                                 |aggregation                                        |$ID
+pk                                                      | sk                                                    | data
+---                                                     |---                                                    |---
+aggregation_configuration#$ID                           |aggregation_configuration                              |$ID
+aggregation_configuration#$ID                           |aggregation_configuration#collection_name              |$collection-name
+collection#$collection_name                             |collection                                             |$collection-name
+collection_document_count#$collection_name              |collection_document_count                              |
+aggregation_count#$ID                                   |$aggregation_name                                      |$value
+aggregation_sum#$ID                                     |$aggregation_name                                      |$value
 
 
 
@@ -19,7 +29,7 @@ aggregation#$ID                                 |aggregation                    
 
 pk                                              | sk                            | data
 ---                                             |---                            |---
-$collection_name#$ID                            |$collection_name              |$ID
+$collection_name#$ID                            |$collection_name               |$ID
 
 ## examples
 

@@ -3,7 +3,7 @@ import unittest
 from decimal import Decimal
 
 from dynamoplus.models.query.conditions import Eq, And, AnyMatch
-from dynamoplus.models.system.aggregation.aggregation_configuration import AggregationConfiguration, AggregationType, AggregationTrigger, \
+from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationType, AggregationTrigger, \
     AggregationJoin
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.system.index.index import Index, IndexConfiguration
@@ -40,7 +40,7 @@ class TestSystemService(unittest.TestCase):
                                                on,
                                                target_field, predicate,
                                                join)
-        d = Converter.from_aggregation_to_dict(aggregation)
+        d = Converter.from_aggregation_configuration_to_dict(aggregation)
         self.maxDiff = None
         expected = {
             "name": aggregation.name,
