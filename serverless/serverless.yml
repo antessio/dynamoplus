@@ -1,8 +1,9 @@
 service: dynamoplus
 
+variablesResolutionMode: 20210326
+
 plugins:
   - serverless-python-requirements
-  - serverless-dynamodb-local
   - serverless-offline
 
 package:
@@ -33,6 +34,7 @@ provider:
   runtime: python3.7
   region: eu-west-1
   memorySize: 256
+  lambdaHashingVersion: 20200924
 
   environment:
     ALLOWED_ORIGINS: ${self:custom.allowed_origins}
@@ -71,7 +73,7 @@ functions:
     handler: aws/http/authorizer.authorize
     layers:
       - { Ref: PythonRequirementsLambdaLayer }
-    cors: true
+    
   handleStream:
     handler: aws/events/dynamodb.dynamo_stream_handler
     layers:
