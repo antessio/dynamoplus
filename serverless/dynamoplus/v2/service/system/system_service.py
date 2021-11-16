@@ -5,7 +5,7 @@ from typing import *
 from dynamoplus.models.query.conditions import Eq, And, AnyMatch, Predicate
 from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationTrigger, \
     AggregationJoin, \
-    AggregationType, Aggregation, AggregationCount
+    AggregationType, Aggregation, AggregationCount, AggregationSum, AggregationAvg
 from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
     ClientAuthorizationApiKey, ClientAuthorizationHttpSignature, Scope, ScopesType
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType, \
@@ -25,6 +25,7 @@ index_by_collection_and_name_metadata = Index(index_metadata.name, ["collection.
 index_by_collection_metadata = Index(index_metadata.name, ["collection.name"], None)
 index_by_name_metadata = Index(index_metadata.name, ["name"], None)
 aggregation_configuration_index_by_collection_name = Index("aggregation_configuration", ["collection.name"])
+aggregation_index_by_aggregation_name = Index("aggregation", ["configuration_name"],IndexConfiguration.OPTIMIZE_WRITE)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -198,12 +199,69 @@ class Converter:
         return d
 
     @staticmethod
+    def from_aggregation_configuration_to_API(aggregation_configuration: AggregationConfiguration, aggregation:Aggregation = None):
+        a = {
+            "on": list(map(lambda o: o.name, aggregation_configuration.on))
+        }
+        d = {
+            "collection": {
+                "name": aggregation_configuration.collection_name
+            },
+            "type": aggregation_configuration.type.name
+        }
+        if aggregation_configuration.join:
+            a["join"] = {
+                "collection_name": aggregation_configuration.join.collection_name,
+                "using_field": aggregation_configuration.join.using_field
+            }
+        if aggregation_configuration.target_field:
+            a["target_field"] = aggregation_configuration.target_field
+        if aggregation_configuration.matches:
+            a["matches"] = Converter.from_predicate_to_dict(aggregation_configuration.matches)
+        d["configuration"] = a
+        d["name"] = aggregation_configuration.name
+        if aggregation:
+            d["aggregation"]=Converter.from_aggregation_to_API(aggregation)
+        return d
+
+    @staticmethod
     def from_aggregation_to_dict(aggregation: Aggregation):
+        a = {
+            "name": aggregation.name,
+            "configuration_name": aggregation.configuration_name
+        }
+        if isinstance(aggregation, AggregationCount):
+            a["count"] = aggregation.count
+            a["type"] = "COLLECTION_COUNT"
+        if isinstance(aggregation, AggregationSum):
+            a["sum"] = aggregation.sum
+            a["type"] = "SUM"
+
+        if isinstance(aggregation, AggregationAvg):
+            a["avg"] = Decimal(aggregation.avg)
+            a["type"] = "AVG"
+        return a
+
+    @staticmethod
+    def from_aggregation_to_API(aggregation: Aggregation):
         a = {
             "name": aggregation.name
         }
         if isinstance(aggregation, AggregationCount):
-            a["count"] = aggregation.count
+            a["type"] = AggregationType.COLLECTION_COUNT.name
+            a["payload"] = {
+                "count": int(aggregation.count)
+            }
+        if isinstance(aggregation, AggregationSum):
+            a["type"] = AggregationType.SUM.name
+            a["payload"] = {
+                "sum": int(aggregation.sum)
+            }
+        if isinstance(aggregation, AggregationAvg):
+            a["type"] = AggregationType.AVG.name
+            a["payload"] = {
+                "avg": aggregation.avg
+            }
         return a
 
 
@@ -248,11 +306,36 @@ class Converter:
         return AggregationConfiguration(collection_name, t, on, target_field, matches, join)
 
     @staticmethod
+    def from_API_to_aggregation_configuration(document: dict):
+        collection_name = document["collection"]["name"]
+        t = AggregationType.value_of(document["type"])
+        inner_aggregation_document = document["configuration"]
+        on = list(map(lambda o: AggregationTrigger.value_of(o), inner_aggregation_document["on"]))
+        target_field = None
+        matches = None
+        join = None
+        if "target_field" in inner_aggregation_document:
+            target_field = inner_aggregation_document["target_field"]
+        if "join" in inner_aggregation_document:
+            join = AggregationJoin(inner_aggregation_document["join"]["collection_name"],
+                                   inner_aggregation_document["join"]["using_field"])
+        if "matches" in inner_aggregation_document:
+            matches = Converter.from_dict_to_predicate(inner_aggregation_document["matches"])
+
+        return AggregationConfiguration(collection_name, t, on, target_field, matches, join)
+
+    @staticmethod
     def from_dict_to_aggregation(document: dict):
         name = document["name"]
+        configuraton_name = document["configuration_name"]
+
         if "count" in document:
-            return AggregationCount(name, document["count"])
-        return Aggregation(name)
+            return AggregationCount(name,configuraton_name,  document["count"])
+        if "sum" in document:
+            return AggregationSum(name,configuraton_name,document["sum"])
+        if "avg" in document:
+            return AggregationAvg(name,configuraton_name,document["avg"])
+        return Aggregation(name,configuraton_name)
 
 
 class CollectionService:
@@ -417,7 +500,8 @@ class AuthorizationService:
 
 class AggregationService:
     @staticmethod
-    def get_aggregation_by_name(name:str):
+    def get_aggregation_by_name(name:str)->Aggregation:
+
         repo = get_repository_factory(aggregation_metadata)
         model = get_model(aggregation_metadata, {aggregation_metadata.id_key: name})
         result = repo.get(model.pk, model.sk)
@@ -425,7 +509,34 @@ class AggregationService:
             return Converter.from_dict_to_aggregation(result.document)
 
     @staticmethod
-    def incrementCount(aggregation: AggregationCount):
+    def get_aggregations_by_configuration_name(configuration_name: str, limit:int=20, start_from:str=None) -> Tuple[
+        List[Union[AggregationCount, Aggregation]], Any]:
+
+        result = QueryService.query(aggregation_metadata, Eq("configuration_name",configuration_name), aggregation_index_by_aggregation_name, limit, start_from)
+        if result:
+            return list(
+                map(lambda m: Converter.from_dict_to_aggregation(m.document), result.data)), result.lastEvaluatedKey
+
+    @staticmethod
+    def get_aggregations_by_name_generator(configuration_name:str):
+        has_more = True
+        start_from = None
+        while has_more:
+            result,last_key = AggregationService.get_aggregations_by_configuration_name(configuration_name,20,start_from)
+            has_more = last_key is not None
+            for c in result:
+                yield c
+            start_from = last_key
+
+    @staticmethod
+    def get_all_aggregations(limit: int, start_from:str)->Tuple[
+        List[Union[AggregationCount, Aggregation]], Any]:
+        result = QueryService.query(aggregation_metadata, AnyMatch(), None, limit, start_from)
+        if result:
+            return list(map(lambda m: Converter.from_dict_to_aggregation(m.document), result.data)), result.lastEvaluatedKey
+
+    @staticmethod
+    def incrementCount(aggregation: AggregationCount)->Aggregation:
         repo = get_repository_factory(aggregation_metadata)
         aggregation_dict = Converter.from_aggregation_to_dict(aggregation)
         model = get_model(aggregation_metadata, aggregation_dict)
@@ -433,7 +544,19 @@ class AggregationService:
         repo.increment_counter(AtomicIncrement(model.pk,model.sk,[Counter("count", 1,True)]))
 
     @staticmethod
-    def decrementCount(aggregation: AggregationCount):
+    def increment(aggregation: Aggregation, field_name:str, increment: int) -> Aggregation:
+        repo = get_repository_factory(aggregation_metadata)
+        aggregation_dict = Converter.from_aggregation_to_dict(aggregation)
+        model = get_model(aggregation_metadata, aggregation_dict)
+        result = repo.increment_counter(AtomicIncrement(model.pk, model.sk, [Counter(field_name, increment, True if increment>=0 else False)]))
+        if result:
+            aggregation_dict[field_name] = aggregation_dict[field_name] + increment
+        return Converter.from_dict_to_aggregation(aggregation_dict)
+
+
+
+    @staticmethod
+    def decrementCount(aggregation: AggregationCount)->Aggregation:
         repo = get_repository_factory(aggregation_metadata)
         aggregation_dict = Converter.from_aggregation_to_dict(aggregation)
         model = get_model(aggregation_metadata, aggregation_dict)
@@ -442,12 +565,24 @@ class AggregationService:
 
 
     @staticmethod
-    def createAggregation(aggregation:Aggregation):
+    def createAggregation(aggregation:Aggregation)->Aggregation:
         repo = get_repository_factory(aggregation_metadata)
         aggregation_dict = Converter.from_aggregation_to_dict(aggregation)
         model = get_model(aggregation_metadata, aggregation_dict)
         created_model = repo.create(model)
+        aggregation_by_aggregation_configuration_name = repo.create(
+            get_index_model(aggregation_metadata, aggregation_index_by_aggregation_name,
+                            created_model.document))
         return Converter.from_dict_to_aggregation(created_model.document)
+
+    @staticmethod
+    def updateAggregation(aggregation: Aggregation) -> Aggregation:
+        aggregation_document = Converter.from_aggregation_to_dict(aggregation)
+
+        repo = get_repository_factory(aggregation_metadata)
+        model = repo.update(get_model(aggregation_metadata, aggregation_document))
+        if model:
+            return Converter.from_dict_to_aggregation(model.document)
 
 
 

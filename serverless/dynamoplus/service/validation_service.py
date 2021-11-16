@@ -78,7 +78,7 @@ AGGREGATION_SCHEMA_DEFINITION = {
         "type": {
             "type": "string", "enum": AggregationType.types()
         },
-        "aggregation": {
+        "configuration": {
             "properties": {
                 "on": {"type": "array", "items":{"type": "string", "enum": AggregationTrigger.types()}},
                 "target_field": {"type": "string"},
@@ -88,7 +88,7 @@ AGGREGATION_SCHEMA_DEFINITION = {
         }
     },
     "required":[
-        "collection","type","aggregation"
+        "collection","type","configuration"
     ]
 }
 

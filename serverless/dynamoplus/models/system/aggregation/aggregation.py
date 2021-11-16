@@ -18,7 +18,7 @@ class AggregationType(str, Enum):
 
     @classmethod
     def types(cls):
-        return [t for t,v in cls.__members__.items()]
+        return [t for t, v in cls.__members__.items()]
 
     @staticmethod
     def value_of(value) -> Enum:
@@ -66,14 +66,62 @@ class AggregationJoin(object):
         return hash(self.__members())
 
 
-
 @auto_str
 class Aggregation(object):
-    def __init__(self, name: str):
+    def __init__(self, name: str, configuration_name: str):
         self.name = name
+        self.configuration_name = configuration_name
 
     def __members(self):
-        return self.name
+        return self.name, self.configuration_name
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.__members() == other.__members()
+        else:
+            return False
+
+    def __str__(self):
+        return "{" + ",".join(map(lambda x: x.__str__(), self.__members())) + "}"
+
+    def __hash__(self):
+        return hash(self.__members())
+
+
+@auto_str
+class AggregationCount(Aggregation):
+    count: int
+
+    def __init__(self, name: str, configuration_name: str, count: int):
+        super().__init__(name, configuration_name)
+        self.count = count
+
+    def __members(self):
+        return self.name, self.configuration_name, self.count
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.__members() == other.__members()
+        else:
+            return False
+
+    def __str__(self):
+        return "{" + ",".join(map(lambda x: x.__str__(), self.__members())) + "}"
+
+    def __hash__(self):
+        return hash(self.__members())
+
+
+@auto_str
+class AggregationSum(Aggregation):
+    sum: int
+
+    def __init__(self, name: str, configuration_name: str, sum: int):
+        super().__init__(name, configuration_name)
+        self.sum = sum
+
+    def __members(self):
+        return self.name, self.configuration_name, self.sum
 
     def __eq__(self, other):
         if type(other) is type(self):
@@ -88,15 +136,15 @@ class Aggregation(object):
         return hash(self.__members())
 
 @auto_str
-class AggregationCount(Aggregation):
-    count: int
+class AggregationAvg(Aggregation):
+    avg: float
 
-    def __init__(self, name:str, count: int):
-        super().__init__(name)
-        self.count = count
+    def __init__(self, name: str, configuration_name: str, avg: float):
+        super().__init__(name, configuration_name)
+        self.avg = avg
 
     def __members(self):
-        return self.name, self.count
+        return self.name, self.configuration_name, self.avg
 
     def __eq__(self, other):
         if type(other) is type(self):
@@ -139,7 +187,7 @@ class AggregationConfiguration(object):
         return "{}{}_{}{}{}".format(collection_name, matches_part, type.name.lower(), target_part, join_part)
 
     def __members(self):
-        return self.collection_name, self.type,self.on,self.target_field,self.matches,self.join, self.name
+        return self.collection_name, self.type, self.on, self.target_field, self.matches, self.join, self.name
 
     def __eq__(self, other):
         if type(other) is type(self):
