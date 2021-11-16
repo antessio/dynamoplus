@@ -64,8 +64,12 @@ def get_all(collection_name: str, last_key: str, limit: int):
             documents = list(map(lambda c: Converter.from_collection_to_dict(c), collections))
             return documents, last_evaluated_key
         elif collection_name == 'aggregation_configuration':
-            aggregations, last_evaluated_key = AggregationConfigurationService.get_all_aggregation_configurations(limit, last_key)
-            documents = list(map(lambda c: Converter.from_aggregation_configuration_to_dict(c), aggregations))
+            aggregation_configurations, last_evaluated_key = AggregationConfigurationService.get_all_aggregation_configurations(limit, last_key)
+            documents = list(map(lambda c: Converter.from_aggregation_configuration_to_API(c,AggregationService.get_aggregation_by_name(c.name)), aggregation_configurations))
+            return documents, last_evaluated_key
+        elif collection_name == 'aggregation':
+            aggregations, last_evaluated_key = AggregationService.get_all_aggregations(limit, last_key)
+            documents = list(map(lambda c: Converter.from_aggregation_to_API(c), aggregations))
             return documents, last_evaluated_key
         else:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
@@ -121,7 +125,7 @@ def get(collection_name: str, document_id: str):
                 raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
                                        "{} not found with name {}".format(collection_name, document_id))
             logger.info("Found aggregation {}".format(aggregation.__str__))
-            return Converter.from_aggregation_to_dict(aggregation)
+            return Converter.from_aggregation_to_API(aggregation)
         else:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "{} not a valid collection", collection_name)
 
@@ -163,10 +167,10 @@ def create(collection_name: str, document: dict) -> dict:
             return Converter.from_client_authorization_to_dict(client_authorization)
         elif collection_name == "aggregation_configuration":
             validate_aggregation(document)
-            aggregation = Converter.from_dict_to_aggregation_configuration(document)
+            aggregation = Converter.from_API_to_aggregation_configuration(document)
             aggregation = AggregationConfigurationService.create_aggregation_configuration(aggregation)
             logging.info("created aggregation {}".format(aggregation.__str__()))
-            return Converter.from_aggregation_configuration_to_dict(aggregation)
+            return Converter.from_aggregation_configuration_to_API(aggregation)
         else:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                    "{} is not a valid collection".format(collection_name))
