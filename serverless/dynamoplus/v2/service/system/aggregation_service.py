@@ -92,35 +92,6 @@ def extract_sum_and_count(aggregation: AggregationConfiguration, new_record, old
 
 class AggregationProcessingService:
 
-    # def aggregate(aggregation_configuration: AggregationConfiguration, collection: Collection, new_record: dict, old_record: dict):
-    #     record = new_record or old_record
-    #
-    #     aggregation = AggregationService.get_aggregation_by_name(aggregation_configuration.name)
-    #
-    #     count = aggregation.count or 0
-    #     max = aggregation.max or [0.0]
-    #     avg = aggregation.avg or 0.0
-    #
-    #
-    #
-    #     counters = extract_sum_and_count(aggregation_configuration, new_record, old_record)
-    #
-    #     if len(counters) > 0:
-    #             model = get_model(collection_metadata, {"name": aggregation_configuration.collection_name})
-    #
-    #     repo.increment_counter(AtomicIncrement(model.pk,
-    #                                                model.sk,
-    #                                                counters))
-    #
-    # def avg(aggregation: AggregationConfiguration, collection: Collection, new_record: dict, old_record: dict):
-    #     repo = Repository(get_repository_factory(collection_metadata))
-    #     model = get_model(collection_metadata, {"name": aggregation.collection_name})
-    #     counters = extract_sum_and_count(aggregation, new_record, old_record)
-    #
-    #     if len(counters) > 0:
-    #         repo.increment_counter(AtomicIncrement(model.pk,
-    #                                                model.sk,
-    #                                                counters))
 
     def avg(aggregation_configuration: AggregationConfiguration,
             collection: Collection,
@@ -207,7 +178,7 @@ class AggregationProcessingService:
             else:
 
                 return AggregationService.createAggregation(
-                    AggregationAvg("avg_" + aggregation_configuration.name, aggregation_configuration.name, avg))
+                    AggregationAvg(aggregation_configuration.name, aggregation_configuration.name, avg))
 
     def sum(aggregation_configuration: AggregationConfiguration,
             collection: Collection,
