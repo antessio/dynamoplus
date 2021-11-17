@@ -315,7 +315,7 @@ class TestValidationService(unittest.TestCase):
                 "name": "example"
             },
             "type": "AVG_JOIN",
-            "aggregation": {
+            "configuration": {
                 "on": ["INSERT"],
                 "target_field": "x",
                 "join": {
