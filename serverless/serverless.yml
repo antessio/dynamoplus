@@ -27,6 +27,7 @@ custom:
       port: 8000
       migrate: true
   system_collections: "collection,index,client_authorization"
+  base_path: "dynamoplus"
   allowed_origins: ${file(./secrets.json):ALLOWED_ORIGINS}
 
 provider:
@@ -156,7 +157,7 @@ functions:
       - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}
+          path: ${self:custom.base_path}/{collection}
           method: post
           cors: true
           authorizer:
@@ -169,7 +170,7 @@ functions:
       - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}/query
+          path: ${self:custom.base_path}/{collection}/query
           method: post
           cors: true
           authorizer:
@@ -182,7 +183,7 @@ functions:
       - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}
+          path: ${self:custom.base_path}/{collection}
           method: get
           cors: true
           authorizer:
@@ -194,7 +195,21 @@ functions:
       - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}/{id}
+          path: ${self:custom.base_path}/{collection}/{id}
+          method: get
+          cors: true
+          authorizer:
+            name: auth
+            type: request
+      - http:
+          path: ${self:custom.base_path}/{collection}/aggregation_configuration
+          method: get
+          cors: true
+          authorizer:
+            name: auth
+            type: request
+      - http:
+          path: ${self:custom.base_path}/{collection}/aggregation_configuration/{aggregation_configuration_id}
           method: get
           cors: true
           authorizer:
@@ -207,7 +222,7 @@ functions:
       - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}/{id}
+          path: ${self:custom.base_path}/{collection}/{id}
           method: put
           cors: true
           authorizer:
@@ -220,7 +235,7 @@ functions:
       - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}/{id}
+          path: ${self:custom.base_path}/{collection}/{id}
           method: delete
           cors: true
           authorizer:

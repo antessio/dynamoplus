@@ -85,6 +85,15 @@ def get_all(collection_name: str, last_key: str, limit: int):
         documents, last_evaluated_key = domain_service.find_all(limit, last_key)
         return documents, last_evaluated_key
 
+def aggregation_configurations(collection_name:str, last_key: str, limit: int):
+    is_system_collection = is_system(Collection(collection_name, None))
+    if is_system_collection:
+        raise HandlerException(HandlerExceptionErrorCodes.FORBIDDEN,
+                               "cannot get aggregation for system collections {}".format(collection_name))
+    else:
+        aggregation_configurations, last_evaluated_key = AggregationConfigurationService.get_aggregation_configurations_by_collection_name(collection_name,limit,last_key)
+        documents = list(map(lambda c: Converter.from_aggregation_configuration_to_API(c,AggregationService.get_aggregation_by_name(c.name)),aggregation_configurations))
+        return documents, last_evaluated_key
 
 def get(collection_name: str, document_id: str):
     is_system_collection = is_system(Collection(collection_name, None))
@@ -140,6 +149,7 @@ def get(collection_name: str, document_id: str):
             raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
                                    "{} not found with id {}".format(collection_name, document_id))
         return document
+
 
 
 @create_document

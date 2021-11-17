@@ -135,7 +135,7 @@ class TestHttpHandler(unittest.TestCase):
     def test_get_client_authorization(self):
         self.fill_sytem_data()
         self.fill_data()
-        result = self.httpHandler.get(path_parameters={"collection": "client_authorization", "id": "example-client-id"},
+        result = self.httpHandler.get(path="",path_parameters={"collection": "client_authorization", "id": "example-client-id"},
                                       query_string_parameters=[])
         self.assertEqual(result["statusCode"], 200)
 

@@ -618,9 +618,15 @@ class AggregationConfigurationService:
             return created_aggregation
 
     @staticmethod
-    def get_aggregation_configurations_by_collection_name(collection_name: str):
+    def get_aggregation_configurations_by_collection_name_generator(collection_name: str):
         return map(lambda a: Converter.from_dict_to_aggregation_configuration(a.document),
                    QueryService.query_generator(
                        aggregation_configuration_metadata,
                        Eq("collection.name", collection_name),
                        aggregation_configuration_index_by_collection_name))
+
+    @staticmethod
+    def get_aggregation_configurations_by_collection_name(collection_name: str, limit:int=20, start_from:str=None):
+        query_result = QueryService.query(aggregation_configuration_metadata, Eq("collection.name", collection_name),
+                                   aggregation_configuration_index_by_collection_name, start_from, limit)
+        return list(map(lambda  a: Converter.from_dict_to_aggregation_configuration(a.document), query_result.data)),query_result.lastEvaluatedKey

@@ -36,7 +36,7 @@ def __indexing(collection_metadata: Collection,
         for update in to_update_index_models:
             repository.update(update)
 
-        aggregations = AggregationConfigurationService.get_aggregation_configurations_by_collection_name(collection_metadata.name)
+        aggregations = AggregationConfigurationService.get_aggregation_configurations_by_collection_name_generator(collection_metadata.name)
         trigger = AggregationTrigger.UPDATE
         if old_record is None:
             trigger = AggregationTrigger.INSERT
