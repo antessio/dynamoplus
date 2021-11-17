@@ -440,7 +440,7 @@ class TestSystemService(unittest.TestCase):
 
         aggregation_metadata = Collection("aggregation_configuration", "name")
         index_by_collection_metadata = Index(aggregation_metadata.name, ["collection.name"])
-        aggregations = AggregationConfigurationService.get_aggregation_configurations_by_collection_name(collection_name)
+        aggregations = AggregationConfigurationService.get_aggregation_configurations_by_collection_name_generator(collection_name)
 
         names = list(map(lambda a: a.name, aggregations))
         self.assertEqual(3, len(names))

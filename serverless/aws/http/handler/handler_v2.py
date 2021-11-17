@@ -6,7 +6,8 @@ from decimal import Decimal
 
 from fastjsonschema import JsonSchemaException
 
-from dynamoplus.dynamo_plus_v2 import get as dynamoplus_get, update as dynamoplus_update, query as dynamoplus_query, \
+from dynamoplus.dynamo_plus_v2 import get as dynamoplus_get, update as dynamoplus_update, aggregation_configurations as get_aggregation_configurations, \
+    query as dynamoplus_query, \
     create as dynamoplus_create, delete as dynamoplus_delete, get_all as dynamoplus_get_all, HandlerException
 
 from dynamoplus.utils.decimalencoder import DecimalEncoder
@@ -24,7 +25,7 @@ class HttpHandler(object):
     def custom(self, method,path, path_parameters, query_string_parameters=[], body=None, headers=None):
         return custom_service.route(method,path, path_parameters, query_string_parameters, headers, body)
 
-    def get(self, path_parameters, query_string_parameters=[], body=None, headers=None):
+    def get(self, path_parameters, query_string_parameters=[], body=None, headers=None, path:str=None):
         collection = self.get_document_type_from_path_parameters(path_parameters)
         if 'id' in path_parameters:
             id = path_parameters['id']
@@ -39,14 +40,25 @@ class HttpHandler(object):
             except HandlerException as e:
                 return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
                                               body=self.format_json({"msg": e.message}))
+        # elif 'aggregation_id' in path_parameters:
+        #     aggregation_id = path_parameters['aggregation_id']
+
         else:
+            logging.info("received query parameters = {}".format(query_string_parameters))
+            logging.info("received path parameters = {}".format(path_parameters))
+            logger.info("received path = {}".format(path))
+            last_key = query_string_parameters[
+                "last_key"] if query_string_parameters and "last_key" in query_string_parameters else None
+            limit = int(query_string_parameters[
+                            "limit"]) if query_string_parameters and "limit" in query_string_parameters else None
+
+
             try:
-                logging.info("received query parameters = {}".format(query_string_parameters))
-                last_key = query_string_parameters[
-                    "last_key"] if query_string_parameters and "last_key" in query_string_parameters else None
-                limit = int(query_string_parameters[
-                                "limit"]) if query_string_parameters and "limit" in query_string_parameters else None
-                documents, last_evaluated_key = dynamoplus_get_all(collection, last_key, limit)
+                if path.startswith("/dynamoplus/"+collection+"/aggregation_configuration"):
+                    documents, last_evaluated_key = get_aggregation_configurations(collection,last_key,limit)
+                else:
+                    documents, last_evaluated_key = dynamoplus_get_all(collection, last_key, limit)
+
                 result = {"data": documents, "has_more": last_evaluated_key is not None}
                 return self.get_http_response(body=self.format_json(result), headers=self.get_response_headers(headers),
                                               statusCode=200)
