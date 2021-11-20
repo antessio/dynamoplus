@@ -2,9 +2,10 @@ import os
 import unittest
 from decimal import Decimal
 
-from dynamoplus.models.query.conditions import Eq, And, AnyMatch
-from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationType, AggregationTrigger, \
-    AggregationJoin
+from dynamoplus.models.query.conditions import Eq, And, AnyMatch, Predicate, FieldMatch
+from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationType, \
+    AggregationTrigger, \
+    AggregationJoin, Aggregation, AggregationCount
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.system.index.index import Index, IndexConfiguration
 from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorizationHttpSignature, \
@@ -29,7 +30,7 @@ class TestSystemService(unittest.TestCase):
         os.environ["DYNAMODB_DOMAIN_TABLE"] = domain_table_name
         os.environ["DYNAMODB_SYSTEM_TABLE"] = system_table_name
 
-    def test_convert_aggregation(self):
+    def test_convert_aggregation_configuration(self):
         collection_name = "example"
         type = AggregationType.AVG
         on = [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE]
@@ -76,6 +77,14 @@ class TestSystemService(unittest.TestCase):
         self.assertDictEqual(d, expected)
         aggregation_result = Converter.from_dict_to_aggregation_configuration(expected)
         self.assertEqual(aggregation, aggregation_result)
+
+    # def test_from_aggregation_configuration_to_API(self):
+    #     aggregation_configuration = AggregationConfiguration("example",AggregationType.COLLECTION_COUNT,[AggregationTrigger.INSERT,AggregationTrigger.DELETE],"field1",AnyMatch(),AggregationJoin("example_2","field2"))
+    #     aggregation = AggregationCount("example_count","exampel_count",40)
+    #     result = Converter.from_aggregation_configuration_to_API(aggregation_configuration, aggregation)
+    #     self.assertDictEqual({
+    #         "aggregation": {"name": }0236617100.
+    #     },result)
 
     @patch.object(Repository, "update")
     @patch.object(Repository, "__init__")

@@ -1,14 +1,14 @@
+import abc
+import json
+import logging
+import os
 from _decimal import Decimal
 from typing import *
-import abc
-import logging
-import json
-from dynamoplus.utils.utils import sanitize
-from boto3.dynamodb.conditions import Key, Attr
+
 import boto3
-import os
-from dynamoplus.utils.utils import auto_str
-from dynamoplus.utils.decimalencoder import DecimalEncoder
+from boto3.dynamodb.conditions import Key
+
+from dynamoplus.utils.utils import sanitize
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
