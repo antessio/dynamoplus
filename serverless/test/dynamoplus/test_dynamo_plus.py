@@ -4,13 +4,16 @@ from unittest.mock import patch
 
 from mock import call
 
-from dynamoplus.dynamo_plus_v2 import get, query
+from dynamoplus.dynamo_plus_v2 import get, query, aggregation_configurations as get_aggregation_configurations
 from dynamoplus.models.query.conditions import Eq
+from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationType, Aggregation, \
+    AggregationTrigger
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.system.index.index import Index
 from dynamoplus.v2.repository.repositories import QueryResult, Model
 from dynamoplus.v2.service.query_service import QueryService
-from dynamoplus.v2.service.system.system_service import CollectionService, IndexService
+from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, \
+    AggregationConfigurationService, AggregationService
 
 
 class TestDynamoPlusHandler(unittest.TestCase):
@@ -24,6 +27,33 @@ class TestDynamoPlusHandler(unittest.TestCase):
         del os.environ['ENTITIES']
         del os.environ["DYNAMODB_DOMAIN_TABLE"]
         del os.environ["DYNAMODB_SYSTEM_TABLE"]
+
+    @patch.object(AggregationService, "get_aggregation_by_name")
+    @patch.object(AggregationConfigurationService, "get_aggregation_configurations_by_collection_name")
+    def test_aggragation_configuration(self, mock_get_aggreagtion_configurations,mock_get_aggregation):
+        collection_name = "books"
+        last_key = "last_key"
+        limit = 20
+        expected_aggregation = AggregationConfiguration(collection_name, AggregationType.COLLECTION_COUNT, [AggregationTrigger.INSERT], None, None,
+                                                 None)
+        mock_get_aggreagtion_configurations.return_value = [expected_aggregation], None
+        mock_get_aggregation.return_value = Aggregation("test","test")
+
+        documents,last_key = get_aggregation_configurations(collection_name, last_key, limit)
+
+        self.assertEqual(len(documents),1)
+        self.assertDictEqual(documents[0],{
+            "collection":{
+                "name": "books"
+            },
+            "type": "COLLECTION_COUNT",
+            "configuration":{"on":["INSERT"]},
+            "name": "books_collection_count",
+            "aggregation": {
+                "name": "test"
+            }
+        })
+
 
 
 
