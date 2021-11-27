@@ -128,7 +128,7 @@ class AggregationProcessingService:
                     value = int(x)
                     if is_decrement:
                         value = value * -1
-                    count_target_field_aggregation = AggregationService.createAggregation(
+                    count_target_field_aggregation = AggregationService.create_aggregation(
                         AggregationCount("count_" + aggregation_configuration.name, aggregation_configuration.name, 1))
                     _count = 1
                 except Exception as e:
@@ -155,7 +155,7 @@ class AggregationProcessingService:
                     value = int(x)
                     if is_decrement:
                         value = value * -1
-                    sum_target_field_aggregation = AggregationService.createAggregation(
+                    sum_target_field_aggregation = AggregationService.create_aggregation(
                         AggregationSum("sum_" + aggregation_configuration.name, aggregation_configuration.name, value))
                     _sum = value
                 except Exception as e:
@@ -177,7 +177,7 @@ class AggregationProcessingService:
 
             else:
 
-                return AggregationService.createAggregation(
+                return AggregationService.create_aggregation(
                     AggregationAvg(aggregation_configuration.name, aggregation_configuration.name, avg))
 
     def sum(aggregation_configuration: AggregationConfiguration,
@@ -211,7 +211,7 @@ class AggregationProcessingService:
                     value = int(x)
                     if is_decrement:
                         value = value * -1
-                    return AggregationService.createAggregation(
+                    return AggregationService.create_aggregation(
                         AggregationSum(aggregation_configuration.name, aggregation_configuration.name, value))
                 except:
                     logger.error("unable to sum the value {}".format(x))
@@ -230,18 +230,19 @@ class AggregationProcessingService:
                 is_increment = True if old_record is None else False
                 is_decrement = True if new_record is None else False
                 if is_increment:
-                    if AggregationService.incrementCount(aggregation):
+                    if AggregationService.increment_count(aggregation):
+                        ## TODO: avoid set and copy
                         aggregation.count = aggregation.count + 1
 
                 elif is_decrement:
-                    if AggregationService.decrementCount(aggregation):
+                    if AggregationService.decrement_count(aggregation):
                         aggregation.count = aggregation.count - 1
             return aggregation
 
         else:
             ## create the aggregation if it doesn't exist
             logger.info("found aggregation configuration {}".format(aggregation_configuration))
-            return AggregationService.createAggregation(
+            return AggregationService.create_aggregation(
                 AggregationCount(aggregation_configuration.name, aggregation_configuration.name, 1))
 
     # def avg_join(aggregation: Aggregation, collection: Collection, new_record: dict, old_record: dict):
@@ -304,5 +305,5 @@ class AggregationProcessingService:
         if aggregation.matches:
             if not match_predicate(new_record, aggregation.matches):
                 return
-        AggregationProcessingService.aggregation_executor_factory[aggregation.type](aggregation, collection, new_record,
+        return AggregationProcessingService.aggregation_executor_factory[aggregation.type](aggregation, collection, new_record,
                                                                                     old_record)

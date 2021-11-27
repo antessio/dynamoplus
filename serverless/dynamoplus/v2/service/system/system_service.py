@@ -536,7 +536,7 @@ class AggregationService:
             return list(map(lambda m: Converter.from_dict_to_aggregation(m.document), result.data)), result.lastEvaluatedKey
 
     @staticmethod
-    def incrementCount(aggregation: AggregationCount)->Aggregation:
+    def increment_count(aggregation: AggregationCount)->Aggregation:
         repo = get_repository_factory(aggregation_metadata)
         aggregation_dict = Converter.from_aggregation_to_dict(aggregation)
         model = get_model(aggregation_metadata, aggregation_dict)
@@ -556,7 +556,7 @@ class AggregationService:
 
 
     @staticmethod
-    def decrementCount(aggregation: AggregationCount)->Aggregation:
+    def decrement_count(aggregation: AggregationCount)->Aggregation:
         repo = get_repository_factory(aggregation_metadata)
         aggregation_dict = Converter.from_aggregation_to_dict(aggregation)
         model = get_model(aggregation_metadata, aggregation_dict)
@@ -565,7 +565,7 @@ class AggregationService:
 
 
     @staticmethod
-    def createAggregation(aggregation:Aggregation)->Aggregation:
+    def create_aggregation(aggregation:Aggregation)->Aggregation:
         repo = get_repository_factory(aggregation_metadata)
         aggregation_dict = Converter.from_aggregation_to_dict(aggregation)
         model = get_model(aggregation_metadata, aggregation_dict)
