@@ -314,7 +314,7 @@ class TestValidationService(unittest.TestCase):
             "collection": {
                 "name": "example"
             },
-            "type": "AVG_JOIN",
+            "type": "AVG",
             "configuration": {
                 "on": ["INSERT"],
                 "target_field": "x",
