@@ -41,6 +41,13 @@ class Converter:
         return result
 
     @staticmethod
+    def from_collection_to_API(collection: Collection):
+        result = {"name": collection.name, "id_key": collection.id_key}
+        if collection.ordering_key:
+            result["ordering_key"] = collection.ordering_key
+        return result
+
+    @staticmethod
     def from_index_to_dict(index: Index):
         d = {"name": index.index_name,
              "collection": {"name": index.collection_name},
