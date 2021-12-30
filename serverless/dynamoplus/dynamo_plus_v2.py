@@ -61,7 +61,7 @@ def get_all(collection_name: str, last_key: str, limit: int):
         if collection_name == 'collection':
             last_collection_metadata = None
             collections, last_evaluated_key = CollectionService.get_all_collections(limit, last_key)
-            documents = list(map(lambda c: Converter.from_collection_to_dict(c), collections))
+            documents = list(map(lambda c: Converter.from_collection_to_API(c), collections))
             return documents, last_evaluated_key
         elif collection_name == 'aggregation_configuration':
             aggregation_configurations, last_evaluated_key = AggregationConfigurationService.get_all_aggregation_configurations(limit, last_key)
@@ -127,7 +127,7 @@ def get(collection_name: str, document_id: str):
                 raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
                                        "{} not found with name {}".format(collection_name, document_id))
             logger.info("Found aggregation configuration {}".format(aggregation_configuration.__str__))
-            return Converter.from_aggregation_configuration_to_dict(aggregation_configuration)
+            return Converter.from_aggregation_configuration_to_API(aggregation_configuration)
         elif collection_name == 'aggregation':
             aggregation = AggregationService.get_aggregation_by_name(document_id)
             if aggregation is None:
