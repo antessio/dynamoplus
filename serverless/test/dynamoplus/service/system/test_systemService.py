@@ -85,6 +85,8 @@ class TestSystemService(unittest.TestCase):
     #     self.assertDictEqual({
     #         "aggregation": {"name": }0236617100.
     #     },result)
+    def test_get_aggregation_by_name(self):
+        self.fail("not yet implemented")
 
     @patch.object(Repository, "update")
     @patch.object(Repository, "__init__")

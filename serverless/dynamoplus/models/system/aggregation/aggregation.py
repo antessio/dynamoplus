@@ -7,14 +7,14 @@ from dynamoplus.utils.utils import auto_str
 
 
 class AggregationType(str, Enum):
-    COUNT = "COUNT"
+    #COUNT = "COUNT"
     COLLECTION_COUNT = "COLLECTION_COUNT"
     AVG = "AVG"
-    AVG_JOIN = "AVG_JOIN"
+    #AVG_JOIN = "AVG_JOIN"
     SUM = "SUM"
-    SUM_COUNT = "SUM_COUNT"
-    MIN = "MIN"
-    MAX = "MAX"
+    #SUM_COUNT = "SUM_COUNT"
+    #MIN = "MIN"
+    #MAX = "MAX"
 
     @classmethod
     def types(cls):
