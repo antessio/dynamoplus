@@ -133,6 +133,26 @@ class TestDynamoPlusHandler(unittest.TestCase):
         self.assertTrue(mock_get_index_matching_fields.called_with("attribute1"))
         self.assertEqual(call(expected_collection,expected_predicate,expected_index, None, None), mock_query.call_args_list[0])
 
+    @patch.object(Converter,"from_collection_to_API")
+    @patch.object(CollectionService,"get_all_collections")
+    def test_get_all_collections(self,mock_get_all_collections,mock_converter_to_API):
+        expected_collections = [Collection("example", "id"), Collection("example_2", "id")]
+        last_key="example_2"
+        mock_get_all_collections.return_value=[expected_collections,last_key]
+        expected_data = [
+            {"name": "example", "id_key": "id"},
+            {"name": "example_2", "id_key": "id"}
+        ]
+        mock_converter_to_API.side_effect=expected_data
+        result,last_key=get_all("collection","example_0",20)
+
+        self.assertCountEqual(result,expected_data)
+        mock_get_all_collections.assert_has_calls([call(20,"example_0")])
+        mock_converter_to_API.assert_has_calls(
+            [call(expected_collections[0]),
+            call(expected_collections[1])]
+        )
+
 
     @patch.object(Converter,"from_collection_to_API")
     @patch.object(CollectionService,"get_all_collections")
