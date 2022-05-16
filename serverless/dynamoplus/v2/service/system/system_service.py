@@ -2,7 +2,7 @@ import logging
 from decimal import Decimal
 from typing import *
 
-from dynamoplus.models.query.conditions import Eq, And, AnyMatch, Predicate
+from dynamoplus.models.query.conditions import Eq, And, AnyMatch, Predicate, Range
 from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationTrigger, \
     AggregationJoin, \
     AggregationType, Aggregation, AggregationCount, AggregationSum, AggregationAvg
@@ -32,6 +32,26 @@ logger.setLevel(logging.INFO)
 
 
 class Converter:
+
+    @staticmethod
+    def from_predicate_to_dict(predicate: Predicate):
+        if isinstance(predicate, Eq):
+            return {"eq": {"field_name": predicate.field_name, "value": predicate.value}}
+        elif isinstance(predicate, Range):
+            return {
+                "range": {"field_name": predicate.field_name, "from": predicate.from_value, "to": predicate.to_value}}
+        elif isinstance(predicate, And):
+            return {"and": list(map(lambda c: Converter.from_predicate_to_dict(c), predicate.conditions))}
+
+    @staticmethod
+    def from_dict_to_predicate(d: dict):
+        if "eq" in d:
+            return Eq(d["eq"]["field_name"], d["eq"]["value"])
+        elif "range" in d:
+            return Range(d["range"]["field_name"], d["range"]["from"], d["range"]["to"])
+        elif "and" in d:
+            conditions = list(map(lambda cd: Converter.from_dict_to_predicate(cd), d["and"]))
+            return And(conditions)
 
     @staticmethod
     def from_collection_to_dict(collection: Collection):
@@ -283,15 +303,6 @@ class Converter:
                 "value": predicate.value
             }
         return d
-
-    @staticmethod
-    def from_dict_to_predicate(document: dict):
-        if "and" in document:
-            and_predicate = list(map(lambda p: Converter.from_dict_to_predicate(p), document["and"]))
-            return And(and_predicate)
-        elif "eq" in document:
-            e = document["eq"]
-            return Eq(e["field_name"], e["value"])
 
     @staticmethod
     def from_dict_to_aggregation_configuration(document: dict):

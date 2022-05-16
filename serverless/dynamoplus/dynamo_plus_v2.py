@@ -34,25 +34,6 @@ class HandlerException(Exception):
         self.message = message
 
 
-def from_predicate_to_dict(predicate: Predicate):
-    if isinstance(predicate, Eq):
-        return {"eq": {"field_name": predicate.field_name, "value": predicate.value}}
-    elif isinstance(predicate, Range):
-        return {"range": {"field_name": predicate.field_name, "from": predicate.from_value, "to": predicate.to_value}}
-    elif isinstance(predicate, And):
-        return {"and": list(map(lambda c: from_predicate_to_dict(c), predicate.conditions))}
-
-
-def from_dict_to_predicate(d: dict):
-    if "eq" in d:
-        return Eq(d["eq"]["field_name"], d["eq"]["value"])
-    elif "range" in d:
-        return Range(d["range"]["field_name"], d["range"]["from"], d["range"]["to"])
-    elif "and" in d:
-        conditions = list(map(lambda cd: from_dict_to_predicate(cd), d["and"]))
-        return And(conditions)
-
-
 def get_all(collection_name: str, last_key: str, limit: int):
     is_system_collection = is_system(Collection(collection_name, None))
     last_evaluated_key = None
@@ -253,7 +234,7 @@ def query(collection_name: str, query: dict = None, start_from: str = None,
                                    "{} is not a valid collection".format(collection_name))
     else:
         if "matches" in query:
-            predicate: Predicate = from_dict_to_predicate(query["matches"])
+            predicate: Predicate = Converter.from_dict_to_predicate(query["matches"])
         else:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                    "invalid predicate")
