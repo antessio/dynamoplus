@@ -10,7 +10,7 @@ package:
 
 custom:
   pythonRequirements:
-    dockerizePip: false
+    dockerizePip: non-linux
     zip: true
     slim: true
     layer: true
