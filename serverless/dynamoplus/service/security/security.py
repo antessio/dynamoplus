@@ -11,9 +11,10 @@ from dynamoplus.v2.service.system.system_service import AuthorizationService
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
-from Crypto.PublicKey import RSA
-from Crypto.Signature import PKCS1_v1_5
-from Crypto.Hash import SHA256
+# from Crypto.PublicKey import RSA
+# from Crypto.Signature import PKCS1_v1_5
+# from Crypto.Hash import SHA256
+import rsa
 from dynamoplus.models.system.client_authorization.client_authorization import ScopesType, Scope
 
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -75,17 +76,27 @@ class SecurityService:
                             signatory_message = "(request-target): {} {}".format(method, path);
                             for h in filter(lambda header: header.lower() != 'authorization', headers):
                                 signatory_message += "\n{}: {}".format(h.lower(), headers[h])
-
-                            rsakey = RSA.importKey(client_authorization.client_public_key)
-                            signer = PKCS1_v1_5.new(rsakey)
-                            ## digest = SHA256.new()
                             signature = signature_components["signature"].replace("\"", "")
-                            ## digest.update(b64decode(signatory_message))
-                            hash = SHA256.new(signatory_message.encode("utf-8"))
-                            if signer.verify(hash, b64decode(signature)):
-                                return client_authorization
-                            else:
-                                logging.error("signature not verified for key id {}".format(key_id))
+                            try:
+                                public_key = rsa.PublicKey.load_pkcs1_openssl_pem(
+                                    bytes(client_authorization.client_public_key, 'UTF-8'))
+
+                                if rsa.verify(signatory_message.encode("utf-8"), b64decode(signature), public_key):
+                                    return client_authorization
+                                else:
+                                    logging.error("signature not verified for key id {}".format(key_id))
+                            except Exception as e:
+                                logging.error("signature not verified for key id {} - {}".format(key_id,e))
+                            # rsakey = RSA.importKey(client_authorization.client_public_key)
+                            # signer = PKCS1_v1_5.new(rsakey)
+                            # ## digest = SHA256.new()
+                            #
+                            # ## digest.update(b64decode(signatory_message))
+                            # hash = SHA256.new(signatory_message.encode("utf-8"))
+                            # if signer.verify(hash, b64decode(signature)):
+                            #     return client_authorization
+                            # else:
+                            #     logging.error("signature not verified for key id {}".format(key_id))
                         else:
                             logging.error("client authorization not found for key {}".format(key_id))
                     else:
