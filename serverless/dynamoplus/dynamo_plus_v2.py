@@ -8,12 +8,13 @@ from enum import Enum
 
 from dynamoplus.v2.service.query_service import QueryService
 from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, \
-    AuthorizationService, Converter, Collection
+    AuthorizationService, Converter, Collection, AggregationConfigurationService, AggregationService
 from dynamoplus.models.query.conditions import Predicate, Range, Eq, And
 from dynamoplus.v2.service.domain.domain_service import DomainService
 from dynamoplus.v2.service.common import is_system
 from dynamoplus.service.validation_service import validate_collection, validate_index, validate_document, \
-    validate_client_authorization
+    validate_client_authorization, validate_aggregation
+from dynamoplus.service.indexing_decorator import create_document, update_document, delete_document
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -33,37 +34,27 @@ class HandlerException(Exception):
         self.message = message
 
 
-def from_predicate_to_dict(predicate: Predicate):
-    if isinstance(predicate, Eq):
-        return {"eq": {"field_name": predicate.field_name, "value": predicate.value}}
-    elif isinstance(predicate, Range):
-        return {"range": {"field_name": predicate.field_name, "from": predicate.from_value, "to": predicate.to_value}}
-    elif isinstance(predicate, And):
-        return {"and": list(map(lambda c: from_predicate_to_dict(c), predicate.conditions))}
-
-
-def from_dict_to_predicate(d: dict):
-    if "eq" in d:
-        return Eq(d["eq"]["field_name"], d["eq"]["value"])
-    elif "range" in d:
-        return Range(d["range"]["field_name"], d["range"]["from"], d["range"]["to"])
-    elif "and" in d:
-        conditions = list(map(lambda cd: from_dict_to_predicate(cd), d["and"]))
-        return And(conditions)
-
-
 def get_all(collection_name: str, last_key: str, limit: int):
-    is_system_collection = is_system(Collection(collection_name,None))
+    is_system_collection = is_system(Collection(collection_name, None))
     last_evaluated_key = None
     if is_system_collection:
         logger.info("Get {} metadata from system".format(collection_name))
         if collection_name == 'collection':
             last_collection_metadata = None
             collections, last_evaluated_key = CollectionService.get_all_collections(limit, last_key)
-            documents = list(map(lambda c: Converter.from_collection_to_dict(c), collections))
+            documents = list(map(lambda c: Converter.from_collection_to_API(c), collections))
+            return documents, last_evaluated_key
+        elif collection_name == 'aggregation_configuration':
+            aggregation_configurations, last_evaluated_key = AggregationConfigurationService.get_all_aggregation_configurations(limit, last_key)
+            documents = list(map(lambda c: Converter.from_aggregation_configuration_to_API(c,AggregationService.get_aggregation_by_name(c.name)), aggregation_configurations))
+            return documents, last_evaluated_key
+        elif collection_name == 'aggregation':
+            aggregations, last_evaluated_key = AggregationService.get_all_aggregations(limit, last_key)
+            documents = list(map(lambda c: Converter.from_aggregation_to_API(c), aggregations))
             return documents, last_evaluated_key
         else:
-            raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "{} not valid collection".format(collection_name))
+            raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
+                                   "{} not valid collection".format(collection_name))
     else:
         logger.info("get all  {} collection limit = {} last_key = {} ".format(collection_name, limit, last_key))
         collection_metadata = CollectionService.get_collection(collection_name)
@@ -75,9 +66,18 @@ def get_all(collection_name: str, last_key: str, limit: int):
         documents, last_evaluated_key = domain_service.find_all(limit, last_key)
         return documents, last_evaluated_key
 
+def aggregation_configurations(collection_name:str, last_key: str, limit: int):
+    is_system_collection = is_system(Collection(collection_name, None))
+    if is_system_collection:
+        raise HandlerException(HandlerExceptionErrorCodes.FORBIDDEN,
+                               "cannot get aggregation for system collections {}".format(collection_name))
+    else:
+        aggregation_configurations, last_evaluated_key = AggregationConfigurationService.get_aggregation_configurations_by_collection_name(collection_name,limit,last_key)
+        documents = list(map(lambda c: Converter.from_aggregation_configuration_to_API(c,AggregationService.get_aggregation_by_name(c.name)),aggregation_configurations))
+        return documents, last_evaluated_key
 
 def get(collection_name: str, document_id: str):
-    is_system_collection = is_system(Collection(collection_name,None))
+    is_system_collection = is_system(Collection(collection_name, None))
     if is_system_collection:
         logger.info("Get {} metadata from system".format(collection_name))
         if collection_name == 'collection':
@@ -102,6 +102,20 @@ def get(collection_name: str, document_id: str):
                                        "{} not found with name {}".format(collection_name, document_id))
             logger.info("Found client_authorization {}".format(client_authorization.__str__))
             return Converter.from_client_authorization_to_dict(client_authorization)
+        elif collection_name == 'aggregation_configuration':
+            aggregation_configuration = AggregationConfigurationService.get_aggregation_configuration_by_name(document_id)
+            if aggregation_configuration is None:
+                raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
+                                       "{} not found with name {}".format(collection_name, document_id))
+            logger.info("Found aggregation configuration {}".format(aggregation_configuration.__str__))
+            return Converter.from_aggregation_configuration_to_API(aggregation_configuration)
+        elif collection_name == 'aggregation':
+            aggregation = AggregationService.get_aggregation_by_name(document_id)
+            if aggregation is None:
+                raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
+                                       "{} not found with name {}".format(collection_name, document_id))
+            logger.info("Found aggregation {}".format(aggregation.__str__))
+            return Converter.from_aggregation_to_API(aggregation)
         else:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "{} not a valid collection", collection_name)
 
@@ -118,8 +132,10 @@ def get(collection_name: str, document_id: str):
         return document
 
 
+
+@create_document
 def create(collection_name: str, document: dict) -> dict:
-    is_system_collection = is_system(Collection(collection_name,None))
+    is_system_collection = is_system(Collection(collection_name, None))
     if is_system_collection:
         logger.info("Creating {} metadata {}".format(collection_name, document))
         if collection_name == 'collection':
@@ -140,6 +156,15 @@ def create(collection_name: str, document: dict) -> dict:
             client_authorization = AuthorizationService.create_client_authorization(client_authorization)
             logging.info("created client_authorization {}".format(client_authorization.__str__()))
             return Converter.from_client_authorization_to_dict(client_authorization)
+        elif collection_name == "aggregation_configuration":
+            validate_aggregation(document)
+            aggregation = Converter.from_API_to_aggregation_configuration(document)
+            aggregation = AggregationConfigurationService.create_aggregation_configuration(aggregation)
+            logging.info("created aggregation {}".format(aggregation.__str__()))
+            return Converter.from_aggregation_configuration_to_API(aggregation)
+        else:
+            raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
+                                   "{} is not a valid collection".format(collection_name))
     else:
         logger.info("Create {} document {}".format(collection_name, document))
         collection_metadata = CollectionService.get_collection(collection_name)
@@ -157,9 +182,9 @@ def create(collection_name: str, document: dict) -> dict:
         logger.info("Created document {}".format(d))
         return d
 
-
+@update_document
 def update(collection_name: str, document: dict, document_id: str = None):
-    is_system_collection = is_system(Collection(collection_name,None))
+    is_system_collection = is_system(Collection(collection_name, None))
     if is_system_collection:
         if collection_name == "client_authorization":
             if document_id:
@@ -190,7 +215,7 @@ def update(collection_name: str, document: dict, document_id: str = None):
 
 def query(collection_name: str, query: dict = None, start_from: str = None,
           limit: int = None):
-    is_system_collection = is_system(Collection(collection_name,None))
+    is_system_collection = is_system(Collection(collection_name, None))
     documents = []
     if is_system_collection:
         if collection_name == 'collection':
@@ -209,7 +234,7 @@ def query(collection_name: str, query: dict = None, start_from: str = None,
                                    "{} is not a valid collection".format(collection_name))
     else:
         if "matches" in query:
-            predicate: Predicate = from_dict_to_predicate(query["matches"])
+            predicate: Predicate = Converter.from_dict_to_predicate(query["matches"])
         else:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                    "invalid predicate")
@@ -227,14 +252,14 @@ def query(collection_name: str, query: dict = None, start_from: str = None,
         if index_matching_conditions is None:
             raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
         ## Since the sk should be built using the index it is necessary to pass the index matching the conditions
-        result = QueryService.query(collection_metadata,predicate,index_matching_conditions,start_from,limit)
+        result = QueryService.query(collection_metadata, predicate, index_matching_conditions, start_from, limit)
         documents = list(map(lambda m: m.document, result.data))
         last_evaluated_key = result.lastEvaluatedKey
     return documents, last_evaluated_key
 
-
+@delete_document
 def delete(collection_name: str, id: str):
-    is_system_collection = is_system(Collection(collection_name,None))
+    is_system_collection = is_system(Collection(collection_name, None))
     if is_system_collection:
         logger.info("delete {} metadata from system".format(collection_name))
         if collection_name == 'collection':

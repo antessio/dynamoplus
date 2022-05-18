@@ -1,6 +1,7 @@
 import unittest
 
-from dynamoplus.models.query.conditions import And, Range, Eq, get_range_predicate, is_valid, get_field_names_in_order,AnyMatch
+from dynamoplus.models.query.conditions import And, Range, Eq, get_range_predicate, is_valid, \
+    get_field_names_in_order, AnyMatch, match_predicate
 
 
 class TestConditions(unittest.TestCase):
@@ -8,10 +9,44 @@ class TestConditions(unittest.TestCase):
     def test_any_match(self):
         predicate = AnyMatch()
         self.assertFalse(predicate.is_range())
-        self.assertEqual([],predicate.get_values())
+        self.assertEqual([], predicate.get_values())
         self.assertEqual([], predicate.get_fields())
 
+    def test_match_predicate_eq(self):
+        eq_condition = Eq("field1", "value1")
+        self.assertTrue(match_predicate({"field1": "value1", "any_field": "value1"}, eq_condition))
 
+    def test_not_match_predicate_eq(self):
+        eq_condition = Eq("field1", "valueX")
+        self.assertFalse(match_predicate({"field1": "value1", "any_field": "value1"}, eq_condition))
+
+    def test_not_match_predicate_eq2(self):
+        eq_condition = Eq("field1", "value1")
+        self.assertFalse(match_predicate({"any_field": "value1"}, eq_condition))
+
+    def test_match_predicate_range(self):
+        range_condition = Range("field1", "value0", "value2")
+        self.assertTrue(match_predicate({"field1": "value1", "any_field": "value1"}, range_condition))
+
+    def test_not_match_predicate_range(self):
+        range_condition = Range("field1", "value10", "value12")
+        self.assertFalse(match_predicate({"field1": "value1", "any_field": "value1"}, range_condition))
+
+    def test_not_match_predicate_range2(self):
+        range_condition = Range("field1", "value10", "value12")
+        self.assertFalse(match_predicate({"any_field": "value1"}, range_condition))
+
+    def test_match_predicate_and(self):
+        and_condition = And([Eq("field2", "value1"), Range("field1", "value0", "value2")])
+        self.assertTrue(match_predicate({"field2": "value1", "field1": "value1", "any_field": "value1"}, and_condition))
+
+    def test_not_match_predicate_and(self):
+        and_condition = And([Eq("field1", "value2"), Range("field2", "X", "Y")])
+        self.assertFalse(
+            match_predicate({"field1": "value1", "field2": "value11", "any_field": "value1"}, and_condition))
+
+        self.assertFalse(
+            match_predicate({"field1": "value2", "field2": "value1111", "any_field": "value1"}, and_condition))
 
     def test_eq_to_data(self):
         eq_condition = Eq("field1", "value1")

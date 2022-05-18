@@ -1,5 +1,7 @@
 service: dynamoplus
 
+variablesResolutionMode: 20210326
+
 plugins:
   - serverless-python-requirements
   - serverless-offline
@@ -25,6 +27,7 @@ custom:
       port: 8000
       migrate: true
   system_collections: "collection,index,client_authorization"
+  base_path: "dynamoplus"
   allowed_origins: ${file(./secrets.json):ALLOWED_ORIGINS}
 
 provider:
@@ -32,6 +35,7 @@ provider:
   runtime: python3.7
   region: eu-west-1
   memorySize: 256
+  lambdaHashingVersion: 20200924
 
   environment:
     ALLOWED_ORIGINS: ${self:custom.allowed_origins}
@@ -70,7 +74,7 @@ functions:
     handler: aws/http/authorizer.authorize
     layers:
       - { Ref: PythonRequirementsLambdaLayer }
-    cors: true
+    
   handleStream:
     handler: aws/events/dynamodb.dynamo_stream_handler
     layers:
@@ -153,7 +157,7 @@ functions:
       - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}
+          path: ${self:custom.base_path}/{collection}
           method: post
           cors: true
           authorizer:
@@ -166,7 +170,7 @@ functions:
       - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}/query
+          path: ${self:custom.base_path}/{collection}/query
           method: post
           cors: true
           authorizer:
@@ -179,7 +183,7 @@ functions:
       - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}
+          path: ${self:custom.base_path}/{collection}
           method: get
           cors: true
           authorizer:
@@ -191,7 +195,21 @@ functions:
       - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}/{id}
+          path: ${self:custom.base_path}/{collection}/{id}
+          method: get
+          cors: true
+          authorizer:
+            name: auth
+            type: request
+      - http:
+          path: ${self:custom.base_path}/{collection}/aggregation_configuration
+          method: get
+          cors: true
+          authorizer:
+            name: auth
+            type: request
+      - http:
+          path: ${self:custom.base_path}/{collection}/aggregation_configuration/{aggregation_configuration_id}
           method: get
           cors: true
           authorizer:
@@ -204,7 +222,7 @@ functions:
       - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}/{id}
+          path: ${self:custom.base_path}/{collection}/{id}
           method: put
           cors: true
           authorizer:
@@ -217,7 +235,7 @@ functions:
       - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}/{id}
+          path: ${self:custom.base_path}/{collection}/{id}
           method: delete
           cors: true
           authorizer:
