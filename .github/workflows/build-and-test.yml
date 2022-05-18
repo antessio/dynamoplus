@@ -21,7 +21,7 @@ jobs:
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
-        python-version: "3.6"
+        python-version: "3.7"
     - name: Install dependencies
       run: |
         cd serverless
@@ -36,6 +36,10 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
+      env:
+        AWS_SECRET_ACCESS_KEY: fake_key
+        AWS_ACCESS_KEY_ID: fake_id
+        AWS_DEFAULT_REGION: eu-west-1
       run: |
         cd serverless
         coverage run --source ./ -m unittest
