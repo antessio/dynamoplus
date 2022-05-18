@@ -27,7 +27,7 @@ jobs:
         cd serverless
         python -m pip install --upgrade pip
         pip install flake8 pytest coverage
-        pip install -r requirements_test.txt
+        pip install -r requirements.txt
     - name: Lint with flake8
       run: |
         cd serverless
