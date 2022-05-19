@@ -42,10 +42,10 @@ jobs:
         AWS_DEFAULT_REGION: eu-west-1
       run: |
         cd serverless
-        coverage run --source ./ -m unittest
+        pytest --cov=./myapp --cov-report xml
     - name: Coveralls GitHub Action
       uses: coverallsapp/github-action@1.1.3
       with:
-        base-path: ./serverless
+        base-path: ./serverless/coverage.xml
         github-token: ${{secrets.COVERALL}}
         
