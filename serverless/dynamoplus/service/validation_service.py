@@ -155,7 +155,7 @@ def __compile_json_schema(collection_schema):
     try:
         return fastjsonschema.compile(collection_schema)
     except JsonSchemaDefinitionException as e:
-        logger.error("unable to compile schema definition", e)
+        logger.error("unable to compile schema definition {}".format(e))
         return None
 
 
