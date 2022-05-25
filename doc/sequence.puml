@@ -1,0 +1,118 @@
+@startuml
+title Dynamo Plus
+
+
+participant "Client" as c
+participant "Api Gateway" as api
+participant "Lambda" as l
+participant "DynamoStreamHandler" as dsh
+
+
+c->api: POST /collection
+api->l:
+activate l
+l->l: create collection "restaurant"\non system table
+l->api: collection_metadata
+deactivate l
+api->c: 200
+
+c->api: POST /collection
+api->l:
+activate l
+l->l: create collection "review"\non system table
+l->api: collection_metadata
+deactivate l
+api->c: 200
+
+c->api: POST /index
+api->l:
+activate l
+l->l: create index "restaurant_city"\non system table
+l->api: index metadata
+deactivate l
+api->c: 200
+
+c->api: POST /index
+api->l:
+activate l
+l->l: create index "restaurant_category"\non system table
+l->api: index metadata
+deactivate l
+api->c: 200
+
+c->api: POST /index
+api->l:
+activate l
+l->l: create index "review_restaurant"\non system table
+l->api: index metadata
+deactivate l
+api->c: 200
+
+c->api: POST /aggregation
+api->l:
+activate l
+l->l: create aggregation "count_restaurant"\non system table
+l->api: aggregation metadata
+deactivate l
+api->c: 200
+
+c->api: POST /aggregation
+api->l:
+activate l
+l->l: create aggregation "restaurant_avg_review"\non system table
+l->api: aggregation metadata
+deactivate l
+api->c: 200
+
+
+
+c->api: POST /restaurant
+
+api->l: create document
+activate l
+l->l: validate collection
+l->l: store document\non domain table
+l-->dsh: document created
+activate dsh
+dsh->dsh: find indexes\nby collection_name "restaurant"
+loop indexes
+dsh->dsh: insert row for GSI overloading\non domain table
+end
+dsh->dsh: find aggregations\nby collection_name "restaurant"
+loop indexes
+dsh->dsh: insert/update aggregations rows\non domain table
+end
+deactivate dsh
+l->api: document metadata
+deactivate l
+api->c: 200 (id)
+
+
+c->api: POST /review
+
+api->l: create document
+activate l
+l->l: validate collection
+l->l: store document\non domain table
+l-->dsh: document created
+activate dsh
+dsh->dsh: find indexes\nby collection_name "review"
+loop indexes
+dsh->dsh: insert row for GSI overloading\non domain table
+end
+dsh->dsh: find aggregations\nby collection_name "review"
+loop indexes
+dsh->dsh: insert/update aggregations rows\non domain table
+end
+deactivate dsh
+l->api: document metadata
+deactivate l
+api->c: 200 (id)
+
+
+
+
+
+
+
+@enduml

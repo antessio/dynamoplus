@@ -1,20 +1,24 @@
 import os
 import unittest
-import decimal
-import uuid
+from decimal import Decimal
 
-from dynamoplus.models.query.conditions import Eq
-from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType
+from dynamoplus.models.query.conditions import Eq, And, AnyMatch, Predicate, FieldMatch
+from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationType, \
+    AggregationTrigger, \
+    AggregationJoin, Aggregation, AggregationCount
+from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.system.index.index import Index, IndexConfiguration
-from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
-    ClientAuthorizationHttpSignature, ClientAuthorizationApiKey, Scope, ScopesType
+from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorizationHttpSignature, \
+    ClientAuthorizationApiKey, Scope, ScopesType
 
 from mock import call
 from unittest.mock import patch
 
-from dynamoplus.v2.repository.repositories import Model, Repository, QueryResult
+from dynamoplus.v2.repository.repositories import Model, Repository, QueryResult, AtomicIncrement, Counter
 from dynamoplus.v2.service.query_service import QueryService
-from dynamoplus.v2.service.system.system_service import AuthorizationService, CollectionService, IndexService
+from dynamoplus.v2.service.system.system_service import AuthorizationService, CollectionService, IndexService, \
+    Converter
+from dynamoplus.v2.service.system.system_service import AggregationConfigurationService
 
 domain_table_name = "domain"
 system_table_name = "system"
@@ -25,6 +29,64 @@ class TestSystemService(unittest.TestCase):
     def setUp(self):
         os.environ["DYNAMODB_DOMAIN_TABLE"] = domain_table_name
         os.environ["DYNAMODB_SYSTEM_TABLE"] = system_table_name
+
+    def test_convert_aggregation_configuration(self):
+        collection_name = "example"
+        type = AggregationType.AVG
+        on = [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE]
+        target_field = "field_1"
+        predicate = And([Eq("field_x", "value1"), Eq("field_y", "value2")])
+        join = AggregationJoin("my_collection", "field_example_1")
+        aggregation = AggregationConfiguration(collection_name, type,
+                                               on,
+                                               target_field, predicate,
+                                               join)
+        d = Converter.from_aggregation_configuration_to_dict(aggregation)
+        self.maxDiff = None
+        expected = {
+            "name": aggregation.name,
+            "collection": {
+                "name": collection_name
+            },
+            "type": type.name,
+            "aggregation": {
+                "on": [AggregationTrigger.INSERT.name, AggregationTrigger.DELETE.name, AggregationTrigger.UPDATE.name],
+                "target_field": target_field,
+                "join": {
+                    "collection_name": join.collection_name,
+                    "using_field": join.using_field
+                },
+                "matches": {
+                    "and": [
+                        {
+                            "eq": {
+                                "field_name": "field_x",
+                                "value": "value1"
+                            }
+                        },
+                        {
+                            "eq": {
+                                "field_name": "field_y",
+                                "value": "value2"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+        self.assertDictEqual(d, expected)
+        aggregation_result = Converter.from_dict_to_aggregation_configuration(expected)
+        self.assertEqual(aggregation, aggregation_result)
+
+    # def test_from_aggregation_configuration_to_API(self):
+    #     aggregation_configuration = AggregationConfiguration("example",AggregationType.COLLECTION_COUNT,[AggregationTrigger.INSERT,AggregationTrigger.DELETE],"field1",AnyMatch(),AggregationJoin("example_2","field2"))
+    #     aggregation = AggregationCount("example_count","exampel_count",40)
+    #     result = Converter.from_aggregation_configuration_to_API(aggregation_configuration, aggregation)
+    #     self.assertDictEqual({
+    #         "aggregation": {"name": }0236617100.
+    #     },result)
+    def test_get_aggregation_by_name(self):
+        self.fail("not yet implemented")
 
     @patch.object(Repository, "update")
     @patch.object(Repository, "__init__")
@@ -196,7 +258,7 @@ class TestSystemService(unittest.TestCase):
             "conditions": expected_conditions,
             "ordering_key": "field2.field21"}
         mock_repository.return_value = None
-        index = Index("example", expected_conditions,IndexConfiguration.OPTIMIZE_READ, "field2.field21")
+        index = Index("example", expected_conditions, IndexConfiguration.OPTIMIZE_READ, "field2.field21")
         expected_index_model = Model("index#" + expected_name, "index", expected_name, target_index)
         mock_query.return_value = QueryResult([expected_index_model], None)
         created_index = IndexService.create_index(index)
@@ -230,36 +292,36 @@ class TestSystemService(unittest.TestCase):
         created_index = IndexService.create_index(index)
         index_name = created_index.index_name
         self.assertEqual(index_name, expected_name)
-        #self.assertEqual(call(expected_index_model), mock_create.call_args_list[0])
+        # self.assertEqual(call(expected_index_model), mock_create.call_args_list[0])
         calls = [call(expected_index_model),
-                 call(Model("index#"+expected_name, "index#collection.name","example",target_index))]
+                 call(Model("index#" + expected_name, "index#collection.name", "example", target_index))]
         mock_create.assert_has_calls(calls)
-
-
 
     @patch.object(QueryService, "query")
     def test_queryIndex_by_CollectionByName(self, mock_query):
-        #expected_query = Query(Eq("collection.name", "example"), Collection("index", "uid"),["collection.name"])
+        # expected_query = Query(Eq("collection.name", "example"), Collection("index", "uid"),["collection.name"])
         index_metadata = Collection("index", "name")
         index_by_collection_metadata = Index(index_metadata.name, ["collection.name"], None)
         collection_name = "example"
         mock_query.return_value = QueryResult(
-            [Model("index#collection.name", "index",collection_name,
+            [Model("index#collection.name", "index", collection_name,
                    {"uid": "1", "name": "collection.name", "collection": {"name": collection_name},
                     "conditions": ["collection.name"]})])
         indexes, last_key = IndexService.get_index_by_collection_name(collection_name)
         self.assertEqual(1, len(indexes))
         self.assertEqual(indexes[0].index_name, "example__collection.name")
-        self.assertEqual(call(index_metadata,Eq("collection.name", collection_name),index_by_collection_metadata,None,20), mock_query.call_args_list[0])
+        self.assertEqual(
+            call(index_metadata, Eq("collection.name", collection_name), index_by_collection_metadata, None, 20),
+            mock_query.call_args_list[0])
 
     @patch.object(QueryService, "query")
     def test_queryIndex_by_CollectionByName_generator(self, mock_query):
         mock_query.side_effect = [
-            self.fake_query_result("example__field1", ["field1"], "example","example__field2"),
-            self.fake_query_result("example__field2", ["field2"],"example","example__field3"),
-            self.fake_query_result("example__field3", ["field3"], "example", "example__field4"),
-            self.fake_query_result("example__field4", ["field4"], "example","example__field5"),
-            self.fake_query_result("example__field5", ["field5"], "example")
+            self.fake_query_result_index("example__field1", ["field1"], "example", "example__field2"),
+            self.fake_query_result_index("example__field2", ["field2"], "example", "example__field3"),
+            self.fake_query_result_index("example__field3", ["field3"], "example", "example__field4"),
+            self.fake_query_result_index("example__field4", ["field4"], "example", "example__field5"),
+            self.fake_query_result_index("example__field5", ["field5"], "example")
         ]
         index_metadata = Collection("index", "name")
         index_by_collection_metadata = Index(index_metadata.name, ["collection.name"], None)
@@ -267,8 +329,12 @@ class TestSystemService(unittest.TestCase):
         indexes = IndexService.get_indexes_from_collection_name_generator(collection_name, 2)
         names = list(map(lambda i: i.index_name, indexes))
         self.assertEqual(5, len(names))
-        self.assertEqual(["example__field1", "example__field2", "example__field3", "example__field4", "example__field5"], names)
-        self.assertEqual(call(index_metadata,Eq("collection.name", collection_name),index_by_collection_metadata,None,2), mock_query.call_args_list[0])
+        self.assertEqual(
+            ["example__field1", "example__field2", "example__field3", "example__field4", "example__field5"], names)
+        self.assertEqual(
+            call(index_metadata, Eq("collection.name", collection_name), index_by_collection_metadata, None, 2),
+            mock_query.call_args_list[0])
+
     #
     #
     # @patch('dynamoplus.service.system.system.SystemService.get_index')
@@ -283,7 +349,6 @@ class TestSystemService(unittest.TestCase):
 
     @patch('dynamoplus.v2.service.system.system_service.IndexService.get_index_by_name_and_collection_name')
     def test_find_index_matching_fields_not_found(self, mock_get_index_by_name_and_collection_name):
-
         mock_get_index_by_name_and_collection_name.side_effect = [None, None, None]
         index = IndexService.get_index_matching_fields(["field1", "field2", "field3"], "example")
         self.assertIsNone(index)
@@ -291,9 +356,151 @@ class TestSystemService(unittest.TestCase):
                  call("example__field1", "example")]
         mock_get_index_by_name_and_collection_name.assert_has_calls(calls)
 
+    @patch.object(Repository, "create")
+    @patch.object(Repository, "__init__")
+    def test_create_aggregation(self, mock_repository, mock_create):
+        collection_name = "example"
+        type = AggregationType.AVG
+        on = [AggregationTrigger.INSERT, AggregationTrigger.DELETE, AggregationTrigger.UPDATE]
+        target_field = "field_1"
+        predicate = And([Eq("field_x", "value1"), Eq("field_y", "value2")])
+        join = AggregationJoin("my_collection", "field_example_1")
+        aggregation = AggregationConfiguration(collection_name, type,
+                                               on,
+                                               target_field, predicate,
+                                               join)
+        target_agg = {
+            "name": aggregation.name,
+            "collection": {"name": collection_name}, "type": type.name,
+            "aggregation": {
+                "on": [AggregationTrigger.INSERT.name, AggregationTrigger.DELETE.name, AggregationTrigger.UPDATE.name],
+                "target_field": target_field,
+                "join": {"collection_name": join.collection_name, "using_field": join.using_field},
+                "matches": {"and": [
+                    {
+                        "eq": {
+                            "field_name": "field_x",
+                            "value": "value1"
+                        }
+                    },
+                    {
+                        "eq": {
+                            "field_name": "field_y",
+                            "value": "value2"
+                        }
+                    }
+                ]
+                }
+            }
+        }
+        expected_model = Model("aggregation_configuration#" + aggregation.name, "aggregation_configuration", aggregation.name, target_agg)
+        mock_repository.return_value = None
+        mock_create.return_value = expected_model
 
-    def fake_query_result(self, index_name, conditions, collection_name, next = None):
+        created_aggregation = AggregationConfigurationService.create_aggregation_configuration(aggregation)
+        mock_repository.assert_called_once_with(system_table_name)
+        aggregation_name = created_aggregation.name
+        self.assertEqual(aggregation_name, aggregation.name)
+        calls = [call(expected_model),
+                 call(Model("aggregation_configuration#" + aggregation.name, "aggregation_configuration#collection.name",
+                            aggregation.collection_name, target_agg))]
+        mock_create.assert_has_calls(calls)
+
+    @patch.object(Repository, "get")
+    @patch.object(Repository, "__init__")
+    def test_get_aggregation_by_name(self, mock_repository, mock_get):
+        expected_name = 'example_collection_count'
+        mock_repository.return_value = None
+        collection_name = "client_authorization"
+        document = {"name": expected_name, "collection": {"name": "example"},
+                    "type": "COLLECTION_COUNT",
+                    "aggregation": {
+                        "on": ["INSERT"]
+                    }}
+        expected_model = Model(collection_name + "#" + expected_name, collection_name, expected_name,
+                               document)
+        mock_get.return_value = expected_model
+        result = AggregationConfigurationService.get_aggregation_configuration_by_name(expected_name)
+        mock_repository.assert_called_once_with(system_table_name)
+        self.assertTrue(mock_get.called_with(collection_name + "#" + expected_name, collection_name))
+        self.assertEqual(expected_name, result.name)
+        self.assertIsInstance(result, AggregationConfiguration)
+
+    @patch.object(Converter, "from_dict_to_aggregation_configuration")
+    @patch.object(QueryService, "query_generator")
+    def test_get_aggregations_by_collection_name(self, mock_query, mock_converter):
+        collection_name = "example"
+        expected_results = [
+            self.fake_query_result_aggregation("example_count", "example",
+                                               {"name": "example_count", "collection": {"name": "example"},
+                                                "type": "count", "aggregation": {"on": ""}}),
+            self.fake_query_result_aggregation("example_avg_rate", "example",
+                                               {"name": "example_avg_rate", "collection": {"name": "example"},
+                                                "type": "avg", "aggregation": {"on": ""}}),
+            self.fake_query_result_aggregation("example_sum_amount_by_foo", "example",
+                                               {"name": "example_sum_amount_by_foo", "collection": {"name": "example"},
+                                                "type": "sum", "aggregation": {"on": ""}})
+        ]
+
+        def fake(x, y, z):
+            yield from expected_results
+
+        mock_query.side_effect = fake
+        mock_converter.return_value = AggregationConfiguration("example", AggregationType.COLLECTION_COUNT,
+                                                               [AggregationTrigger.INSERT], "whatever", None, None)
+
+        aggregation_metadata = Collection("aggregation_configuration", "name")
+        index_by_collection_metadata = Index(aggregation_metadata.name, ["collection.name"])
+        aggregations = AggregationConfigurationService.get_aggregation_configurations_by_collection_name_generator(collection_name)
+
+        names = list(map(lambda a: a.name, aggregations))
+        self.assertEqual(3, len(names))
+        self.assertEqual(
+            call(aggregation_metadata,
+                 Eq("collection.name", collection_name),
+                 index_by_collection_metadata),
+            mock_query.call_args_list[0])
+        self.assertEqual(3, mock_converter.call_count)
+
+    @patch.object(Converter, "from_dict_to_aggregation_configuration")
+    @patch.object(QueryService, "query")
+    def test_get_all_aggregations(self, mock_query, mock_converter):
+        expected_results = [
+            self.fake_query_result_aggregation("example_count", "example",
+                                               {"name": "example_count", "collection": {"name": "example"},
+                                                "type": "count", "aggregation": {"on": ""}}),
+            self.fake_query_result_aggregation("example_avg_rate", "example",
+                                               {"name": "example_avg_rate", "collection": {"name": "example"},
+                                                "type": "avg", "aggregation": {"on": ""}}),
+            self.fake_query_result_aggregation("example_sum_amount_by_foo", "example",
+                                               {"name": "example_sum_amount_by_foo",
+                                                "collection": {"name": "example"}, "type": "sum",
+                                                "aggregation": {"on": ""}})
+        ]
+
+        mock_query.return_value = QueryResult(expected_results, None)
+        mock_converter.return_value = AggregationConfiguration("example", AggregationType.COLLECTION_COUNT,
+                                                               [AggregationTrigger.INSERT], "whatever", None, None)
+
+        aggregation_metadata = Collection("aggregation_configuration", "name")
+        aggregations, last_key = AggregationConfigurationService.get_all_aggregation_configurations(20, None)
+
+        names = list(map(lambda a: a.name, aggregations))
+        self.assertEqual(3, len(names))
+        self.assertEqual(
+            call(aggregation_metadata,
+                 AnyMatch(),
+                 None,
+                 20,
+                 None),
+            mock_query.call_args_list[0])
+        self.assertEqual(3, mock_converter.call_count)
+
+    def fake_query_result_index(self, index_name, conditions, collection_name, next=None):
         return QueryResult(
-            [Model("index#"+index_name,"index", index_name,
-                   { "name": index_name, "collection": {"name": collection_name},
+            [Model("index#" + index_name, "index", index_name,
+                   {"name": index_name, "collection": {"name": collection_name},
                     "conditions": conditions})], next)
+
+    def fake_query_result_aggregation(self, aggregation_name, collection_name, d: dict):
+        return Model("aggregation_configuration#" + aggregation_name, "aggregation_configuration", aggregation_name, d)

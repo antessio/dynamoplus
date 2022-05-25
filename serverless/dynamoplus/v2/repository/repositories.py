@@ -1,14 +1,14 @@
+import abc
+import json
+import logging
+import os
 from _decimal import Decimal
 from typing import *
-import abc
-import logging
-import json
-from dynamoplus.utils.utils import sanitize
-from boto3.dynamodb.conditions import Key, Attr
+
 import boto3
-import os
-from dynamoplus.utils.utils import auto_str
-from dynamoplus.utils.decimalencoder import DecimalEncoder
+from boto3.dynamodb.conditions import Key
+
+from dynamoplus.utils.utils import sanitize
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -26,6 +26,47 @@ try:
         connection = boto3.resource('dynamodb')
 except:
     logger.info("Unable to instantiate")
+
+
+class Counter:
+    def __init__(self,field_name:str, count:Decimal, is_increment:bool = True):
+        self.field_name = field_name
+        self.count = count
+        self.is_increment = is_increment
+
+    def __members(self):
+        return self.field_name, self.count, self.is_increment
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.field_name.__eq__(other.field_name) and \
+                   self.count.__eq__(other.count) and \
+                   self.is_increment.__eq__(other.is_increment)
+        else:
+            return False
+
+    def __str__(self):
+        return "{" + ",".join(map(lambda x: x.__str__(), self.__members()))+ "}"
+
+
+class AtomicIncrement:
+
+    def __init__(self, pk:str, sk:str, counters:List[Counter]):
+        self.pk = pk
+        self.sk = sk
+        self.counters = counters
+
+    def __members(self):
+        return self.pk,self.sk,self.counters
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.__members() == other.__members()
+        else:
+            return False
+
+    def __str__(self):
+        return "{" + ",".join(map(lambda x: x.__str__(), self.__members())) + "}"
 
 
 class Model:
@@ -64,12 +105,14 @@ class Model:
     def __str__(self):
         return "{" + ",".join(map(lambda x: x.__str__(), self.__members()))+ "}"
 
+
+
     def __hash__(self):
         return hash(self.__members())
 
     def to_dynamo_db_item(self):
         return {
-            "document": json.dumps(self.document, cls=DecimalEncoder),
+            "document": self.document,
             "pk": self.pk,
             "sk": self.sk,
             "data": self.data
@@ -137,13 +180,76 @@ class Repository(RepositoryInterface):
         logging.info("Result = {}".format(result))
         return Model.from_dynamo_db_item(result[u'Item']) if 'Item' in result else None
 
+    def increment_counter(self, atomic_increment:AtomicIncrement):
+
+        # only updates attributes in the id_key or pk or sk
+
+        #update_expression = "SET document.#field_name1 = document.#field_name1 + :increase1, document.#field_name2 = document.#field_name2 + :increase2"
+        update_expression = 'SET {}'.format(','.join(f'document.#{k.field_name}= document.#{k.field_name} {"+" if k.is_increment else "-"} :{k.field_name}' for k in atomic_increment.counters))
+        expression_attribute_values = {f':{k.field_name}': k.count for k in atomic_increment.counters}
+        expression_attribute_names = {f'#{k.field_name}': k.field_name for k in atomic_increment.counters}
+
+
+        response = self.table.update_item(
+            Key={
+                'pk': atomic_increment.pk,
+                'sk': atomic_increment.sk
+            },
+            UpdateExpression=update_expression,
+            ExpressionAttributeValues=expression_attribute_values,
+            ExpressionAttributeNames=expression_attribute_names,
+            ReturnValues="UPDATED_NEW"
+        )
+        logger.info("Response from update operation is " + response.__str__())
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            return True
+        else:
+            logger.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
+            return False
+
+
+    # def increment_counter(self, partition_key:str, sort_key:str, field_name:str, increase:Decimal):
+    #
+    #     # only updates attributes in the id_key or pk or sk
+    #     logger.info("updating {} {} {} {} ".format(partition_key, sort_key,field_name,increase))
+    #
+    #     update_expression = "SET document.#field_name = document.#field_name + :increase"
+    #
+    #     expression_attributes_values = {
+    #         ":increase":  increase
+    #     }
+    #     expression_attribute_name = {
+    #         "#field_name": field_name
+    #     }
+    #
+    #     response = self.table.update_item(
+    #         Key={
+    #             'pk': partition_key,
+    #             'sk': sort_key
+    #         },
+    #         UpdateExpression=update_expression,
+    #         ExpressionAttributeValues=expression_attributes_values,
+    #         ExpressionAttributeNames=expression_attribute_name,
+    #         ReturnValues="UPDATED_NEW"
+    #     )
+    #     logger.info("Response from update operation is " + response.__str__())
+    #     if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+    #         return increase
+    #     else:
+    #         logger.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
+    #         return None
+
     def update(self, model: Model):
         dynamo_db_item = model.to_dynamo_db_item()
         if dynamo_db_item.keys():
             # only updates attributes in the id_key or pk or sk
             logger.info("updating {} ".format(dynamo_db_item))
 
-            update_expression = "SET #document=:document, #data=:data"
+            update_expression = 'SET #data=:data, {}'.format(','.join(f'document.#{k}=:{k}' for k in model.document))
+            expression_attribute_values = {f':{k}': v for k, v in model.document.items()}
+            expression_attribute_names = {f'#{k}': k for k in model.document}
+            expression_attribute_values[":data"] = model.data
+            expression_attribute_names["#data"] = "data"
 
             expression_attributes_values = {
                 ":document": model.document,
@@ -159,8 +265,8 @@ class Repository(RepositoryInterface):
                     'sk': model.sk
                 },
                 UpdateExpression=update_expression,
-                ExpressionAttributeValues=expression_attributes_values,
-                ExpressionAttributeNames=expression_attribute_name,
+                ExpressionAttributeValues=expression_attribute_values,
+                ExpressionAttributeNames=expression_attribute_names,
                 ReturnValues="UPDATED_NEW"
             )
             logger.info("Response from update operation is " + response.__str__())
@@ -301,6 +407,7 @@ def cleanup_tables():
 
 
 def create_tables():
+    logger.info("create tables")
     dynamo_db = connection if connection is not None else boto3.resource('dynamodb')
     try:
         domain_table = dynamo_db.create_table(TableName=os.environ['DYNAMODB_DOMAIN_TABLE'],
