@@ -93,6 +93,7 @@ celerybeat-schedule
 .env
 .venv
 env/
+test_env/
 venv/
 ENV/
 env.bak/
@@ -112,3 +113,4 @@ venv.bak/
 .mypy_cache/
 
 .idea/
+/dynamodb-docker-data/*

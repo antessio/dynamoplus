@@ -1,7 +1,7 @@
 from typing import *
 import abc
 
-from dynamoplus.utils.utils import auto_str
+from dynamoplus.utils.utils import auto_str, get_values_by_key_recursive
 
 
 @auto_str
@@ -157,3 +157,22 @@ def get_field_names_in_order(field_match: FieldMatch):
             field_names.extend(get_field_names_in_order(c))
         return field_names
     return None
+
+
+def match_predicate(d:dict, predicate:Predicate):
+
+    ## if and call recursively on all conditions
+    ## if eq get the value from the field_name and compare with the field_value
+    ## if range get the value from the field and compare with value1 and value2
+    if isinstance(predicate, Eq):
+        value = get_values_by_key_recursive(d,[predicate.field_name],True)
+        if value and len(value)>0:
+            return value[0].__eq__(predicate.value)
+    elif isinstance(predicate, Range):
+        value = get_values_by_key_recursive(d, [predicate.field_name], True)
+        if value and len(value) > 0:
+            return predicate.from_value < value[0] < predicate.to_value
+    elif isinstance(predicate, And):
+        return all(map(lambda p: match_predicate(d,p), predicate.conditions))
+
+    return False

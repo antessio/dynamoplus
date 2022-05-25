@@ -18,16 +18,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python 3.10
+    - name: Set up Python 3.9
       uses: actions/setup-python@v3
       with:
-        python-version: "3.7"
+        python-version: "3.9"
     - name: Install dependencies
       run: |
         cd serverless
         python -m pip install --upgrade pip
-        pip install flake8 pytest coverage
-        pip install -r requirements.txt
+        pip install flake8 pytest coverage coverage-lcov
+        pip install -r requirements_test.txt
     - name: Lint with flake8
       run: |
         cd serverless
@@ -36,11 +36,20 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
+      env:
+        AWS_SECRET_ACCESS_KEY: fake_key
+        AWS_ACCESS_KEY_ID: fake_id
+        AWS_DEFAULT_REGION: eu-west-1
       run: |
         cd serverless
         coverage run --source ./ -m unittest
+        coverage-lcov
+    - name: "Check coverage info"
+      run: ls ./serverless
     - name: Coveralls GitHub Action
       uses: coverallsapp/github-action@1.1.3
       with:
-        github-token: ${{secrets.COVERALL}}
+        path-to-lcov: ./serverless/lcov.info
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
         

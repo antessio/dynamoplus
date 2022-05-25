@@ -1,13 +1,23 @@
+
 service: dynamoplus
+
+variablesResolutionMode: 20210326
 
 plugins:
   - serverless-python-requirements
-  - serverless-dynamodb-local
   - serverless-offline
+
+package:
+  individually: true
 
 custom:
   pythonRequirements:
-    dockerizePip: false
+    dockerizePip: true
+    zip: true
+    slim: true
+    layer: true
+    noDeploy:
+      - pytest
   serverless-offline:
     host: 0.0.0.0
   dynamodb:
@@ -18,14 +28,15 @@ custom:
       port: 8000
       migrate: true
   system_collections: "collection,index,client_authorization"
+  base_path: "dynamoplus"
   allowed_origins: ${file(./secrets.json):ALLOWED_ORIGINS}
-frameworkVersion: ">=1.1.0 <2.0.0"
 
 provider:
   name: aws
   runtime: python3.7
   region: eu-west-1
   memorySize: 256
+  lambdaHashingVersion: 20200924
 
   environment:
     ALLOWED_ORIGINS: ${self:custom.allowed_origins}
@@ -36,6 +47,7 @@ provider:
     ENTITIES: ${self:custom.system_collections}
     ROOT_ACCOUNT: ${file(./secrets.json):ROOT_ACCOUNT}
     ROOT_PASSWORD: ${file(./secrets.json):ROOT_PASSWORD}
+    JWT_SECRET: ${file(./secrets.json):JWT_SECRET}
     DYNAMODB_HOST: http://localhost
     DYNAMODB_PORT: 8000
 
@@ -61,16 +73,45 @@ provider:
 functions:
   auth:
     handler: aws/http/authorizer.authorize
-    cors: true
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    
   handleStream:
     handler: aws/events/dynamodb.dynamo_stream_handler
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - stream:
           type: dynamodb
           arn: { Fn::GetAtt: [ DomainDynamoDbTable, StreamArn ] }
           batchSize: 1
+  custom:
+    handler: aws/http/http_v2.custom
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    events:
+      - http:
+          path: /custom/{proxy+}
+          method: any
+          cors: true
+          authorizer:
+            name: auth
+            type: request
+
+  adminLogin:
+    handler: aws/http/authorizer.issue_jwt
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    events:
+      - http:
+          path: admin/login
+          method: post
+          cors: true
+
   adminSetup:
     handler: aws/http/admin.setup
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: admin/setup
@@ -81,6 +122,8 @@ functions:
             type: request
   adminCleanup:
     handler: aws/http/admin.cleanup
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: admin/cleanup
@@ -92,6 +135,8 @@ functions:
 
   info:
     handler: aws/http/info.info
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: system/info
@@ -99,6 +144,8 @@ functions:
           cors: true
   documentation:
     handler: aws/http/doc.swagger_json
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
           path: system/documentation/swagger.json
@@ -106,10 +153,12 @@ functions:
           cors: true
 
   create:
-    handler: aws/http/http.create
+    handler: aws/http/http_v2.create
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}
+          path: ${self:custom.base_path}/{collection}
           method: post
           cors: true
           authorizer:
@@ -117,10 +166,12 @@ functions:
             type: request
 
   query:
-    handler: aws/http/http.query
+    handler: aws/http/http_v2.query
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}/query
+          path: ${self:custom.base_path}/{collection}/query
           method: post
           cors: true
           authorizer:
@@ -128,20 +179,38 @@ functions:
             type: request
 
   getAll:
-    handler: aws/http/http.get
+    handler: aws/http/http_v2.get
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}
+          path: ${self:custom.base_path}/{collection}
           method: get
           cors: true
           authorizer:
             name: auth
             type: request
   get:
-    handler: aws/http/http.get
+    handler: aws/http/http_v2.get
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}/{id}
+          path: ${self:custom.base_path}/{collection}/{id}
+          method: get
+          cors: true
+          authorizer:
+            name: auth
+            type: request
+      - http:
+          path: ${self:custom.base_path}/{collection}/aggregation_configuration
+          method: get
+          cors: true
+          authorizer:
+            name: auth
+            type: request
+      - http:
+          path: ${self:custom.base_path}/{collection}/aggregation_configuration/{aggregation_configuration_id}
           method: get
           cors: true
           authorizer:
@@ -149,10 +218,12 @@ functions:
             type: request
 
   update:
-    handler: aws/http/http.update
+    handler: aws/http/http_v2.update
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}/{id}
+          path: ${self:custom.base_path}/{collection}/{id}
           method: put
           cors: true
           authorizer:
@@ -160,10 +231,12 @@ functions:
             type: request
 
   delete:
-    handler: aws/http/http.delete
+    handler: aws/http/http_v2.delete
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
     events:
       - http:
-          path: dynamoplus/{collection}/{id}
+          path: ${self:custom.base_path}/{collection}/{id}
           method: delete
           cors: true
           authorizer:

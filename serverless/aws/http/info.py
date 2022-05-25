@@ -1,6 +1,11 @@
+try:
+  import unzip_requirements
+except ImportError:
+  pass
+
 import json
 import logging
-VERSION = "0.4.0"
+VERSION = "0.5.0.1"
 logging.basicConfig(level=logging.INFO)
 
 

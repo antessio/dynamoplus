@@ -22,7 +22,7 @@ jobs:
       with:
         repository: antessio/dynamoplus-java-sdk
         path: dynamoplus-java-sdk
-        ref: v0.4
+        ref: v0.5
     - name: Install sdk
       run: mvn -B clean install --file dynamoplus-java-sdk/pom.xml
 
@@ -36,12 +36,15 @@ jobs:
       run: ./github_actions_scripts/wait-for.sh http://localhost:3000/system/info 10 3
     - name: Creating tables
       run: ./github_actions_scripts/create-tables.sh
+    - name: The job has failed
+      if: ${{ failure() }}
+      run: docker-compose -f docker-compose-localhost.yml logs
     - name: Checkout e2e tests
       uses: actions/checkout@v2
       with:
         repository: antessio/dynamoplus-e2e-tests
         path: dynamoplus-e2e-tests
-        ref: v0.4
+        ref: v0.5
     - name: Running e2e tests on localhost
       run: mvn -B clean test -DrunSuite=**/TestSuite.class --file dynamoplus-e2e-tests/pom.xml
     - name: Shutting down DynamoPlus locally
