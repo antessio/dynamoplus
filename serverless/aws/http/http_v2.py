@@ -23,7 +23,7 @@ def custom(event, context):
 def get(event, context):
     return handler.get(path_parameters=event['pathParameters'],
                        query_string_parameters=event['queryStringParameters'],
-                       body=event["body"], headers=event['headers'])
+                       body=event["body"], headers=event['headers'],path=event["path"])
 
 
 def query(event, context):

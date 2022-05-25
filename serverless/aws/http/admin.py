@@ -12,6 +12,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 def setup(event, context):
+    logging.info("setup {}".format(event))
     create_tables()
     return {"statusCode": 200}
 
