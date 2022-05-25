@@ -1,13 +1,19 @@
+try:
+  import unzip_requirements
+except ImportError:
+  pass
+
 import json
 import logging
 from apispec import APISpec
 
 from aws.http.info import VERSION
 from dynamoplus.models.system.index.index import Index
-from dynamoplus.service.system.system import SystemService
+from dynamoplus.v2.service.system.system_service import CollectionService, IndexService
 from dynamoplus.service.validation_service import COLLECTION_SCHEMA_DEFINITION, INDEX_SCHEMA_DEFINITION, \
     CLIENT_AUTHORIZATION_SCHEMA_DEFINITION, CLIENT_AUTHORIZATION_HTTP_SIGNATURE_SCHEMA_DEFINITION, \
-    CLIENT_AUTHORIZATION_API_KEY_SCHEMA_DEFINITION, QUERY_SCHEMA_DEFINITION, CLIENT_SCOPE_SCHEMA_DEFINITION
+    CLIENT_AUTHORIZATION_API_KEY_SCHEMA_DEFINITION, QUERY_SCHEMA_DEFINITION, CLIENT_SCOPE_SCHEMA_DEFINITION, \
+    AGGREGATION_SCHEMA_DEFINITION
 
 from dynamoplus.utils.utils import get_schema_from_conditions
 
@@ -308,6 +314,13 @@ def swagger_json(event, context):
             },
             'put': {
                 'tags': ['client_authorization'],
+                'parameters': [{
+                    "name": "client_authorization_id",
+                    "in": "path",
+                    "description": "client authorization id",
+                    "required": True,
+                    "schema": {"type": "string"}
+                }],
                 'description': "update client_authorization",
                 'requestBody': {
                     "required": True,
@@ -412,8 +425,85 @@ def swagger_json(event, context):
                 }
             }
         })
+        spec.components.schema("Aggregation",AGGREGATION_SCHEMA_DEFINITION)
+        spec.path(path="/dynamoplus/aggregation/{aggregation_name}", operations={
+            'get': {
+                'tags': ['aggregation'],
+                'description': "get aggregation by name",
+                'parameters': [{
+                    "name": "aggregation_name",
+                    "in": "path",
+                    "description": "aggregation name",
+                    "required": True,
+                    "schema": {"type": "string"}
+                }],
+                'responses': {
+                    "200": {
+                        "description": "aggregation found",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Aggregation"}}}
+                    },
+                    "404": {"description": "aggregation object found", "content": {}},
+                    "403": {"description": "Access forbidden for system API"}
+                }
+            }
+        })
+        spec.path(path="/dynamoplus/aggregation",operations={
+            'get': {
+                'tags': ['aggregation'],
+                'description': "get all aggregations",
+                'parameters': [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "number of elements",
+                        "required": False,
+                        "schema": {"type": "integer"}
+                    },
+                    {
+                        "name": "last_key",
+                        "in": "query",
+                        "description": "last id",
+                        "required": False,
+                        "schema": {"type": "string"}
+                    }
+                ],
+                'responses': {
+                    "200": {"description": "aggregation list",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "data": {
+                                                "type": "array",
+                                                "items": {"$ref": "#/components/schemas/Aggregation"}
+                                            },
+                                            "has_more": {"type": "boolean"}
+                                        }}}}},
+                    "403": {"description": "Access forbidden for system API"}
+                }
+            },
+            'post': {
+                'tags': ['aggregation'],
+                'description': "create a new aggregation",
+                'requestBody': {
+                    "required": True,
+                    "content": {
+                        "application/json": {"schema": {"$ref": "#/components/schemas/Aggregation"}}
+                    }
+                },
+                'responses': {
+                    "201": {
+                        "description": "client_authorization created",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Aggregation"}}}
+                    },
+                    "403": {"description": "Access forbidden for system API"}
+                }
+            }
+
+        })
     else:
-        c = SystemService.get_collection_by_name(target_collection_name)
+        c = CollectionService.get_collection(target_collection_name)
         add_collection(c, spec)
     # last_evaluted_key = None
     # collections, last_evaluted_key = SystemService.get_all_collections(10, last_evaluted_key)
@@ -551,7 +641,7 @@ def add_collection(c, spec):
             }
         }
     })
-    for i in SystemService.get_indexes_from_collection_name_generator(c.name):
+    for i in IndexService.get_indexes_from_collection_name_generator(c.name):
         add_query_to_spec(i, spec)
 
 
