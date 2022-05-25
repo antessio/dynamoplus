@@ -81,7 +81,7 @@ def find_matching_indexes(values: dict,
         logger.debug("changed fields = {}".format(changed_fields))
         for index in IndexService.get_indexes_from_collection_name_generator(collection_metadata.name):
             for field in changed_fields:
-                if field in index.conditions:
+                if field in index.conditions or index.index_configuration == IndexConfiguration.OPTIMIZE_READ:
                     document = record if index and (
                                 index.index_configuration is None or index.index_configuration == IndexConfiguration.OPTIMIZE_READ) \
                         else filter_out_not_included_fields(record, index.conditions + [collection_metadata.id_key])
