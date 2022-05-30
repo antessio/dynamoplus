@@ -1,14 +1,13 @@
-version: '3.1'
+version: '3.9'
 
 services:
-    dynamoplus-local:
-        build: .
+    dynamoplus-deploy:
+        build:
+            context: .
+            dockerfile: deploy.Dockerfile
         environment:
-            AWS_ACCESS_KEY_ID: foo
-            AWS_SECRET_ACCESS_KEY: bar
-            DYNAMODB_HOST: http://dynamolocal
-            DYNAMODB_PORT: 8000
+            AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+            AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+            ENVIRONMENT: develop
             ROOT_PASSWORD: 12345
-            SERVICE_NAME: e2e-tests
-        ports:
-            - 3000:3000
+            SERVICE_NAME: dynamoplus-develop
