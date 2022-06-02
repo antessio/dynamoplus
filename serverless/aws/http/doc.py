@@ -19,8 +19,64 @@ from dynamoplus.utils.utils import get_schema_from_conditions
 
 logging.basicConfig(level=logging.INFO)
 
+TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Swagger UI</title>
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Source+Code+Pro:300,600|Titillium+Web:400,600,700" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.43.0/swagger-ui.css" >
+  <style>
+    html
+    {
+      box-sizing: border-box;
+      overflow: -moz-scrollbars-vertical;
+      overflow-y: scroll;
+    }
+    *,
+    *:before,
+    *:after
+    {
+      box-sizing: inherit;
+    }
+    body {
+      margin:0;
+      background: #fafafa;
+    }
+  </style>
+</head>
+<body>
+<div id="swagger-ui"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.43.0/swagger-ui-bundle.js"> </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.43.0/swagger-ui-standalone-preset.js"> </script>
+<script>
+window.onload = function() {
+  var spec = %s;
+  // Build a system
+  const ui = SwaggerUIBundle({
+    spec: spec,
+    dom_id: '#swagger-ui',
+    deepLinking: true,
+    presets: [
+      SwaggerUIBundle.presets.apis,
+      SwaggerUIStandalonePreset
+    ],
+    plugins: [
+      SwaggerUIBundle.plugins.DownloadUrl
+    ],
+    layout: "StandaloneLayout"
+  })
+  window.ui = ui
+}
+</script>
+</body>
+</html>
+"""
 
-def swagger_json(event, context):
+def swagger(event, context):
+
+
     query_parameters = event['queryStringParameters']
     target_collection_name = query_parameters[
         "collection_name"] if query_parameters and "collection_name" in query_parameters else None
@@ -512,6 +568,10 @@ def swagger_json(event, context):
     # while last_evaluted_key:
     #     collections, last_evaluted_key = SystemService.get_all_collections(10, last_evaluted_key)
     #     add_collections_to_spec(collections, spec)
+    if 'resource' in event and event['resource'] and 'swagger.html' in event['resource']:
+        return {"statusCode": 200, "body": TEMPLATE % spec.to_dict(), "headers": {'Content-Type': 'text/html'}}
+    else:
+        logging.info(event)
     return {"statusCode": 200, "body": json.dumps(spec.to_dict())}
 
 

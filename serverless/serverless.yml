@@ -143,10 +143,14 @@ functions:
           method: get
           cors: true
   documentation:
-    handler: aws/http/doc.swagger_json
+    handler: aws/http/doc.swagger
     layers:
       - { Ref: PythonRequirementsLambdaLayer }
     events:
+      - http:
+          path: system/documentation/swagger.html
+          method: get
+          cors: true
       - http:
           path: system/documentation/swagger.json
           method: get
