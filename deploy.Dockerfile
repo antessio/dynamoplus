@@ -31,8 +31,8 @@ ENV ROOT_PASSWORD $ROOT_PASSWORD
 ARG SERVICE_NAME
 ENV SERVICE_NAME $SERVICE_NAME
 
-RUN /app/scripts/deploy/setup.sh
+RUN /app/scripts/serverless/setup.sh
 
 WORKDIR /app
 
-ENTRYPOINT /app/scripts/deploy/deploy.sh
+ENTRYPOINT /app/scripts/serverless/deploy.sh
