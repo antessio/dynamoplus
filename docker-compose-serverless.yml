@@ -12,4 +12,4 @@ services:
                 - SERVICE_NAME=dynamoplus-develop
         environment:
             ENVIRONMENT: develop
-        entrypoint: ["/bin/bash", "-c", "/app/scripts/deploy/deploy.sh"]
+        entrypoint: ["/bin/bash", "-c", "/app/scripts/serverless/doctor.sh"]
