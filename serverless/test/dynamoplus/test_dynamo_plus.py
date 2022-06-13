@@ -63,7 +63,7 @@ class TestDynamoPlusHandler(unittest.TestCase):
         mock_get_system_collection.return_value = Collection("example", "id", "ordering")
         collection_metadata = get("collection", "example")
         self.assertDictEqual(collection_metadata,
-                             dict(id_key="id", name="example", ordering_key="ordering", attribute_definition=None, auto_generate_id=False))
+                             {'id_key': "id", 'name': "example", 'ordering_key': "ordering", 'auto_generated_id': False})
         self.assertTrue(mock_get_system_collection.called_with("example"))
 
     @patch.object(AggregationConfigurationService, "get_aggregation_configuration_by_name")
