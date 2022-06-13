@@ -72,7 +72,7 @@ class Converter:
 
     @staticmethod
     def from_attribute_definition_to_API(attribute_definition:AttributeDefinition):
-        result = {"name": attribute_definition.name, "type": attribute_definition.type}
+        result = {"name": attribute_definition.name, "type": attribute_definition.type.name}
         if attribute_definition.attributes:
             result["attributes"] = list(map(lambda a: Converter.from_attribute_definition_to_API(a), attribute_definition.attributes))
         return result
