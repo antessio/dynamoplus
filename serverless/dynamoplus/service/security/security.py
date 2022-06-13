@@ -142,13 +142,13 @@ class SecurityService:
     @staticmethod
     def get_jwt_token(username):
         jwt_payload = {"username": username, "expiration": int(time.time() * 1000.0) + (15 * 60 * 1000)}
-        return jwt.encode(jwt_payload, JWT_SECRET, algorithm='HS256')
+        return jwt.encode(jwt_payload, JWT_SECRET, "HS256")
 
     @staticmethod
     def get_bearer_authorized(headers: dict):
         jwt_secret = JWT_SECRET if JWT_SECRET is not None else os.getenv("JWT_SECRET")
         authorization_value = SecurityService.get_authorization_value(headers, BEARER_PREFIX)
-        payload = jwt.decode(authorization_value, jwt_secret, algorithms='HS256')
+        payload = jwt.decode(authorization_value, jwt_secret, "HS256")
         #payload = json.loads(token_decoded)
         logging.debug("payload = {}".format(payload))
         expiration = payload["expiration"]
