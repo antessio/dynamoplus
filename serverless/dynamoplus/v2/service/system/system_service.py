@@ -62,9 +62,19 @@ class Converter:
 
     @staticmethod
     def from_collection_to_API(collection: Collection):
-        result = {"name": collection.name, "id_key": collection.id_key}
+        result = {"name": collection.name, "id_key": collection.id_key, "auto_generated_id": True if collection.auto_generate_id else False}
         if collection.ordering_key:
             result["ordering_key"] = collection.ordering_key
+        if collection.attribute_definition:
+            result["attributes"] = list(map(lambda a: Converter.from_attribute_definition_to_API(a), collection.attribute_definition))
+
+        return result
+
+    @staticmethod
+    def from_attribute_definition_to_API(attribute_definition:AttributeDefinition):
+        result = {"name": attribute_definition.name, "type": attribute_definition.type.name}
+        if attribute_definition.attributes:
+            result["attributes"] = list(map(lambda a: Converter.from_attribute_definition_to_API(a), attribute_definition.attributes))
         return result
 
     @staticmethod
