@@ -1,7 +1,7 @@
 try:
-  import unzip_requirements
+    import unzip_requirements
 except ImportError:
-  pass
+    pass
 import os
 import logging
 import json
@@ -23,7 +23,7 @@ def issue_jwt(event, context):
             logging.info("Found {} in credentials".format(username))
             ## token expires in 15 minutes = 15*60*1000 ms
             token = SecurityService.get_jwt_token(username)
-            return {"statusCode": 200, "body": json.dumps({"token": token.decode("utf-8") })}
+            return {"statusCode": 200, "body": json.dumps({"token": token})}
         else:
             return {"statusCode": 401}
     except Exception as e:
@@ -56,13 +56,13 @@ def authorize(event, context):
                 client_authorization = SecurityService.get_client_authorization_by_api_key(headers)
                 logger.info("client authorization = {}".format(client_authorization))
                 if client_authorization and SecurityService.check_scope(path, http_method,
-                                                                             client_authorization.client_scopes):
+                                                                        client_authorization.client_scopes):
                     policy = generate_policy(client_authorization.client_id, "Allow", "*")
             elif SecurityService.is_http_signature(headers):
                 client_authorization = SecurityService.get_client_authorization_using_http_signature_authorized(
                     headers, http_method.lower(), path)
                 if client_authorization and SecurityService.check_scope(path, http_method,
-                                                                             client_authorization.client_scopes):
+                                                                        client_authorization.client_scopes):
                     policy = generate_policy(client_authorization.client_id, "Allow", "*")
         except Exception as e:
             print(f'Exception encountered: {e}')
