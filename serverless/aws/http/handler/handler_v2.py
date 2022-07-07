@@ -159,6 +159,7 @@ class HttpHandler(object):
         #                               body=self.format_json({"data": data, "lastKey": lastEvaluatedKey}))
 
     def check_allowed_origin(self, origin):
+        logger.info("origin {} allowed {}".format(origin, os.environ["ALLOWED_ORIGINS"]))
         allowed_origins = os.environ["ALLOWED_ORIGINS"].split(",")
         return origin in allowed_origins
 
