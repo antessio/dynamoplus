@@ -245,20 +245,15 @@ class Repository(RepositoryInterface):
             # only updates attributes in the id_key or pk or sk
             logger.info("updating {} ".format(dynamo_db_item))
 
-            update_expression = 'SET #data=:data, {}'.format(','.join(f'document.#{k}=:{k}' for k in model.document))
+            update_expression = 'SET #sk=:sk, #data=:data, {}'.format(','.join(f'document.#{k}=:{k}' for k in model.document))
             expression_attribute_values = {f':{k}': v for k, v in model.document.items()}
             expression_attribute_names = {f'#{k}': k for k in model.document}
             expression_attribute_values[":data"] = model.data
             expression_attribute_names["#data"] = "data"
+            expression_attribute_names["#sk"] = "sk"
+            expression_attribute_values[":sk"] = model.sk
 
-            expression_attributes_values = {
-                ":document": model.document,
-                ":data": model.data
-            }
-            expression_attribute_name={
-                "#data": "data",
-                "#document": "document"
-            }
+
             response = self.table.update_item(
                 Key={
                     'pk': model.pk,
