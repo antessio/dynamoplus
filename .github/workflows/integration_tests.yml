@@ -30,12 +30,12 @@ jobs:
       uses: actions/checkout@v2
     - name: List $GITHUB_WORKSPACE
       run: ls -lart
+    - name: Create Dynamo local data folder
+        run: mkdir -p my-dynamodb-data
     - name: Running DynamoPlus locally
       run: docker-compose -f docker-compose-localhost.yml up -d
     - name: Wait for server up
       run: ./github_actions_scripts/wait-for.sh http://localhost:3000/system/info 10 3
-    - name: Create Dynamo local data folder
-      run: mkdir my-dynamodb-data
     - name: Creating tables
       run: ./github_actions_scripts/create-tables.sh
     - name: The job has failed
