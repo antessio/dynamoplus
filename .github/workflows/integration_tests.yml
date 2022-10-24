@@ -31,7 +31,7 @@ jobs:
     - name: List $GITHUB_WORKSPACE
       run: ls -lart
     - name: Create Dynamo local data folder
-        run: mkdir -p my-dynamodb-data
+      run: mkdir -p my-dynamodb-data
     - name: Running DynamoPlus locally
       run: docker-compose -f docker-compose-localhost.yml up -d
     - name: Wait for server up
