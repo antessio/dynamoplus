@@ -49,6 +49,9 @@ jobs:
         ref: v0.5
     - name: Running e2e tests on localhost
       run: mvn -B clean test -DrunSuite=**/TestSuite.class --file dynamoplus-e2e-tests/pom.xml
+    - name: e2e failed
+      if: ${{ failure() }}
+      run: docker-compose -f docker-compose-localhost.yml logs
     - name: Shutting down DynamoPlus locally
       run: docker-compose -f docker-compose-localhost.yml kill
     - name: Removing containers
