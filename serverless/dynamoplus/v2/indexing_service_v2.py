@@ -68,6 +68,7 @@ def get_index_models_to_add(collection_metadata, new_record, old_record):
 def get_index_models_to_update(collection_metadata, new_record, old_record):
     to_update = []
     if old_record is not None and new_record is not None:
+        logger.debug("updated index new record = {} and old record = {}".format(new_record,old_record))
         updated = find_updated_values(old_record, new_record)
         to_update = find_matching_indexes(updated, collection_metadata, new_record) if updated else []
     return to_update
@@ -78,6 +79,7 @@ def find_matching_indexes(values: dict,
                           record: dict):
     result = []
     if values:
+        logger.debug("changed dict = {} while new record is {} ".format(values,record))
         changed_fields = get_all_keys(values)
         logger.debug("changed fields = {}".format(changed_fields))
         for index in IndexService.get_indexes_from_collection_name_generator(collection_metadata.name):
