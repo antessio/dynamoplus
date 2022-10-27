@@ -45,7 +45,7 @@ def update_document(fun):
         if after and is_local_env:
             is_system_collection = is_system(Collection(collection_name, None))
             if not is_system_collection:
-                update_indexes(collection_name,after,before)
+                update_indexes(collection_name,before,after)
                 logger.info("updating document index for {}".format(collection_name))
         return after
 
