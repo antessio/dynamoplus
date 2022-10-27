@@ -208,36 +208,7 @@ class Repository(RepositoryInterface):
             return False
 
 
-    # def increment_counter(self, partition_key:str, sort_key:str, field_name:str, increase:Decimal):
-    #
-    #     # only updates attributes in the id_key or pk or sk
-    #     logger.info("updating {} {} {} {} ".format(partition_key, sort_key,field_name,increase))
-    #
-    #     update_expression = "SET document.#field_name = document.#field_name + :increase"
-    #
-    #     expression_attributes_values = {
-    #         ":increase":  increase
-    #     }
-    #     expression_attribute_name = {
-    #         "#field_name": field_name
-    #     }
-    #
-    #     response = self.table.update_item(
-    #         Key={
-    #             'pk': partition_key,
-    #             'sk': sort_key
-    #         },
-    #         UpdateExpression=update_expression,
-    #         ExpressionAttributeValues=expression_attributes_values,
-    #         ExpressionAttributeNames=expression_attribute_name,
-    #         ReturnValues="UPDATED_NEW"
-    #     )
-    #     logger.info("Response from update operation is " + response.__str__())
-    #     if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-    #         return increase
-    #     else:
-    #         logger.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
-    #         return None
+
 
     def update(self, model: Model):
         dynamo_db_item = model.to_dynamo_db_item()
@@ -314,17 +285,6 @@ class QueryRepository:
             "The key that will be used is sk={} begins with data={}".format(sk, data))
         return self.__query_gsi(key, limit, last_key)
 
-    def query_gt(self, sk: str, data: str, limit: int = 20, last_key: Model = None):
-        key = Key('sk').eq(sk) & Key('data').gte(data)
-        logger.info(
-            "The key that will be used is sk={} begins with data={}".format(sk, data))
-        return self.__query_gsi(key, limit, last_key)
-
-    def query_lt(self, sk: str, data: str, limit: int = 20, last_key: Model = None):
-        key = Key('sk').eq(sk) & Key('data').lte(data)
-        logger.info(
-            "The key that will be used is sk={} begins with data={}".format(sk, data))
-        return self.__query_gsi(key, limit, last_key)
 
     def query_all(self, sk: str, last_key: Model = None, limit: int = 20):
         key = Key('sk').eq(sk)
