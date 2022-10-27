@@ -86,7 +86,7 @@ def get(collection_name: str, document_id: str):
                 raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
                                        "{} not found with name {}".format(collection_name, document_id))
             logger.info("Found collection {}".format(collection_metadata.__str__))
-            return collection_metadata.__dict__
+            return Converter.from_collection_to_API(collection_metadata)
         elif collection_name == 'index':
             index_metadata = IndexService.get_index_by_name_and_collection_name(document_id, collection_name)
             if index_metadata is None:
@@ -143,7 +143,7 @@ def create(collection_name: str, document: dict) -> dict:
             collection_metadata = Converter.from_dict_to_collection(document)
             collection_metadata = CollectionService.create_collection(collection_metadata)
             logger.info("Created collection {}".format(collection_metadata.__str__))
-            return Converter.from_collection_to_dict(collection_metadata)
+            return Converter.from_collection_to_API(collection_metadata)
         elif collection_name == 'index':
             validate_index(document)
             index_metadata = Converter.from_dict_to_index(document)
@@ -220,7 +220,7 @@ def query(collection_name: str, query: dict = None, start_from: str = None,
     if is_system_collection:
         if collection_name == 'collection':
             collections, last_key = CollectionService.get_all_collections(limit, start_from)
-            documents = list(map(lambda c: Converter.from_collection_to_dict(c), collections))
+            documents = list(map(lambda c: Converter.from_collection_to_API(c), collections))
             last_evaluated_key = last_key
         elif collection_name == 'index' and "matches" in query and "eq" in query["matches"] and "value" in \
                 query["matches"]["eq"]:
