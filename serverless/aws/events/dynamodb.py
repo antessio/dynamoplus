@@ -66,7 +66,7 @@ def dynamo_stream_handler(event, context):
                         old_document = json.loads(old_record["document"],
                                                   parse_float=Decimal) if "document" in old_record else {}
 
-                update_indexes(sk, new_document,old_document)
+                update_indexes(sk, old_document,new_document)
                 # create_indexes_for_collection(sk, new_document, lambda r: r.update(new_document))
 
             elif record.get('eventName') == 'REMOVE':

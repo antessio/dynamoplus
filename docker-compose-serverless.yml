@@ -1,0 +1,15 @@
+version: '3.9'
+
+services:
+    dynamoplus-deploy:
+        build:
+            context: .
+            dockerfile: deploy.Dockerfile
+            args:
+                - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                - ROOT_PASSWORD=12345
+                - SERVICE_NAME=dynamoplus-develop
+        environment:
+            ENVIRONMENT: develop
+        entrypoint: ["/bin/bash", "-c", "/app/scripts/serverless/deploy.sh"]

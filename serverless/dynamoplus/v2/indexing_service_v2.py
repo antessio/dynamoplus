@@ -1,6 +1,6 @@
 import logging
 
-#from dynamoplus.models.system.aggregation.aggregation import AggregationTrigger
+# from dynamoplus.models.system.aggregation.aggregation import AggregationTrigger
 from dynamoplus.models.system.aggregation.aggregation import AggregationTrigger
 from dynamoplus.models.system.index.index import IndexConfiguration
 from dynamoplus.models.system.collection.collection import Collection
@@ -36,7 +36,8 @@ def __indexing(collection_metadata: Collection,
         for update in to_update_index_models:
             repository.update(update)
 
-        aggregations = AggregationConfigurationService.get_aggregation_configurations_by_collection_name_generator(collection_metadata.name)
+        aggregations = AggregationConfigurationService.get_aggregation_configurations_by_collection_name_generator(
+            collection_metadata.name)
         trigger = AggregationTrigger.UPDATE
         if old_record is None:
             trigger = AggregationTrigger.INSERT
@@ -44,7 +45,7 @@ def __indexing(collection_metadata: Collection,
             trigger = AggregationTrigger.DELETE
         for a in aggregations:
             if trigger in a.on:
-                AggregationProcessingService.execute_aggregation(a, collection_metadata,new_record,old_record)
+                AggregationProcessingService.execute_aggregation(a, collection_metadata, new_record, old_record)
 
 
 def get_index_models_to_remove(collection_metadata, new_record: dict, old_record: dict):
@@ -67,6 +68,7 @@ def get_index_models_to_add(collection_metadata, new_record, old_record):
 def get_index_models_to_update(collection_metadata, new_record, old_record):
     to_update = []
     if old_record is not None and new_record is not None:
+        logger.debug("updated index new record = {} and old record = {}".format(new_record,old_record))
         updated = find_updated_values(old_record, new_record)
         to_update = find_matching_indexes(updated, collection_metadata, new_record) if updated else []
     return to_update
@@ -77,16 +79,17 @@ def find_matching_indexes(values: dict,
                           record: dict):
     result = []
     if values:
+        logger.debug("changed dict = {} while new record is {} ".format(values,record))
         changed_fields = get_all_keys(values)
         logger.debug("changed fields = {}".format(changed_fields))
         for index in IndexService.get_indexes_from_collection_name_generator(collection_metadata.name):
             for field in changed_fields:
-                if field in index.conditions:
+                if field in index.conditions or index.index_configuration == IndexConfiguration.OPTIMIZE_READ or field == index.ordering_key:
                     document = record if index and (
-                                index.index_configuration is None or index.index_configuration == IndexConfiguration.OPTIMIZE_READ) \
+                            index.index_configuration is None or index.index_configuration == IndexConfiguration.OPTIMIZE_READ) \
                         else filter_out_not_included_fields(record, index.conditions + [collection_metadata.id_key])
                     index_model = get_index_model(collection_metadata, index, document)
-                    if not index_model in result:
+                    if index_model not in result:
                         result.append(index_model)
     return result
 

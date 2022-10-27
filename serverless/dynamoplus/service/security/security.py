@@ -86,7 +86,7 @@ class SecurityService:
                                 else:
                                     logging.error("signature not verified for key id {}".format(key_id))
                             except Exception as e:
-                                logging.error("signature not verified for key id {} - {}".format(key_id,e))
+                                logging.error("signature not verified for key id {} - {}".format(key_id, e))
                             # rsakey = RSA.importKey(client_authorization.client_public_key)
                             # signer = PKCS1_v1_5.new(rsakey)
                             # ## digest = SHA256.new()
@@ -111,7 +111,6 @@ class SecurityService:
         if os.environ['ROOT_ACCOUNT'] == username and os.environ['ROOT_PASSWORD'] == password:
             return username
 
-
     @staticmethod
     def get_client_authorization_by_api_key(headers: dict):
         authorization_value = SecurityService.get_authorization_value(headers, API_KEY_PREFIX)
@@ -130,13 +129,32 @@ class SecurityService:
         if match:
             collection_name = match.group(1)
             is_query = len(match.groups()) >= 1 and match.group(2) == '/query'
+            assigned_scope = None
+            if method.lower() == 'post' and is_query:
+                assigned_scope = ScopesType.QUERY
+            elif method.lower() == 'post' and not is_query:
+                assigned_scope = ScopesType.CREATE
+            elif method.lower() == 'put':
+                assigned_scope = ScopesType.UPDATE
+            elif method.lower() == 'get':
+                assigned_scope = ScopesType.GET
+            elif method.lower() == 'delete':
+                assigned_scope = ScopesType.DELETE
+
             for scope in filter(lambda cs: cs.collection_name == collection_name, client_scopes):
-                if method.lower() == 'post':
-                    if (scope.scope_type == ScopesType.CREATE and not is_query) or (
-                            scope.scope_type == ScopesType.QUERY and is_query):
-                        return True
-                elif method.lower() == scope.scope_type.name.lower():
+                if assigned_scope.name.lower() == scope.scope_type.name.lower():
                     return True
+                else:
+                    logger.error(
+                        "method {} doesn't match the scope {}".format(method.lower(), scope.scope_type.name.lower()))
+                # if assigned_scope == ScopesType.QUERY:
+                #     if (scope.scope_type == ScopesType.CREATE and not is_query) or (
+                #             scope.scope_type == ScopesType.QUERY and is_query):
+                #         return True
+                # elif method.lower() == scope.scope_type.name.lower():
+                #     return True
+                # else:
+                #     logger.error("method {} doesn't match the scope {}".format(method.lower(),scope.scope_type.name.lower()))
         return False
 
     @staticmethod
@@ -154,4 +172,3 @@ class SecurityService:
         expiration = payload["expiration"]
         if expiration > int(time.time() * 1000.0):
             return payload["username"]
-
