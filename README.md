@@ -14,8 +14,7 @@ Get started reading the [wiki](https://github.com/antessio/dynamoplus/wiki)
 
 ## Related Projects
 
-- [~~dynamoplus dashboard~~](https://github.com/antessio/dynamoplus-dashboard): a web app to easily access to dynamoplus
-through a web interface. **Currently not mantained it was implemented on version 0.1**. 
+- [dynamoplus admin dashboard](https://github.com/antessio/dynamoplus-admin-dashboard): a web app to easily access to dynamoplus through a web interface. **Work in progress**. 
 
 - [~~dynamoplus python sdk~~](https://github.com/antessio/dynamoplus-python-sdk): a python sdk to access to dynamoplus API (**Currently not mantained it was implemented on version 0.1**.
 
