@@ -1,24 +1,23 @@
 import logging
-from typing import *
 
 from dynamoplus.models.system.index.index import Index
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.utils.utils import get_values_by_key_recursive, convert_to_string
-from dynamoplus.v2.repository.repositories import Model
+from aws.dynamodb.dynamodbdao import DynamoDBModel
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def get_model(collection: Collection, document: dict) -> Model:
+def get_model(collection: Collection, document: dict) -> DynamoDBModel:
     if collection.id_key not in document:
         raise Exception("{} not found in document".format(collection.id_key))
     id = document[collection.id_key]
-    return Model("{}#{}".format(collection.name, id),
-                 collection.name,
-                 document[collection.ordering_key] if collection.ordering_key in document else id,
-                 document
-                 )
+    return DynamoDBModel("{}#{}".format(collection.name, id),
+                         collection.name,
+                         document[collection.ordering_key] if collection.ordering_key in document else id,
+                         document
+                         )
 
 
 def get_index_model(collection: Collection, index: Index, document: dict):
@@ -50,7 +49,7 @@ def get_index_model(collection: Collection, index: Index, document: dict):
     sk = index.collection_name + "#" + \
          "#".join(map(lambda x: x, index.conditions)) if index.conditions else index.collection_name
     data = build_data()
-    return Model(get_pk(collection, document[collection.id_key]), sk, data, document)
+    return DynamoDBModel(get_pk(collection, document[collection.id_key]), sk, data, document)
 
 
 def get_sk(collection: Collection):

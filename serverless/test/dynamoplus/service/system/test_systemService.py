@@ -1,11 +1,10 @@
 import os
 import unittest
-from decimal import Decimal
 
-from dynamoplus.models.query.conditions import Eq, And, AnyMatch, Predicate, FieldMatch
+from dynamoplus.models.query.conditions import Eq, And, AnyMatch
 from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationType, \
     AggregationTrigger, \
-    AggregationJoin, Aggregation, AggregationCount
+    AggregationJoin
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.system.index.index import Index, IndexConfiguration
 from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorizationHttpSignature, \
@@ -14,7 +13,7 @@ from dynamoplus.models.system.client_authorization.client_authorization import C
 from mock import call
 from unittest.mock import patch
 
-from dynamoplus.v2.repository.repositories import Model, Repository, QueryResult, AtomicIncrement, Counter
+from aws.dynamodb.dynamodbdao import DynamoDBModel, DynamoDBDAO, QueryResult
 from dynamoplus.v2.service.query_service import QueryService
 from dynamoplus.v2.service.system.system_service import AuthorizationService, CollectionService, IndexService, \
     Converter
@@ -88,8 +87,8 @@ class TestSystemService(unittest.TestCase):
     def test_get_aggregation_by_name(self):
         self.fail("not yet implemented")
 
-    @patch.object(Repository, "update")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "update")
+    @patch.object(DynamoDBDAO, "__init__")
     def test_update_authorization_http_signature(self, mock_repository, mock_update):
         expected_client_id = "test"
         client_authorization = ClientAuthorizationHttpSignature(expected_client_id,
@@ -102,8 +101,8 @@ class TestSystemService(unittest.TestCase):
             "client_scopes": [{"collection_name": "example", "scope_type": "CREATE"}],
             "public_key": "my-public-key"
         }
-        expected_model = Model(collection_name + "#" + expected_client_id, collection_name, expected_client_id,
-                               document)
+        expected_model = DynamoDBModel(collection_name + "#" + expected_client_id, collection_name, expected_client_id,
+                                       document)
         mock_update.return_value = expected_model
         result = AuthorizationService.update_authorization(client_authorization)
         mock_repository.assert_called_once_with(system_table_name)
@@ -111,8 +110,8 @@ class TestSystemService(unittest.TestCase):
         self.assertTrue(isinstance(result, ClientAuthorizationHttpSignature))
         self.assertEqual(call(expected_model), mock_update.call_args_list[0])
 
-    @patch.object(Repository, "delete")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "delete")
+    @patch.object(DynamoDBDAO, "__init__")
     def test_delete_authorization_http_signature(self, mock_repository, mock_delete):
         expected_client_id = "test"
         collection_name = "client_authorization"
@@ -123,8 +122,8 @@ class TestSystemService(unittest.TestCase):
         self.assertEqual(call(collection_name + "#" + expected_client_id, collection_name),
                          mock_delete.call_args_list[0])
 
-    @patch.object(Repository, "create")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "create")
+    @patch.object(DynamoDBDAO, "__init__")
     def test_create_authorization_http_signature(self, mock_repository, mock_create):
         expected_client_id = "test"
         client_authorization = ClientAuthorizationHttpSignature(expected_client_id,
@@ -137,8 +136,8 @@ class TestSystemService(unittest.TestCase):
             "client_scopes": [{"collection_name": "example", "scope_type": "CREATE"}],
             "public_key": "my-public-key"
         }
-        expected_model = Model(collection_name + "#" + expected_client_id, collection_name, expected_client_id,
-                               document)
+        expected_model = DynamoDBModel(collection_name + "#" + expected_client_id, collection_name, expected_client_id,
+                                       document)
         mock_create.return_value = expected_model
         result = AuthorizationService.create_client_authorization(client_authorization)
         mock_repository.assert_called_once_with(system_table_name)
@@ -146,8 +145,8 @@ class TestSystemService(unittest.TestCase):
         self.assertTrue(isinstance(result, ClientAuthorizationHttpSignature))
         self.assertEqual(call(expected_model), mock_create.call_args_list[0])
 
-    @patch.object(Repository, "create")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "create")
+    @patch.object(DynamoDBDAO, "__init__")
     def test_create_authorization_api_key(self, mock_repository, mock_create):
         expected_client_id = "test"
         client_authorization = ClientAuthorizationApiKey(expected_client_id,
@@ -160,8 +159,8 @@ class TestSystemService(unittest.TestCase):
             "client_scopes": [{"collection_name": "example", "scope_type": "CREATE"}],
             "api_key": "my-api-key"
         }
-        expected_model = Model(collection_name + "#" + expected_client_id, collection_name, expected_client_id,
-                               document)
+        expected_model = DynamoDBModel(collection_name + "#" + expected_client_id, collection_name, expected_client_id,
+                                       document)
         mock_create.return_value = expected_model
         result = AuthorizationService.create_client_authorization(client_authorization)
         mock_repository.assert_called_once_with(system_table_name)
@@ -169,8 +168,8 @@ class TestSystemService(unittest.TestCase):
         self.assertTrue(isinstance(result, ClientAuthorizationApiKey))
         self.assertEqual(call(expected_model), mock_create.call_args_list[0])
 
-    @patch.object(Repository, "get")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "get")
+    @patch.object(DynamoDBDAO, "__init__")
     def test_get_client_authorization_http_signature(self, mock_repository, mock_get):
         expected_client_id = 'my-client-id'
         mock_repository.return_value = None
@@ -178,8 +177,8 @@ class TestSystemService(unittest.TestCase):
         document = {"client_id": expected_client_id, "type": "http_signature", "public_key": "my-public-key",
                     "client_scopes": [{"collection_name": "example", "scope_type": "GET"}]}
 
-        expected_model = Model(collection_name + "#" + expected_client_id, collection_name, expected_client_id,
-                               document)
+        expected_model = DynamoDBModel(collection_name + "#" + expected_client_id, collection_name, expected_client_id,
+                                       document)
         mock_get.return_value = expected_model
         result = AuthorizationService.get_client_authorization(expected_client_id)
         mock_repository.assert_called_once_with(system_table_name)
@@ -191,8 +190,8 @@ class TestSystemService(unittest.TestCase):
         self.assertEqual("example", result.client_scopes[0].collection_name)
         self.assertEqual("GET", result.client_scopes[0].scope_type.name)
 
-    @patch.object(Repository, "get")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "get")
+    @patch.object(DynamoDBDAO, "__init__")
     def test_get_client_authorization_api_key(self, mock_repository, mock_get):
         expected_client_id = 'my-client-id'
         mock_repository.return_value = None
@@ -201,8 +200,8 @@ class TestSystemService(unittest.TestCase):
                     "api_key": "my_api_key",
                     "whitelist_hosts": ["*"],
                     "client_scopes": [{"collection_name": "example", "scope_type": "GET"}]}
-        expected_model = Model(collection_name + "#" + expected_client_id, collection_name, expected_client_id,
-                               document)
+        expected_model = DynamoDBModel(collection_name + "#" + expected_client_id, collection_name, expected_client_id,
+                                       document)
         mock_get.return_value = expected_model
         result = AuthorizationService.get_client_authorization(expected_client_id)
         mock_repository.assert_called_once_with(system_table_name)
@@ -210,12 +209,12 @@ class TestSystemService(unittest.TestCase):
         self.assertEqual(expected_client_id, result.client_id)
         self.assertIsInstance(result, ClientAuthorizationApiKey)
 
-    @patch.object(Repository, "create")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "create")
+    @patch.object(DynamoDBDAO, "__init__")
     def test_createCollection(self, mock_repository, mock_create):
         expected_id = 'example'
         target_collection = {"name": "example", "id_key": "id", "ordering": None, "auto_generate_id": False}
-        expected_model = Model("collection#" + expected_id, "collection", expected_id, target_collection)
+        expected_model = DynamoDBModel("collection#" + expected_id, "collection", expected_id, target_collection)
         mock_repository.return_value = None
         mock_create.return_value = expected_model
         target_metadata = Collection("example", "id")
@@ -225,8 +224,8 @@ class TestSystemService(unittest.TestCase):
         self.assertEqual(collection_id, expected_id)
         self.assertEqual(call(expected_model), mock_create.call_args_list[0])
 
-    @patch.object(Repository, "delete")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "delete")
+    @patch.object(DynamoDBDAO, "__init__")
     def test_deleteCollection(self, mock_repository, mock_delete):
         expected_id = 'example'
         mock_repository.return_value = None
@@ -234,13 +233,13 @@ class TestSystemService(unittest.TestCase):
         mock_repository.assert_called_once_with(system_table_name)
         self.assertTrue(mock_delete.called_with("collection#" + expected_id, "collection"))
 
-    @patch.object(Repository, "get")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "get")
+    @patch.object(DynamoDBDAO, "__init__")
     def test_getCollection(self, mock_repository, mock_get):
         expected_id = 'example'
         mock_repository.return_value = None
         document = {"name": expected_id, "id_key": expected_id, "fields": [{"field1": "string"}]}
-        expected_model = Model("collection#" + expected_id, "collection", expected_id, document)
+        expected_model = DynamoDBModel("collection#" + expected_id, "collection", expected_id, document)
         mock_get.return_value = expected_model
         result = CollectionService.get_collection(expected_id)
         self.assertEqual(result.name, expected_id)
@@ -248,8 +247,8 @@ class TestSystemService(unittest.TestCase):
         self.assertTrue(mock_get.called_with(expected_id))
 
     @patch.object(QueryService, "query")
-    @patch.object(Repository, "create")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "create")
+    @patch.object(DynamoDBDAO, "__init__")
     def test_createIndexDuplicated(self, mock_repository, mock_create, mock_query):
         expected_name = 'example__field1__field2.field21__ORDER_BY__field2.field21'
         expected_conditions = ["field1", "field2.field21"]
@@ -259,7 +258,7 @@ class TestSystemService(unittest.TestCase):
             "ordering_key": "field2.field21"}
         mock_repository.return_value = None
         index = Index("example", expected_conditions, IndexConfiguration.OPTIMIZE_READ, "field2.field21")
-        expected_index_model = Model("index#" + expected_name, "index", expected_name, target_index)
+        expected_index_model = DynamoDBModel("index#" + expected_name, "index", expected_name, target_index)
         mock_query.return_value = QueryResult([expected_index_model], None)
         created_index = IndexService.create_index(index)
         index_name = created_index.index_name
@@ -271,8 +270,8 @@ class TestSystemService(unittest.TestCase):
                                            Index(index_metadata.name, ["name"], None), None, 1)
 
     @patch.object(QueryService, "query")
-    @patch.object(Repository, "create")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "create")
+    @patch.object(DynamoDBDAO, "__init__")
     def test_createIndexWithOrdering(self, mock_repository, mock_create, mock_query):
         expected_name = 'example__field1__field2.field21__ORDER_BY__field2.field21'
         expected_conditions = ["field1", "field2.field21"]
@@ -283,7 +282,7 @@ class TestSystemService(unittest.TestCase):
             "configuration": "OPTIMIZE_READ",
             "ordering_key": "field2.field21"}
         # expected_model = Model(index_metadata, target_index)
-        expected_index_model = Model("index#" + expected_name, "index", expected_name, target_index)
+        expected_index_model = DynamoDBModel("index#" + expected_name, "index", expected_name, target_index)
 
         mock_repository.return_value = None
         mock_create.return_value = expected_index_model
@@ -294,7 +293,7 @@ class TestSystemService(unittest.TestCase):
         self.assertEqual(index_name, expected_name)
         # self.assertEqual(call(expected_index_model), mock_create.call_args_list[0])
         calls = [call(expected_index_model),
-                 call(Model("index#" + expected_name, "index#collection.name", "example", target_index))]
+                 call(DynamoDBModel("index#" + expected_name, "index#collection.name", "example", target_index))]
         mock_create.assert_has_calls(calls)
 
     @patch.object(QueryService, "query")
@@ -304,8 +303,8 @@ class TestSystemService(unittest.TestCase):
         index_by_collection_metadata = Index(index_metadata.name, ["collection.name"], None)
         collection_name = "example"
         mock_query.return_value = QueryResult(
-            [Model("index#collection.name", "index", collection_name,
-                   {"uid": "1", "name": "collection.name", "collection": {"name": collection_name},
+            [DynamoDBModel("index#collection.name", "index", collection_name,
+                           {"uid": "1", "name": "collection.name", "collection": {"name": collection_name},
                     "conditions": ["collection.name"]})])
         indexes, last_key = IndexService.get_index_by_collection_name(collection_name)
         self.assertEqual(1, len(indexes))
@@ -356,8 +355,8 @@ class TestSystemService(unittest.TestCase):
                  call("example__field1", "example")]
         mock_get_index_by_name_and_collection_name.assert_has_calls(calls)
 
-    @patch.object(Repository, "create")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "create")
+    @patch.object(DynamoDBDAO, "__init__")
     def test_create_aggregation(self, mock_repository, mock_create):
         collection_name = "example"
         type = AggregationType.AVG
@@ -393,7 +392,7 @@ class TestSystemService(unittest.TestCase):
                 }
             }
         }
-        expected_model = Model("aggregation_configuration#" + aggregation.name, "aggregation_configuration", aggregation.name, target_agg)
+        expected_model = DynamoDBModel("aggregation_configuration#" + aggregation.name, "aggregation_configuration", aggregation.name, target_agg)
         mock_repository.return_value = None
         mock_create.return_value = expected_model
 
@@ -402,12 +401,12 @@ class TestSystemService(unittest.TestCase):
         aggregation_name = created_aggregation.name
         self.assertEqual(aggregation_name, aggregation.name)
         calls = [call(expected_model),
-                 call(Model("aggregation_configuration#" + aggregation.name, "aggregation_configuration#collection.name",
-                            aggregation.collection_name, target_agg))]
+                 call(DynamoDBModel("aggregation_configuration#" + aggregation.name, "aggregation_configuration#collection.name",
+                                    aggregation.collection_name, target_agg))]
         mock_create.assert_has_calls(calls)
 
-    @patch.object(Repository, "get")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "get")
+    @patch.object(DynamoDBDAO, "__init__")
     def test_get_aggregation_by_name(self, mock_repository, mock_get):
         expected_name = 'example_collection_count'
         mock_repository.return_value = None
@@ -417,8 +416,8 @@ class TestSystemService(unittest.TestCase):
                     "aggregation": {
                         "on": ["INSERT"]
                     }}
-        expected_model = Model(collection_name + "#" + expected_name, collection_name, expected_name,
-                               document)
+        expected_model = DynamoDBModel(collection_name + "#" + expected_name, collection_name, expected_name,
+                                       document)
         mock_get.return_value = expected_model
         result = AggregationConfigurationService.get_aggregation_configuration_by_name(expected_name)
         mock_repository.assert_called_once_with(system_table_name)
@@ -498,9 +497,9 @@ class TestSystemService(unittest.TestCase):
 
     def fake_query_result_index(self, index_name, conditions, collection_name, next=None):
         return QueryResult(
-            [Model("index#" + index_name, "index", index_name,
-                   {"name": index_name, "collection": {"name": collection_name},
+            [DynamoDBModel("index#" + index_name, "index", index_name,
+                           {"name": index_name, "collection": {"name": collection_name},
                     "conditions": conditions})], next)
 
     def fake_query_result_aggregation(self, aggregation_name, collection_name, d: dict):
-        return Model("aggregation_configuration#" + aggregation_name, "aggregation_configuration", aggregation_name, d)
+        return DynamoDBModel("aggregation_configuration#" + aggregation_name, "aggregation_configuration", aggregation_name, d)

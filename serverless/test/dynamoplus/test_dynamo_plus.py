@@ -7,10 +7,10 @@ from mock import call
 from dynamoplus.dynamo_plus_v2 import get, get_all,query, aggregation_configurations as get_aggregation_configurations
 from dynamoplus.models.query.conditions import Eq
 from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationType, Aggregation, \
-    AggregationTrigger, AggregationCount, AggregationJoin, AggregationAvg
+    AggregationTrigger, AggregationJoin, AggregationAvg
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.system.index.index import Index
-from dynamoplus.v2.repository.repositories import QueryResult, Model
+from aws.dynamodb.dynamodbdao import QueryResult, DynamoDBModel
 from dynamoplus.v2.service.query_service import QueryService
 from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, \
     AggregationConfigurationService, AggregationService, Converter
@@ -123,8 +123,8 @@ class TestDynamoPlusHandler(unittest.TestCase):
         expected_predicate = Eq("attribute1","1")
         mock_get_index_matching_fields.return_value=expected_index
         expected_documents = [
-            Model(None,None,None,{"id": "1", "attribute1": "1"}),
-            Model(None,None,None,{"id": "2", "attribute1": "1"})
+            DynamoDBModel(None, None, None, {"id": "1", "attribute1": "1"}),
+            DynamoDBModel(None, None, None, {"id": "2", "attribute1": "1"})
         ]
         mock_query.return_value = QueryResult(expected_documents, None)
         documents = query("example", {"matches": {"eq":{"field_name":"attribute1", "value":"1"}}})

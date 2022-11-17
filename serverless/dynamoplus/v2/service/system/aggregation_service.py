@@ -1,18 +1,10 @@
 import logging
-from _pydecimal import Decimal
-from typing import List
 
 from dynamoplus.models.query.conditions import match_predicate
-from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationType, Aggregation, \
-    AggregationCount, AggregationTrigger, AggregationSum, AggregationAvg
+from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationType, AggregationCount, AggregationTrigger, AggregationSum, AggregationAvg
 from dynamoplus.models.system.collection.collection import Collection
-from dynamoplus.v2.repository.repositories import Counter
-from dynamoplus.v2.repository.repositories import Repository, AtomicIncrement
-from dynamoplus.v2.service.common import get_repository_factory
 
-from dynamoplus.v2.service.model_service import get_model
-from dynamoplus.v2.service.system.system_service import AggregationConfigurationService, \
-    AggregationService
+from dynamoplus.v2.service.system.system_service import AggregationService
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
