@@ -1,10 +1,9 @@
 import unittest
 from decimal import Decimal
 
-from dynamoplus.v2.repository.repositories import Repository, Model, QueryRepository, AtomicIncrement, Counter
+from aws.dynamodb.dynamodbdao import DynamoDBDAO, DynamoDBModel, QueryRepository, AtomicIncrement, Counter
 from dynamoplus.models.system.collection.collection import Collection
 from moto import mock_dynamodb2
-import json
 import boto3
 import os
 
@@ -48,9 +47,9 @@ class TestDynamoPlusRepository(unittest.TestCase):
             del os.environ["DYNAMODB_DOMAIN_TABLE"]
 
     def test_create(self):
-        repository = Repository(table_name)
-        model = Model("example#randomUid", "example", "1",
-                      {"id": "randomUid", "ordering": "1", "field1": "A", "field2": "B"})
+        repository = DynamoDBDAO(table_name)
+        model = DynamoDBModel("example#randomUid", "example", "1",
+                              {"id": "randomUid", "ordering": "1", "field1": "A", "field2": "B"})
         result = repository.create(model)
         self.assertIsNotNone(result)
         self.assertIsNotNone(result.pk)
@@ -64,7 +63,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
 
 
     def test_increment_counter_multiple(self):
-        repository = Repository(table_name)
+        repository = DynamoDBDAO(table_name)
         document = {"id": "1234", "attribute1": 1,"attribute2":2, "ordering": "1", "field1": "A", "field2": "B"}
         pk = "example#1234"
         sk = "example"
@@ -87,7 +86,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
 
 
     def test_increment_counter(self):
-        repository = Repository(table_name)
+        repository = DynamoDBDAO(table_name)
         document = {"id": "1234", "attribute1": 1, "ordering": "1", "field1": "A", "field2": "B"}
         pk = "example#1234"
         sk = "example"
@@ -109,7 +108,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
 
 
     def test_increment_counter_decrease(self):
-        repository = Repository(table_name)
+        repository = DynamoDBDAO(table_name)
         document = {"id": "1234", "attribute1": 4, "ordering": "1", "field1": "A", "field2": "B"}
         pk = "example#1234"
         sk = "example"
@@ -131,12 +130,12 @@ class TestDynamoPlusRepository(unittest.TestCase):
 
 
     def test_update(self):
-        repository = Repository(table_name)
+        repository = DynamoDBDAO(table_name)
         document = {"id": "1234", "attribute1": "value1", "ordering": "1", "field1": "A", "field2": "B"}
         pk = "example#1234"
         sk = "example"
-        model = Model(pk, sk, "1",
-                      document)
+        model = DynamoDBModel(pk, sk, "1",
+                              document)
         self.table.put_item(
             Item={"pk": pk, "sk": sk, "data": "1234", "document": document})
         document["attribute1"] = "value2"
@@ -161,7 +160,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
         d = loaded["Item"]["document"]
 
     def test_delete(self):
-        repository = Repository(table_name)
+        repository = DynamoDBDAO(table_name)
         document = {"id": "1234", "attribute1": "value1", "ordering": "1", "field1": "A", "field2": "B"}
         self.table.put_item(Item={"pk": "example#1234", "sk": "example", "data": "1", **document})
         repository.delete("example#1234", "example")
@@ -172,7 +171,7 @@ class TestDynamoPlusRepository(unittest.TestCase):
         document = {"id": "1234", "attribute1": "value1", "ordering": "1", "field1": "A", "field2": "B"}
         self.table.put_item(
             Item={"pk": "example#1234", "sk": "example", "data": "1", "document": document})
-        repository = Repository(table_name)
+        repository = DynamoDBDAO(table_name)
         result = repository.get("example#1234", "example")
         self.assertIsNotNone(result)
         self.assertIsNotNone(result.pk)

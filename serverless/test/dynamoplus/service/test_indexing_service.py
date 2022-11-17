@@ -8,8 +8,7 @@ from dynamoplus.v2.indexing_service_v2 import create_indexes,update_indexes,dele
 from mock import call
 from unittest.mock import patch
 
-from dynamoplus.v2.repository.repositories import Repository, Model
-from dynamoplus.v2.service.system.aggregation_service import AggregationProcessingService
+from aws.dynamodb.dynamodbdao import DynamoDBDAO, DynamoDBModel
 from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, AggregationConfigurationService
 
 domain_table_name = "domain"
@@ -25,8 +24,8 @@ class TestIndexService(unittest.TestCase):
         os.environ.setdefault("STAGE", "local")
 
     @patch.object(AggregationConfigurationService, "get_aggregation_configurations_by_collection_name_generator")
-    @patch.object(Repository, "create")
-    @patch.object(Repository,"__init__")
+    @patch.object(DynamoDBDAO, "create")
+    @patch.object(DynamoDBDAO, "__init__")
     @patch.object(IndexService,"get_indexes_from_collection_name_generator")
     @patch.object(CollectionService, "get_collection")
     def test_create_indexes(self,mock_get_collection,mock_get_indexes_from_collection_name_generator,
@@ -51,13 +50,13 @@ class TestIndexService(unittest.TestCase):
         create_indexes(collection_name,example_record)
         mock_get_collection.assert_called_once_with(collection_name)
         mock_get_indexes_from_collection_name_generator.assert_called_once_with(collection_name)
-        mock_repository_create.assert_has_calls([call(Model("example#1","example#attribute_1","value_1",example_record)),
-                                                 call(Model("example#1","example#attribute_2#attribute_1","value_2#value_1",example_record)),
-                                                 call(Model("example#1","example#attribute_3.attribute_31","value_31#value_1",example_record, ))])
+        mock_repository_create.assert_has_calls([call(DynamoDBModel("example#1", "example#attribute_1", "value_1", example_record)),
+                                                 call(DynamoDBModel("example#1", "example#attribute_2#attribute_1", "value_2#value_1", example_record)),
+                                                 call(DynamoDBModel("example#1", "example#attribute_3.attribute_31", "value_31#value_1", example_record, ))])
 
     @patch.object(AggregationConfigurationService, "get_aggregation_configurations_by_collection_name_generator")
-    @patch.object(Repository, "update")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "update")
+    @patch.object(DynamoDBDAO, "__init__")
     @patch.object(IndexService, "get_indexes_from_collection_name_generator")
     @patch.object(CollectionService, "get_collection")
     def test_update_indexes(self, mock_get_collection, mock_get_indexes_from_collection_name_generator,
@@ -91,13 +90,13 @@ class TestIndexService(unittest.TestCase):
         mock_get_collection.assert_called_once_with(collection_name)
         mock_get_indexes_from_collection_name_generator.assert_called_once_with(collection_name)
         mock_repository_update.assert_has_calls(
-            [call(Model("example#1", "example#attribute_1", "value_1", example_record)),
-             call(Model("example#1", "example#attribute_2#attribute_1", "value_2#value_1", example_record)),
-             call(Model("example#1", "example#attribute_3.attribute_31", "value_31#value_1", example_record, ))])
+            [call(DynamoDBModel("example#1", "example#attribute_1", "value_1", example_record)),
+             call(DynamoDBModel("example#1", "example#attribute_2#attribute_1", "value_2#value_1", example_record)),
+             call(DynamoDBModel("example#1", "example#attribute_3.attribute_31", "value_31#value_1", example_record, ))])
 
     @patch.object(AggregationConfigurationService, "get_aggregation_configurations_by_collection_name_generator")
-    @patch.object(Repository, "delete")
-    @patch.object(Repository, "__init__")
+    @patch.object(DynamoDBDAO, "delete")
+    @patch.object(DynamoDBDAO, "__init__")
     @patch.object(IndexService, "get_indexes_from_collection_name_generator")
     @patch.object(CollectionService, "get_collection")
     def test_delete_indexes(self, mock_get_collection, mock_get_indexes_from_collection_name_generator,
