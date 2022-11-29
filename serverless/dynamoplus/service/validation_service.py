@@ -198,7 +198,7 @@ def validate_document(document: dict, collection_metadata: Collection):
     }
     if collection_metadata.attribute_definition:
         attributes_schema = dict(map(from_attribute_definition_to_schema, collection_metadata.attribute_definition))
-        collection_required_attributes = list(map(lambda a: a.name, filter(
+        collection_required_attributes = list(map(lambda a: a.id, filter(
             lambda a: a.constraints is not None and AttributeConstraint.NOT_NULL in a.constraints,
             collection_metadata.attribute_definition)))
         required_attributes.extend(collection_required_attributes)
