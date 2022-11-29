@@ -139,7 +139,7 @@ class TestAuthorization(unittest.TestCase):
         self.assertEqual(1, len(client_authorization.client_scopes))
         self.assertEqual("foo", client_authorization.client_scopes[0].collection_name)
         self.assertEqual("foo", client_authorization.client_scopes[0].collection_name)
-        self.assertEqual("CREATE", client_authorization.client_scopes[0].scope_type.name)
+        self.assertEqual("CREATE", client_authorization.client_scopes[0].scope_type.id)
 
     def test_check_scope_authorized_create(self):
         client_scopes = [Scope("whatever", ScopesType.CREATE), Scope("example", ScopesType.CREATE)]

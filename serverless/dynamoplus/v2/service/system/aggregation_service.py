@@ -59,7 +59,7 @@ class AggregationProcessingService:
         ## load aggregation
         ## TODO: the index should optimize READ so no need to copy the value on the index row
 
-        aggregations = map(lambda a: AggregationService.get_aggregation_by_name(a.name), AggregationService.get_aggregations_by_name_generator(aggregation_configuration.name))
+        aggregations = map(lambda a: AggregationService.get_aggregation_by_name(a.id), AggregationService.get_aggregations_by_name_generator(aggregation_configuration.name))
         # count_target_field
         # sum_target_field
         # avg_target_field

@@ -11,7 +11,7 @@ logger.setLevel(logging.INFO)
 
 def get_model(collection: Collection, document: dict) -> DynamoDBModel:
     if collection.id_key not in document:
-        raise Exception("{} not found in document".format(collection.id_key))
+        raise Exception("{} not found in document".format(collection.id_key))
     id = document[collection.id_key]
     return DynamoDBModel("{}#{}".format(collection.name, id),
                          collection.name,

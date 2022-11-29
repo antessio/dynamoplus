@@ -524,73 +524,73 @@ def add_collection(c, spec):
         properties[c.ordering_key] = {"type": "string"}
         required.append(c.ordering_key)
     spec.components.schema(
-        c.name,
+        c.id,
         {
             "properties": properties,
             "required": required
         }
     )
-    spec.path(path="/dynamoplus/{}/{{{}_id}}".format(c.name, c.name), operations={
+    spec.path(path="/dynamoplus/{}/{{{}_id}}".format(c.id, c.id), operations={
         'get': {
-            'tags': [c.name],
-            'description': "get {} by id".format(c.name),
+            'tags': [c.id],
+            'description': "get {} by id".format(c.id),
             'parameters': [{
-                "name": "{}_id".format(c.name),
+                "name": "{}_id".format(c.id),
                 "in": "path",
-                "description": "{} id".format(c.name),
+                "description": "{} id".format(c.id),
                 "required": True,
                 "schema": {"type": "string"}
             }],
             'responses': {
                 "200": {
-                    "description": "{} found".format(c.name),
+                    "description": "{} found".format(c.id),
                     "content": {"application/json": {
-                        "schema": {"$ref": "#/components/schemas/{}".format(c.name)}}}
+                        "schema": {"$ref": "#/components/schemas/{}".format(c.id)}}}
                 },
-                "404": {"description": "{} object found".format(c.name)},
+                "404": {"description": "{} object found".format(c.id)},
                 "403": {"description": "Access forbidden "}
             }
         },
         'put': {
-            'tags': [c.name],
-            'description': "update {}".format(c.name),
+            'tags': [c.id],
+            'description': "update {}".format(c.id),
             'requestBody': {
                 "required": True,
                 "content": {
-                    "application/json": {"schema": {"$ref": "#/components/schemas/{}".format(c.name)}}
+                    "application/json": {"schema": {"$ref": "#/components/schemas/{}".format(c.id)}}
                 }
             },
             'responses': {
                 "200": {
-                    "description": "{} updated".format(c.name),
-                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/{}".format(c.name)}}}
+                    "description": "{} updated".format(c.id),
+                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/{}".format(c.id)}}}
                 },
                 "403": {"description": "Access forbidden"}
             }
         },
         'delete': {
-            'tags': [c.name],
-            'description': "delete a {} by id".format(c.name),
+            'tags': [c.id],
+            'description': "delete a {} by id".format(c.id),
             'parameters': [{
-                "name": "{}_id".format(c.name),
+                "name": "{}_id".format(c.id),
                 "in": "path",
-                "description": "{} id".format(c.name),
+                "description": "{} id".format(c.id),
                 "required": True,
                 "schema": {"type": "string"}
             }],
             'responses': {
                 "200": {
-                    "description": "{} deleted".format(c.name)
+                    "description": "{} deleted".format(c.id)
                 },
-                "404": {"description": "{} object found".format(c.name)},
+                "404": {"description": "{} object found".format(c.id)},
                 "403": {"description": "Access forbidden"}
             }
         }
     })
-    spec.path(path="/dynamoplus/{}".format(c.name), operations={
+    spec.path(path="/dynamoplus/{}".format(c.id), operations={
         'get': {
-            'tags': [c.name],
-            'description': "get all {}".format(c.name),
+            'tags': [c.id],
+            'description': "get all {}".format(c.id),
             'parameters': [
                 {
                     "name": "limit",
@@ -608,7 +608,7 @@ def add_collection(c, spec):
                 }
             ],
             'responses': {
-                "200": {"description": "{} list".format(c.name),
+                "200": {"description": "{} list".format(c.id),
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -616,7 +616,7 @@ def add_collection(c, spec):
                                     "properties": {
                                         "data": {
                                             "type": "array",
-                                            "items": {"$ref": "#/components/schemas/{}".format(c.name)}
+                                            "items": {"$ref": "#/components/schemas/{}".format(c.id)}
                                         },
                                         "has_more": {"type": "boolean"}
                                     }}}}},
@@ -624,24 +624,24 @@ def add_collection(c, spec):
             }
         },
         'post': {
-            'tags': [c.name],
-            'description': "create a new {}".format(c.name),
+            'tags': [c.id],
+            'description': "create a new {}".format(c.id),
             'requestBody': {
                 "required": True,
                 "content": {
-                    "application/json": {"schema": {"$ref": "#/components/schemas/{}".format(c.name)}}
+                    "application/json": {"schema": {"$ref": "#/components/schemas/{}".format(c.id)}}
                 }
             },
             'responses': {
                 "201": {
                     "description": "index created",
-                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/{}".format(c.name)}}}
+                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/{}".format(c.id)}}}
                 },
                 "403": {"description": "Access forbidden for system API"}
             }
         }
     })
-    for i in IndexService.get_indexes_from_collection_name_generator(c.name):
+    for i in IndexService.get_indexes_from_collection_name_generator(c.id):
         add_query_to_spec(i, spec)
 
 
