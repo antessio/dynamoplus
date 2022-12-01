@@ -202,7 +202,7 @@ class IndexByCollectionNameAndFieldsEntity(IndexModel):
                                                     ordering)
 
     def to_dynamo_db_model(self) -> DynamoDBModel:
-        pk = INDEX_ENTITY_NAME + "#" + self.uid
+        pk = INDEX_ENTITY_NAME + "#" + str(self.uid)
         sk = "{0}#{1}".format(INDEX_ENTITY_NAME, self.index_name())
         data = self.index_value()
         document = self.payload
@@ -212,13 +212,91 @@ class IndexByCollectionNameAndFieldsEntity(IndexModel):
 class QueryIndexByCollectionName(Query):
 
     def __init__(self, collection_name: str):
-        super(QueryIndexByCollectionName, self).__init__()
+        super(QueryIndexByCollectionName, self).__init__(INDEX_ENTITY_NAME)
         super(QueryIndexByCollectionName, self).add_begins_with("collection.name", collection_name)
 
 
 class QueryIndexByCollectionNameAndFields(Query):
 
     def __init__(self, collection_name: str, fields: List[str]):
-        super(QueryIndexByCollectionNameAndFields, self).__init__()
+        super(QueryIndexByCollectionNameAndFields, self).__init__(INDEX_ENTITY_NAME)
         super(QueryIndexByCollectionNameAndFields, self).add_eq("collection.name", collection_name)
         super(QueryIndexByCollectionNameAndFields, self).add_begins_with("fields", INDEX_FIELD_SEPARATOR.join(fields))
+
+
+@dataclass(frozen=True)
+class AggregationConfigurationEntity(Model):
+    uid: uuid.UUID
+    payload: dict
+
+    @classmethod
+    def from_dynamo_db_key(cls, last_evaluated_key: DynamoDBKey) -> str:
+        return str.replace(last_evaluated_key.partition_key, AGGREGATION_CONFIGURATION_ENTITY_NAME + '#', '')
+
+    @classmethod
+    def from_dynamo_db_item(cls, dynamo_db_model: DynamoDBModel) -> AggregationConfigurationEntity:
+        return AggregationConfigurationEntity(
+            uuid.UUID(str.replace(dynamo_db_model.pk, AGGREGATION_CONFIGURATION_ENTITY_NAME + '#', '')),
+            dynamo_db_model.document)
+
+    def to_dynamo_db_item(self) -> DynamoDBModel:
+        return convert_model_to_dynamo_db_item(self)
+
+    def id(self):
+        return str(self.uid)
+
+    def entity_name(self):
+        return "%s" % AGGREGATION_CONFIGURATION_ENTITY_NAME
+
+    def ordering(self):
+        return None
+
+    def object(self):
+        return self.payload
+
+
+@dataclass(frozen=True)
+class AggregationConfigurationByCollectionNameEntity(IndexModel):
+    uid: uuid.UUID
+    collection_name: str
+    payload: dict
+    ordering: str = "{0}".format(int(datetime.utcnow().timestamp()) * 1000)
+
+    def id(self):
+        return str(self.uid)
+
+    @property
+    def entity_name(self):
+        return AGGREGATION_CONFIGURATION_ENTITY_NAME
+
+    def index_name(self):
+        return "collection.name"
+
+    def index_value(self):
+        return "{0}#{1}".format(self.collection_name, self.ordering)
+
+    @classmethod
+    def from_dynamo_db_item(cls, dynamo_db_model: DynamoDBModel) -> AggregationConfigurationByCollectionNameEntity:
+        data_split = dynamo_db_model.data.split("#")
+        collection_name = data_split[0]
+        _id = uuid.UUID(str.replace(dynamo_db_model.pk, INDEX_ENTITY_NAME + '#', ''))
+        ordering = data_split[1]
+        payload = dynamo_db_model.document
+        return AggregationConfigurationByCollectionNameEntity(_id,
+                                                              collection_name,
+                                                              payload,
+                                                              ordering)
+
+    def to_dynamo_db_model(self) -> DynamoDBModel:
+        pk = AGGREGATION_CONFIGURATION_ENTITY_NAME + "#" + str(self.uid)
+        sk = "{0}#{1}".format(AGGREGATION_CONFIGURATION_ENTITY_NAME, self.index_name())
+        data = self.index_value()
+        document = self.payload
+        return DynamoDBModel(pk, sk, data, document)
+
+
+class QueryAggregationConfigurationByCollectionName(Query):
+
+    def __init__(self, collection_name: str):
+        super(QueryAggregationConfigurationByCollectionName, self).__init__(AGGREGATION_CONFIGURATION_ENTITY_NAME)
+        super(QueryAggregationConfigurationByCollectionName, self).add_begins_with("collection.name", collection_name)
