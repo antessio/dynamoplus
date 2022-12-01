@@ -3,12 +3,14 @@ from typing import *
 
 from dynamoplus.utils.utils import auto_str
 
+
 class ScopesType(Enum):
     QUERY = "query",
     CREATE = "create",
     GET = "get",
     UPDATE = "update",
     DELETE = "delete"
+
 
 @auto_str
 class Scope(object):
@@ -36,7 +38,6 @@ class Scope(object):
         self._scope_type = value
 
 
-
 @auto_str
 class ClientAuthorization(object):
     _client_id: str
@@ -62,6 +63,7 @@ class ClientAuthorization(object):
     def client_scopes(self, value: List[Scope]):
         self._client_scopes = value
 
+
 @auto_str
 class ClientAuthorizationApiKey(ClientAuthorization):
     _api_key: str
@@ -85,8 +87,9 @@ class ClientAuthorizationApiKey(ClientAuthorization):
         return self._whitelist_hosts
 
     @whitelist_hosts.setter
-    def whitelist_hosts(self, value:List[str]):
+    def whitelist_hosts(self, value: List[str]):
         self._whitelist_hosts = value
+
 
 @auto_str
 class ClientAuthorizationHttpSignature(ClientAuthorization):
@@ -106,5 +109,3 @@ class ClientAuthorizationHttpSignature(ClientAuthorization):
 
     def __str__(self) -> str:
         return super().__str__()
-
-

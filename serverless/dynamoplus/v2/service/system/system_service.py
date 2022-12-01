@@ -85,7 +85,7 @@ class Converter:
         if index.ordering_key:
             d["ordering_key"] = index.ordering_key
         if index.index_configuration:
-            d["configuration"] = index.index_configuration.id
+            d["configuration"] = index.index_configuration.name
         return d
 
     @staticmethod
@@ -99,7 +99,7 @@ class Converter:
         return {
             "type": "http_signature",
             "client_id": client_authorization.client_id,
-            "client_scopes": list(map(lambda s: {"collection_name": s.collection_name, "scope_type": s.scope_type.id},
+            "client_scopes": list(map(lambda s: {"collection_name": s.collection_name, "scope_type": s.scope_type.name},
                                       client_authorization.client_scopes)),
             "public_key": client_authorization.client_public_key
         }
@@ -109,7 +109,7 @@ class Converter:
         result = {
             "type": "api_key",
             "client_id": client_authorization.client_id,
-            "client_scopes": list(map(lambda s: {"collection_name": s.collection_name, "scope_type": s.scope_type.id},
+            "client_scopes": list(map(lambda s: {"collection_name": s.collection_name, "scope_type": s.scope_type.name},
                                       client_authorization.client_scopes)),
             "api_key": client_authorization.api_key,
         }
@@ -214,7 +214,7 @@ class Converter:
     @staticmethod
     def from_aggregation_configuration_to_dict(aggregation: AggregationConfiguration):
         a = {
-            "on": list(map(lambda o: o.id, aggregation.on))
+            "on": list(map(lambda o: o.name, aggregation.on))
         }
         d = {
             "collection": {
@@ -238,7 +238,7 @@ class Converter:
     @staticmethod
     def from_aggregation_configuration_to_API(aggregation_configuration: AggregationConfiguration, aggregation:Aggregation = None):
         a = {
-            "on": list(map(lambda o: o.id, aggregation_configuration.on))
+            "on": list(map(lambda o: o.name, aggregation_configuration.on))
         }
         d = {
             "collection": {

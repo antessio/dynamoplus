@@ -188,7 +188,7 @@ class TestSystemService(unittest.TestCase):
         self.assertEqual("my-public-key", result.client_public_key)
         self.assertEqual(1, len(result.client_scopes))
         self.assertEqual("example", result.client_scopes[0].collection_name)
-        self.assertEqual("GET", result.client_scopes[0].scope_type.id)
+        self.assertEqual("GET", result.client_scopes[0].scope_type.name)
 
     @patch.object(DynamoDBDAO, "get")
     @patch.object(DynamoDBDAO, "__init__")
@@ -398,7 +398,7 @@ class TestSystemService(unittest.TestCase):
 
         created_aggregation = AggregationConfigurationService.create_aggregation_configuration(aggregation)
         mock_repository.assert_called_once_with(system_table_name)
-        aggregation_name = created_aggregation.id
+        aggregation_name = created_aggregation.name
         self.assertEqual(aggregation_name, aggregation.name)
         calls = [call(expected_model),
                  call(DynamoDBModel("aggregation_configuration#" + aggregation.name, "aggregation_configuration#collection.name",
@@ -422,7 +422,7 @@ class TestSystemService(unittest.TestCase):
         result = AggregationConfigurationService.get_aggregation_configuration_by_name(expected_name)
         mock_repository.assert_called_once_with(system_table_name)
         self.assertTrue(mock_get.called_with(collection_name + "#" + expected_name, collection_name))
-        self.assertEqual(expected_name, result.id)
+        self.assertEqual(expected_name, result.name)
         self.assertIsInstance(result, AggregationConfiguration)
 
     @patch.object(Converter, "from_dict_to_aggregation_configuration")
@@ -452,7 +452,7 @@ class TestSystemService(unittest.TestCase):
         index_by_collection_metadata = Index(aggregation_metadata.name, ["collection.name"])
         aggregations = AggregationConfigurationService.get_aggregation_configurations_by_collection_name_generator(collection_name)
 
-        names = list(map(lambda a: a.id, aggregations))
+        names = list(map(lambda a: a.name, aggregations))
         self.assertEqual(3, len(names))
         self.assertEqual(
             call(aggregation_metadata,
@@ -484,7 +484,7 @@ class TestSystemService(unittest.TestCase):
         aggregation_metadata = Collection("aggregation_configuration", "name")
         aggregations, last_key = AggregationConfigurationService.get_all_aggregation_configurations(20, None)
 
-        names = list(map(lambda a: a.id, aggregations))
+        names = list(map(lambda a: a.name, aggregations))
         self.assertEqual(3, len(names))
         self.assertEqual(
             call(aggregation_metadata,
