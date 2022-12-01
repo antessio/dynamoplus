@@ -1,3 +1,4 @@
+from __future__ import annotations
 import abc
 import json
 import logging
@@ -8,9 +9,11 @@ from enum import Enum
 from typing import *
 
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, ComparisonCondition
 
 from dynamoplus.utils.utils import sanitize
+
+FIELD_SEPARATOR = "#"
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -93,7 +96,7 @@ class DynamoDBModel:
 
 
 class QueryResult(object):
-    def __init__(self, data: List["DynamoDBModel"], last_evaluated_key: dict = None):
+    def __init__(self, data: List["DynamoDBModel"], last_evaluated_key: DynamoDBKey = None):
         self.data = data
         self.lastEvaluatedKey = last_evaluated_key
 
@@ -112,13 +115,18 @@ class QueryResult(object):
             return super().__eq__(o)
 
 
-
-
 @dataclass(frozen=True)
 class DynamoDBKey:
     partition_key: str
     sort_key: str
     data: str
+
+    @staticmethod
+    def from_dynamo_db_item(dynamo_db_item: dict) -> DynamoDBKey:
+        partition_key = dynamo_db_item["pk"] if "pk" in dynamo_db_item else None
+        sort_key = dynamo_db_item["sk"]
+        data = dynamo_db_item["data"] if "data" in dynamo_db_item else None
+        return DynamoDBKey(partition_key, sort_key, data)
 
 
 class DynamoDBQueryType(Enum):
@@ -127,7 +135,8 @@ class DynamoDBQueryType(Enum):
     GTE = "GTE"
     LT = "LT"
     LTE = "LTE"
-    ALL = "ALL"
+    ALL = "ALL",
+    BETWEEN = "BETWEEN"
 
     @staticmethod
     def value_of(value) -> Enum:
@@ -136,52 +145,47 @@ class DynamoDBQueryType(Enum):
                 return mm
 
 
-@dataclass(frozen=True)
+@dataclass
 class DynamoDBQuery:
-    partition_key: str
-    sort_key: str
-    query_type: DynamoDBQueryType
     partition_key_name: str = field(init=False, default='pk')
     sort_key_name: str = field(init=False, default='sk')
+    _condition: ComparisonCondition = field(init=False,default=None)
 
-    def get_query_condition_expression(self) -> dict:
-        if self.query_type == DynamoDBQueryType.BEGINS_WITH:
-            return self.__begins_with()
-        elif self.query_type == DynamoDBQueryType.GT:
-            return self.__gt()
-        elif self.query_type == DynamoDBQueryType.GTE:
-            return self.__gte()
-        elif self.query_type == DynamoDBQueryType.LT:
-            return self.__lt()
-        elif self.query_type == DynamoDBQueryType.LTE:
-            return self.__lte()
-        elif self.query_type == DynamoDBQueryType.ALL:
-            return self.__all()
-        else:
-            raise ValueError(self.query_type)
+    def begins_with(self, partition_key, sort_key: str) -> DynamoDBQuery:
+        self._condition = Key(self.partition_key_name).eq(partition_key) & Key(self.sort_key_name).begins_with(sort_key)
+        return self
 
-    def __all(self):
-        return Key(self.partition_key_name).eq(self.partition_key)
+    def eq(self, partition_key, sort_key: str) -> DynamoDBQuery:
+        self._condition = Key(self.partition_key_name).eq(partition_key) & Key(self.sort_key_name).eq(sort_key)
+        return self
 
-    def __begins_with(self):
-        return Key(self.partition_key_name).eq(self.partition_key) & \
-               Key(self.sort_key_name).begins_with(self.sort_key)
+    def gt(self, partition_key, sort_key: str) -> DynamoDBQuery:
+        self._condition = Key(self.partition_key_name).eq(partition_key) & Key(self.sort_key_name).gt(sort_key)
+        return self
 
-    def __gt(self):
-        return Key(self.partition_key_name).eq(self.partition_key) & \
-               Key(self.sort_key_name).gt(self.sort_key)
+    def gte(self, partition_key, sort_key: str) -> DynamoDBQuery:
+        self._condition = Key(self.partition_key_name).eq(partition_key) & Key(self.sort_key_name).gte(sort_key)
+        return self
 
-    def __gte(self):
-        return Key(self.partition_key_name).eq(self.partition_key) & \
-               Key(self.sort_key_name).gte(self.sort_key)
+    def lt(self, partition_key, sort_key: str) -> DynamoDBQuery:
+        self._condition = Key(self.partition_key_name).eq(partition_key) & Key(self.sort_key_name).lt(sort_key)
+        return self
 
-    def __lt(self):
-        return Key(self.partition_key_name).eq(self.partition_key) & \
-               Key(self.sort_key_name).lt(self.sort_key)
+    def lte(self, partition_key, sort_key: str) -> DynamoDBQuery:
+        self._condition = Key(self.partition_key_name).eq(partition_key) & Key(self.sort_key_name).lte(sort_key)
+        return self
 
-    def __lte(self):
-        return Key(self.partition_key_name).eq(self.partition_key) & \
-               Key(self.sort_key_name).lte(self.sort_key)
+    def between(self, partition_key, sort_key_from: str, sort_key_to: str) -> DynamoDBQuery:
+        self._condition = Key(self.partition_key_name).eq(partition_key) & Key(self.sort_key_name).between(
+            sort_key_from, sort_key_to)
+        return self
+
+    def all(self, partition_key):
+        self._condition = Key(self.partition_key_name).eq(partition_key)
+        return self
+
+    def get_query_condition_expression(self):
+        return self._condition
 
 
 @dataclass(frozen=True)
@@ -221,7 +225,7 @@ class DynamoDBQueryResult:
     last_evaluated_key: DynamoDBKey
 
 
-@dataclass(frozen=True)
+@dataclass
 class GSIDynamoDBQuery(DynamoDBQuery):
     partition_key_name: str = field(init=False, default='sk')
     sort_key_name: str = field(init=False, default='data')
@@ -304,14 +308,14 @@ class DynamoDBDAO:
             logger.error("The status is {}".format(response['ResponseMetadata']['HTTPStatusCode']))
             raise Exception("Error code {}".format(response['ResponseMetadata']['HTTPStatusCode']))
 
-    def query(self, query: DynamoDBQuery, limit: int, start_from: DynamoDBKey) -> QueryResult:
+    def query(self, query: DynamoDBQuery, limit: int, start_from: DynamoDBKey = None) -> QueryResult:
         exclusive_start_key = None
         if start_from:
             exclusive_start_key = {"pk": start_from, "sk": start_from.sort_key, "data": start_from.data}
         dynamo_query = {
-                        'KeyConditionExpression': query.get_query_condition_expression(),
-                        'Limit': limit,
-                        'ScanIndexForward': False, 'ExclusiveStartKey': exclusive_start_key
+            'KeyConditionExpression': query.get_query_condition_expression(),
+            'Limit': limit,
+            'ScanIndexForward': False, 'ExclusiveStartKey': exclusive_start_key
         }
         if isinstance(query, GSIDynamoDBQuery):
             dynamo_query['IndexName'] = "sk-data-index"
@@ -325,7 +329,7 @@ class DynamoDBDAO:
             last_key = response['LastEvaluatedKey']
             logging.debug("last key = {}", last_key)
         return QueryResult(list(map(lambda i: DynamoDBModel.from_dynamo_db_item(i), response[u'Items'])),
-                           DynamoDBModel.from_dynamo_db_item(last_key) if last_key else None)
+                           DynamoDBKey.from_dynamo_db_item(last_key) if last_key else None)
 
     def __query_gsi(self, key, limit, last_key):
         start_from = None
@@ -344,7 +348,7 @@ class DynamoDBDAO:
             last_key = response['LastEvaluatedKey']
             logging.debug("last key = {}", last_key)
         return QueryResult(list(map(lambda i: DynamoDBModel.from_dynamo_db_item(i), response[u'Items'])),
-                           DynamoDBModel.from_dynamo_db_item(last_key) if last_key else None)
+                           DynamoDBKey.from_dynamo_db_item(last_key) if last_key else None)
 
 
 class QueryRepository:
@@ -418,7 +422,7 @@ class QueryRepository:
             last_key = response['LastEvaluatedKey']
             logging.debug("last key = {}", last_key)
         return QueryResult(list(map(lambda i: DynamoDBModel.from_dynamo_db_item(i), response[u'Items'])),
-                           DynamoDBModel.from_dynamo_db_item(last_key) if last_key else None)
+                           DynamoDBKey.from_dynamo_db_item(last_key) if last_key else None)
 
 
 def get_table_name(is_system: bool):

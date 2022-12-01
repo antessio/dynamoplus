@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import List
 
-from aws.dynamodb.dynamodbdao import DynamoDBModel
-from dynamoplus.v2.repository.repositories import IndexModel, convert_model_to_dynamo_db_item, Model
+from aws.dynamodb.dynamodbdao import DynamoDBModel, DynamoDBKey
+from dynamoplus.v2.repository.repositories import IndexModel, convert_model_to_dynamo_db_item, Model, Query
 
 INDEX_FIELD_SEPARATOR = "__"
 
@@ -42,6 +42,10 @@ class ClientAuthorizationEntity(Model):
     payload: dict
 
     @classmethod
+    def from_dynamo_db_key(cls, last_evaluated_key: DynamoDBKey) -> str:
+        return str.replace(last_evaluated_key.partition_key, CLIENT_AUTHORIZATION_ENTITY_NAME + '#', '')
+
+    @classmethod
     def from_dynamo_db_item(cls, dynamo_db_model: DynamoDBModel) -> ClientAuthorizationEntity:
         return ClientAuthorizationEntity(str.replace(dynamo_db_model.pk, CLIENT_AUTHORIZATION_ENTITY_NAME + '#', ''),
                                          dynamo_db_model.document)
@@ -66,6 +70,10 @@ class ClientAuthorizationEntity(Model):
 class CollectionEntity(Model):
     name: str
     payload: dict
+
+    @classmethod
+    def from_dynamo_db_key(cls, last_evaluated_key: DynamoDBKey) -> str:
+        return str.replace(last_evaluated_key.partition_key, COLLECTION_ENTITY_NAME + '#', '')
 
     @classmethod
     def from_dynamo_db_item(cls, dynamo_db_model: DynamoDBModel) -> CollectionEntity:
@@ -94,6 +102,10 @@ class IndexEntity(Model):
     payload: dict
 
     @classmethod
+    def from_dynamo_db_key(cls, last_evaluated_key: DynamoDBKey) -> str:
+        return str.replace(last_evaluated_key.partition_key, INDEX_ENTITY_NAME + '#', '')
+
+    @classmethod
     def from_dynamo_db_item(cls, dynamo_db_model: DynamoDBModel) -> IndexEntity:
         return IndexEntity(uuid.UUID(str.replace(dynamo_db_model.pk, INDEX_ENTITY_NAME + '#', '')),
                            dynamo_db_model.document)
@@ -119,7 +131,7 @@ class IndexByCollectionNameEntity(IndexModel):
     uid: uuid.UUID
     collection_name: str
     payload: dict
-    ordering: str = "{0}".format(int(datetime.utcnow().timestamp())*1000)
+    ordering: str = "{0}".format(int(datetime.utcnow().timestamp()) * 1000)
 
     def id(self):
         return str(self.uid)
@@ -146,7 +158,7 @@ class IndexByCollectionNameEntity(IndexModel):
                                            payload,
                                            ordering)
 
-    def to_dynamo_db_item(self) -> DynamoDBModel:
+    def to_dynamo_db_model(self) -> DynamoDBModel:
         pk = INDEX_ENTITY_NAME + "#" + str(self.uid)
         sk = "{0}#{1}".format(INDEX_ENTITY_NAME, self.index_name())
         data = self.index_value()
@@ -160,7 +172,7 @@ class IndexByCollectionNameAndFieldsEntity(IndexModel):
     collection_name: str
     fields: List[str]
     payload: dict
-    ordering: str = "{0}".format(int(datetime.utcnow().timestamp())*1000)
+    ordering: str = "{0}".format(int(datetime.utcnow().timestamp()) * 1000)
 
     def id(self):
         return self.uid
@@ -189,9 +201,24 @@ class IndexByCollectionNameAndFieldsEntity(IndexModel):
                                                     payload,
                                                     ordering)
 
-    def to_dynamo_db_item(self) -> DynamoDBModel:
+    def to_dynamo_db_model(self) -> DynamoDBModel:
         pk = INDEX_ENTITY_NAME + "#" + self.uid
         sk = "{0}#{1}".format(INDEX_ENTITY_NAME, self.index_name())
         data = self.index_value()
         document = self.payload
         return DynamoDBModel(pk, sk, data, document)
+
+
+class QueryIndexByCollectionName(Query):
+
+    def __init__(self, collection_name: str):
+        super(QueryIndexByCollectionName, self).__init__()
+        super(QueryIndexByCollectionName, self).add_begins_with("collection.name", collection_name)
+
+
+class QueryIndexByCollectionNameAndFields(Query):
+
+    def __init__(self, collection_name: str, fields: List[str]):
+        super(QueryIndexByCollectionNameAndFields, self).__init__()
+        super(QueryIndexByCollectionNameAndFields, self).add_eq("collection.name", collection_name)
+        super(QueryIndexByCollectionNameAndFields, self).add_begins_with("fields", INDEX_FIELD_SEPARATOR.join(fields))

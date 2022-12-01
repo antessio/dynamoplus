@@ -112,14 +112,11 @@ class QueryServiceTest(unittest.TestCase):
             call("example", None, limit)
         ])
 
+    @patch.object(DynamoDBDAO, "query")
     @patch.object(DynamoDBDAO, "get")
     @patch.object(DynamoDBDAO, "__init__")
-    @patch.object(QueryRepository, "query_all")
-    @patch.object(QueryRepository, "__init__")
-    def test_query_all(self, mock_query_repository, mock_query_all,
-                       mock_repository, mock_repository_get):
-        mock_query_repository.return_value = None
-        mock_repository.return_value = None
+    def test_query_all(self, mock_dao, mock_get, mock_query):
+        mock_dao.return_value = None
         partial_result = QueryResult([DynamoDBModel("example#1", "example", "1", None)])
         expected_model = DynamoDBModel("example#1", "example", "1", {"id": "1", "name": "my_name", "field_1": "value_1"})
         expected_model_starts_from = DynamoDBModel("example#0", "example", "0", None)

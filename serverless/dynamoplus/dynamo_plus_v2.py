@@ -46,7 +46,7 @@ def get_all(collection_name: str, last_key: str, limit: int):
             return documents, last_evaluated_key
         elif collection_name == 'aggregation_configuration':
             aggregation_configurations, last_evaluated_key = AggregationConfigurationService.get_all_aggregation_configurations(limit, last_key)
-            documents = list(map(lambda c: Converter.from_aggregation_configuration_to_API(c, AggregationService.get_aggregation_by_name(c.id)), aggregation_configurations))
+            documents = list(map(lambda c: Converter.from_aggregation_configuration_to_API(c,AggregationService.get_aggregation_by_name(c.name)), aggregation_configurations))
             return documents, last_evaluated_key
         elif collection_name == 'aggregation':
             aggregations, last_evaluated_key = AggregationService.get_all_aggregations(limit, last_key)
@@ -73,7 +73,7 @@ def aggregation_configurations(collection_name:str, last_key: str, limit: int):
                                "cannot get aggregation for system collections {}".format(collection_name))
     else:
         aggregation_configurations, last_evaluated_key = AggregationConfigurationService.get_aggregation_configurations_by_collection_name(collection_name,limit,last_key)
-        documents = list(map(lambda c: Converter.from_aggregation_configuration_to_API(c, AggregationService.get_aggregation_by_name(c.id)), aggregation_configurations))
+        documents = list(map(lambda c: Converter.from_aggregation_configuration_to_API(c,AggregationService.get_aggregation_by_name(c.name)),aggregation_configurations))
         return documents, last_evaluated_key
 
 def get(collection_name: str, document_id: str):

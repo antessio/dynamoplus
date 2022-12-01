@@ -1,61 +1,96 @@
 import unittest
 import uuid
 from datetime import datetime
+from typing import Callable
 
+import parameterized as parameterized
 from moto import mock_dynamodb2
 
 from dynamoplus.v2.repository.repositories import DynamoDBRepositoryRepository, \
-    IndexingOperation, IndexModel
-from dynamoplus.v2.repository.system_repositories import ClientAuthorizationEntity, IndexByCollectionNameEntity
+    IndexingOperation, IndexModel, Model, Query
+from dynamoplus.v2.repository.system_repositories import ClientAuthorizationEntity, IndexByCollectionNameEntity, \
+    IndexEntity, CollectionEntity, QueryIndexByCollectionName
 from test.common_test_utils import set_up_for_integration_test, cleanup_table, get_dynamodb_table
 
 table_name = "system"
 
 
 @mock_dynamodb2
-class TestClientAuthorizationRepository(unittest.TestCase):
+class TestSystemRepository(unittest.TestCase):
 
     @mock_dynamodb2
     def setUp(self):
         set_up_for_integration_test(table_name)
-        self.repository = DynamoDBRepositoryRepository(table_name)
 
     def tearDown(self):
         cleanup_table(table_name)
 
-    def test_create_client_authorization(self):
-        expected_id = "client_1"
-        expected_object = {
+    @parameterized.parameterized.expand([
+        ("client_authorization", ClientAuthorizationEntity("client_1", {
             "type": "http_signature",
             "public_key": "public_key"
-        }
-        result = self.repository.create(ClientAuthorizationEntity(expected_id, expected_object))
-        self.assertIsInstance(result, ClientAuthorizationEntity)
+        })),
+        ("index", IndexEntity(uuid.uuid4(), {
+            "name": "book_by_author",
+            "collection": {"name": "book"},
+            "conditions": ["author"],
+            "ordering_key": "publishing_date"
+        })),
+        ("collection", CollectionEntity("book", {
+            "name": "book",
+            "ordering": "publishing_date"
+        }))
+    ])
+    def test_create(self, collection_name, expected_entity):
+        repository = DynamoDBRepositoryRepository(table_name, expected_entity.__class__)
+        result = repository.create(expected_entity)
+        self.assertIsInstance(result, expected_entity.__class__)
         self.assertIsNotNone(result)
-        self.assertEqual(result.id(), expected_id)
-        self.assertDictEqual(result.object(), expected_object)
-        self.assertEqual(result.ordering(), None)
+        self.assertEqual(result.id(), expected_entity.id())
+        self.assertDictEqual(result.object(), expected_entity.object())
+        self.assertEqual(result.ordering(), expected_entity.ordering())
         loaded = get_dynamodb_table(table_name).get_item(
             Key={
-                'pk': "client_authorization#" + expected_id,
-                'sk': "client_authorization"
+                'pk': collection_name + "#" + str(expected_entity.id()),
+                'sk': collection_name
             })
         self.assertIsNotNone(loaded)
+        self.assertIn("Item", loaded)
         d = loaded["Item"]["document"]
-        self.assertDictEqual(d, expected_object)
+        self.assertDictEqual(d, expected_entity.object())
 
-    def test_get_client_authorization(self):
-        client_id = "1234"
-        document = {"id": client_id, "attribute1": "value1", "ordering": "1", "field1": "A", "field2": "B"}
+    @parameterized.parameterized.expand([
+        ("client_authorization",
+         ClientAuthorizationEntity("client_1", None),
+         {
+             "type": "http_signature",
+             "public_key": "public_key"
+         }),
+        ("index", IndexEntity(uuid.uuid4(), None),
+         {
+             "name": "book_by_author",
+             "collection": {"name": "book"},
+             "conditions": ["author"],
+             "ordering_key": "publishing_date"
+         }),
+        ("collection", CollectionEntity("book", None),
+         {
+             "name": "book",
+             "ordering": "publishing_date"
+         })
+    ])
+    def test_get(self, collection_name: str, expected_entity_key: Model, expected_document: dict):
+        repository = DynamoDBRepositoryRepository(table_name, expected_entity_key.__class__)
         get_dynamodb_table(table_name).put_item(
-            Item={"pk": ("client_authorization#%s" % client_id), "sk": "client_authorization", "data": "1",
-                  "document": document})
+            Item={"pk": (collection_name + "#%s" % expected_entity_key.id()), "sk": collection_name,
+                  "data": expected_entity_key.id(),
+                  "document": expected_document})
 
-        result = self.repository.get(ClientAuthorizationEntity(client_id, None))
-        self.assertIsInstance(result, ClientAuthorizationEntity)
+        result = repository.get(expected_entity_key)
+        self.assertIsInstance(result, expected_entity_key.__class__)
         self.assertIsNotNone(result)
-        self.assertEqual(result.id(), client_id)
-        self.assertDictEqual(result.object(), document)
+        self.assertEqual(result.id(), expected_entity_key.id())
+        self.assertDictEqual(result.object(), expected_document)
 
     def test_indexing_update_index(self):
         collection_name = "book"
@@ -81,10 +116,11 @@ class TestClientAuthorizationRepository(unittest.TestCase):
         update_index_object = {**index_object, "collection": {
             "name": "books"
         }}
-        self.repository.indexing(IndexingOperation([],
-                                                   [IndexByCollectionNameEntity(id, "books", update_index_object,
-                                                                                ordering)],
-                                                   []))
+        repository = DynamoDBRepositoryRepository(table_name, IndexEntity)
+        repository.indexing(IndexingOperation([],
+                                              [IndexByCollectionNameEntity(id, "books", update_index_object,
+                                                                           ordering)],
+                                              []))
 
         loaded = get_dynamodb_table(table_name).get_item(
             Key={
@@ -114,8 +150,8 @@ class TestClientAuthorizationRepository(unittest.TestCase):
         get_dynamodb_table(table_name).put_item(
             Item={"pk": ("index#%s" % str(id)), "sk": "index", "data": str(id) + "#" + ordering,
                   "document": index_object})
-
-        self.repository.indexing(
+        repository = DynamoDBRepositoryRepository(table_name, IndexEntity)
+        repository.indexing(
             IndexingOperation([],
                               [],
                               [IndexByCollectionNameEntity(id, collection_name, index_object, ordering)]))
@@ -148,12 +184,12 @@ class TestClientAuthorizationRepository(unittest.TestCase):
         get_dynamodb_table(table_name).put_item(
             Item={"pk": ("index#%s" % str(id)), "sk": "index", "data": str(id) + "#" + ordering,
                   "document": index_object})
+        expected_index = IndexByCollectionNameEntity(id, collection_name, index_object, ordering)
         get_dynamodb_table(table_name).put_item(
-            Item={"pk": ("index#%s" % str(id)), "sk": "index#collection.name", "data": collection_name + "#" + ordering,
-                  "document": index_object})
-
-        self.repository.indexing(
-            IndexingOperation([IndexByCollectionNameEntity(id, collection_name, index_object, ordering)],
+            Item=expected_index.to_dynamo_db_model().to_dynamo_db_item())
+        repository = DynamoDBRepositoryRepository(table_name, IndexEntity)
+        repository.indexing(
+            IndexingOperation([expected_index],
                               [],
                               []))
 
@@ -163,4 +199,69 @@ class TestClientAuthorizationRepository(unittest.TestCase):
                 'sk': "index#collection.name"
             })
         self.assertIsNotNone(loaded)
-        self.assertNotIn("Item",loaded)
+        self.assertNotIn("Item", loaded)
+
+    @parameterized.parameterized.expand([
+        ("index",
+         {
+             "collection": {
+                 "name": "book"
+             },
+             "conditions": [
+                 "author", "title", "genre"
+
+             ],
+             "name": "book#author__title__genre"
+         },
+         str(int(datetime.now().timestamp()) * 1000),
+         lambda index_id, index_object,ordering: IndexByCollectionNameEntity(index_id, "book", index_object, ordering),
+         QueryIndexByCollectionName("book"))
+    ])
+    def test_query_by_field_eq(self, name:str, index_object:dict, ordering:str, index_model_builder: Callable[[uuid, dict,str], IndexModel], query:Query):
+
+        index_id = uuid.uuid4()
+        get_dynamodb_table(table_name).put_item(
+            Item={"pk": ("index#%s" % str(index_id)), "sk": "index", "data": str(index_id) + "#" + ordering,
+                  "document": index_object})
+        get_dynamodb_table(table_name).put_item(
+            Item=index_model_builder(index_id,index_object,ordering).to_dynamo_db_model().to_dynamo_db_item())
+
+        repository = DynamoDBRepositoryRepository(table_name, IndexEntity)
+        result, last_key = repository.query(query, 10)
+        self.assertIsNotNone(result)
+        self.assertIsNone(last_key)
+        self.assertEqual(len(result), 1)
+        self.assertDictEqual(result[0].object(), index_object)
+
+
+    def test_query_index_by_field_eq(self):
+        collection_name = "book"
+        index_id = uuid.uuid4()
+        ordering = str(int(datetime.now().timestamp()) * 1000)
+        name = '{0}#author__title__genre'.format(collection_name)
+        index_object = {
+            "collection": {
+                "name": collection_name
+            },
+            "conditions": [
+                "author", "title", "genre"
+
+            ],
+            "name": name
+        }
+        get_dynamodb_table(table_name).put_item(
+            Item={"pk": ("index#%s" % str(index_id)), "sk": "index", "data": str(index_id) + "#" + ordering,
+                  "document": index_object})
+        get_dynamodb_table(table_name).put_item(
+            Item={"pk": ("index#%s" % str(index_id)), "sk": "index#collection.name",
+                  "data": collection_name + "#" + ordering,
+                  "document": index_object})
+
+        repository = DynamoDBRepositoryRepository(table_name, IndexEntity)
+        result, last_key = repository.query(QueryIndexByCollectionName(collection_name), 10)
+        self.assertIsNotNone(result)
+        self.assertIsNone(last_key)
+        self.assertEqual(len(result), 1)
+        self.assertDictEqual(result[0].object(), index_object)
+
+

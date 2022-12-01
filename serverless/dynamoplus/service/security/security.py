@@ -142,11 +142,11 @@ class SecurityService:
                 assigned_scope = ScopesType.DELETE
 
             for scope in filter(lambda cs: cs.collection_name == collection_name, client_scopes):
-                if assigned_scope.name.lower() == scope.scope_type.id.lower():
+                if assigned_scope.name.lower() == scope.scope_type.name.lower():
                     return True
                 else:
                     logger.error(
-                        "method {} doesn't match the scope {}".format(method.lower(), scope.scope_type.id.lower()))
+                        "method {} doesn't match the scope {}".format(method.lower(), scope.scope_type.name.lower()))
                 # if assigned_scope == ScopesType.QUERY:
                 #     if (scope.scope_type == ScopesType.CREATE and not is_query) or (
                 #             scope.scope_type == ScopesType.QUERY and is_query):
