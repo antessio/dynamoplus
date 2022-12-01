@@ -131,6 +131,7 @@ class BetweenCondition:
 @dataclass
 class Query(abc.ABC):
 
+    collection_name: str
     _eq: List[EqCondition] = field(init=False, default=None)
     _begins_with: BeginsWithCondition = field(init=False,default=None)
     _lt: LtCondition = field(init=False,default=None)
@@ -138,6 +139,8 @@ class Query(abc.ABC):
     _gt: GtCondition = field(init=False, default=None)
     _gte: GteCondition = field(init=False,default=None)
     _between: BetweenCondition = field(init=False,default=None)
+
+
 
     def __is_final(self):
         return self._between or self._begins_with or self._lt or self._lte or self._gt or self._gte
@@ -184,36 +187,36 @@ class Query(abc.ABC):
             field_names.append(self._lt.field_name)
             field_values.append(self._lt.field_value)
             partition_key, sort_key = self.__build_keys(field_names, field_values)
-            dynamo_db_query.lt(partition_key, sort_key)
+            dynamo_db_query.lt(self.collection_name+"#"+partition_key, sort_key)
         elif self._gt:
             field_names.append(self._gt.field_name)
             field_values.append(self._gt.field_value)
             partition_key, sort_key = self.__build_keys(field_names, field_values)
-            dynamo_db_query.gt(partition_key, sort_key)
+            dynamo_db_query.gt(self.collection_name+"#"+partition_key, sort_key)
         elif self._lte:
             field_names.append(self._lte.field_name)
             field_values.append(self._lte.field_value)
             partition_key, sort_key = self.__build_keys(field_names, field_values)
-            dynamo_db_query.lte(partition_key, sort_key)
+            dynamo_db_query.lte(self.collection_name+"#"+partition_key, sort_key)
         elif self._gte:
             field_names.append(self._gte.field_name)
             field_values.append(self._gte.field_value)
             partition_key, sort_key = self.__build_keys(field_names, field_values)
-            dynamo_db_query.gte(partition_key, sort_key)
+            dynamo_db_query.gte(self.collection_name+"#"+partition_key, sort_key)
         elif self._begins_with:
             field_names.append(self._begins_with.field_name)
             field_values.append(self._begins_with.field_value)
             partition_key, sort_key = self.__build_keys(field_names, field_values)
-            dynamo_db_query.begins_with(partition_key, sort_key)
+            dynamo_db_query.begins_with(self.collection_name+"#"+partition_key, sort_key)
         elif self._between:
             field_names.append(self._between.field_name)
             partition_key, sort_key = self.__build_keys(field_names, field_values)
             sort_key_from = sort_key + FIELD_SEPARATOR + self._between.field_value_from
             sort_key_to = sort_key + FIELD_SEPARATOR + self._between.field_value_to
-            dynamo_db_query.between(partition_key, sort_key_from, sort_key_to)
+            dynamo_db_query.between(self.collection_name+"#"+partition_key, sort_key_from, sort_key_to)
         else:
             partition_key, sort_key = self.__build_keys(field_names, field_values)
-            dynamo_db_query.eq(partition_key,sort_key)
+            dynamo_db_query.eq(self.collection_name+"#"+partition_key, sort_key)
 
         return dynamo_db_query
 
