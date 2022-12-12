@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List
+from typing import List, Type
 
-from aws.dynamodb.dynamodbdao import DynamoDBModel, DynamoDBKey
-from dynamoplus.v2.repository.repositories import IndexModel, convert_model_to_dynamo_db_item, Model, Query
+from aws.dynamodb.dynamodbdao import DynamoDBModel, DynamoDBKey, Counter
+from dynamoplus.v2.repository.repositories_v2 import IndexModel, convert_model_to_dynamo_db_item, Model, Query
 
 INDEX_FIELD_SEPARATOR = "__"
 
@@ -24,22 +24,10 @@ system_collections = [COLLECTION_ENTITY_NAME, INDEX_ENTITY_NAME, CLIENT_AUTHORIZ
                       AGGREGATION_CONFIGURATION_ENTITY_NAME, AGGREGATION_ENTITY_NAME]
 
 
-# collection_metadata = Collection("collection", "name")
-# index_metadata = Collection("index", "name")
-# client_authorization_metadata = Collection("client_authorization", "client_id")
-# aggregation_configuration_metadata = Collection("aggregation_configuration", "name")
-# aggregation_metadata = Collection("aggregation", "name")
-# index_by_collection_and_name_metadata = Index(index_metadata.name, ["collection.name", "name"], None)
-# index_by_collection_metadata = Index(index_metadata.name, ["collection.name"], None)
-# index_by_name_metadata = Index(index_metadata.name, ["name"], None)
-# aggregation_configuration_index_by_collection_name = Index("aggregation_configuration", ["collection.name"])
-# aggregation_index_by_aggregation_name = Index("aggregation", ["configuration_name"],IndexConfiguration.OPTIMIZE_WRITE)
-
-
 @dataclass(frozen=True)
 class ClientAuthorizationEntity(Model):
     client_id: str
-    payload: dict
+    payload: dict = None
 
     @classmethod
     def from_dynamo_db_key(cls, last_evaluated_key: DynamoDBKey) -> str:
@@ -56,7 +44,8 @@ class ClientAuthorizationEntity(Model):
     def id(self):
         return self.client_id
 
-    def entity_name(self):
+    @classmethod
+    def entity_name(cls):
         return "%s" % CLIENT_AUTHORIZATION_ENTITY_NAME
 
     def ordering(self):
@@ -69,7 +58,7 @@ class ClientAuthorizationEntity(Model):
 @dataclass(frozen=True)
 class CollectionEntity(Model):
     name: str
-    payload: dict
+    payload: dict = None
 
     @classmethod
     def from_dynamo_db_key(cls, last_evaluated_key: DynamoDBKey) -> str:
@@ -86,7 +75,8 @@ class CollectionEntity(Model):
     def id(self):
         return self.name
 
-    def entity_name(self):
+    @classmethod
+    def entity_name(cls):
         return "%s" % COLLECTION_ENTITY_NAME
 
     def ordering(self):
@@ -99,7 +89,7 @@ class CollectionEntity(Model):
 @dataclass(frozen=True)
 class IndexEntity(Model):
     uid: uuid.UUID
-    payload: dict
+    payload: dict = None
 
     @classmethod
     def from_dynamo_db_key(cls, last_evaluated_key: DynamoDBKey) -> str:
@@ -116,7 +106,8 @@ class IndexEntity(Model):
     def id(self):
         return str(self.uid)
 
-    def entity_name(self):
+    @classmethod
+    def entity_name(cls):
         return "%s" % INDEX_ENTITY_NAME
 
     def ordering(self):
@@ -136,8 +127,8 @@ class IndexByCollectionNameEntity(IndexModel):
     def id(self):
         return str(self.uid)
 
-    @property
-    def entity_name(self):
+    @classmethod
+    def entity_name(cls):
         return INDEX_ENTITY_NAME
 
     def index_name(self):
@@ -159,7 +150,7 @@ class IndexByCollectionNameEntity(IndexModel):
                                            ordering)
 
     def to_dynamo_db_model(self) -> DynamoDBModel:
-        pk = INDEX_ENTITY_NAME + "#" + str(self.uid)
+        pk = "{0}#{1}".format(INDEX_ENTITY_NAME, str(self.uid))
         sk = "{0}#{1}".format(INDEX_ENTITY_NAME, self.index_name())
         data = self.index_value()
         document = self.payload
@@ -177,8 +168,8 @@ class IndexByCollectionNameAndFieldsEntity(IndexModel):
     def id(self):
         return self.uid
 
-    @property
-    def entity_name(self):
+    @classmethod
+    def entity_name(cls):
         return INDEX_ENTITY_NAME
 
     def index_name(self):
@@ -191,18 +182,18 @@ class IndexByCollectionNameAndFieldsEntity(IndexModel):
     def from_dynamo_db_item(cls, dynamo_db_model: DynamoDBModel) -> IndexModel:
         data_split = dynamo_db_model.data.split("#")
         collection_name = data_split[0]
-        index_name = str.replace(dynamo_db_model.pk, INDEX_ENTITY_NAME + '#', '')
+        uid = uuid.UUID(str.replace(dynamo_db_model.pk, INDEX_ENTITY_NAME + '#', ''))
         fields = data_split[1].split(INDEX_FIELD_SEPARATOR)
         ordering = data_split[2]
         payload = dynamo_db_model.document
-        return IndexByCollectionNameAndFieldsEntity(index_name,
+        return IndexByCollectionNameAndFieldsEntity(uid,
                                                     collection_name,
                                                     fields,
                                                     payload,
                                                     ordering)
 
     def to_dynamo_db_model(self) -> DynamoDBModel:
-        pk = INDEX_ENTITY_NAME + "#" + str(self.uid)
+        pk = "{0}#{1}".format(INDEX_ENTITY_NAME, str(self.uid))
         sk = "{0}#{1}".format(INDEX_ENTITY_NAME, self.index_name())
         data = self.index_value()
         document = self.payload
@@ -227,7 +218,7 @@ class QueryIndexByCollectionNameAndFields(Query):
 @dataclass(frozen=True)
 class AggregationConfigurationEntity(Model):
     uid: uuid.UUID
-    payload: dict
+    payload: dict = None
 
     @classmethod
     def from_dynamo_db_key(cls, last_evaluated_key: DynamoDBKey) -> str:
@@ -245,7 +236,8 @@ class AggregationConfigurationEntity(Model):
     def id(self):
         return str(self.uid)
 
-    def entity_name(self):
+    @classmethod
+    def entity_name(cls):
         return "%s" % AGGREGATION_CONFIGURATION_ENTITY_NAME
 
     def ordering(self):
@@ -265,8 +257,8 @@ class AggregationConfigurationByCollectionNameEntity(IndexModel):
     def id(self):
         return str(self.uid)
 
-    @property
-    def entity_name(self):
+    @classmethod
+    def entity_name(cls):
         return AGGREGATION_CONFIGURATION_ENTITY_NAME
 
     def index_name(self):
@@ -279,7 +271,7 @@ class AggregationConfigurationByCollectionNameEntity(IndexModel):
     def from_dynamo_db_item(cls, dynamo_db_model: DynamoDBModel) -> AggregationConfigurationByCollectionNameEntity:
         data_split = dynamo_db_model.data.split("#")
         collection_name = data_split[0]
-        _id = uuid.UUID(str.replace(dynamo_db_model.pk, INDEX_ENTITY_NAME + '#', ''))
+        _id = uuid.UUID(str.replace(dynamo_db_model.pk, AGGREGATION_CONFIGURATION_ENTITY_NAME + '#', ''))
         ordering = data_split[1]
         payload = dynamo_db_model.document
         return AggregationConfigurationByCollectionNameEntity(_id,
@@ -288,7 +280,7 @@ class AggregationConfigurationByCollectionNameEntity(IndexModel):
                                                               ordering)
 
     def to_dynamo_db_model(self) -> DynamoDBModel:
-        pk = AGGREGATION_CONFIGURATION_ENTITY_NAME + "#" + str(self.uid)
+        pk = "{0}#{1}".format(AGGREGATION_CONFIGURATION_ENTITY_NAME, str(self.uid))
         sk = "{0}#{1}".format(AGGREGATION_CONFIGURATION_ENTITY_NAME, self.index_name())
         data = self.index_value()
         document = self.payload
@@ -300,3 +292,83 @@ class QueryAggregationConfigurationByCollectionName(Query):
     def __init__(self, collection_name: str):
         super(QueryAggregationConfigurationByCollectionName, self).__init__(AGGREGATION_CONFIGURATION_ENTITY_NAME)
         super(QueryAggregationConfigurationByCollectionName, self).add_begins_with("collection.name", collection_name)
+
+
+@dataclass(frozen=True)
+class AggregationEntity(Model):
+    uid: uuid.UUID
+    payload: dict = None
+
+    @classmethod
+    def from_dynamo_db_key(cls, last_evaluated_key: DynamoDBKey) -> str:
+        return str.replace(last_evaluated_key.partition_key, AGGREGATION_ENTITY_NAME + '#', '')
+
+    @classmethod
+    def from_dynamo_db_item(cls, dynamo_db_model: DynamoDBModel) -> AggregationEntity:
+        return AggregationEntity(
+            uuid.UUID(str.replace(dynamo_db_model.pk, AGGREGATION_ENTITY_NAME + '#', '')),
+            dynamo_db_model.document)
+
+    def to_dynamo_db_item(self) -> DynamoDBModel:
+        return convert_model_to_dynamo_db_item(self)
+
+    def id(self):
+        return str(self.uid)
+
+    @classmethod
+    def entity_name(cls):
+        return "%s" % AGGREGATION_ENTITY_NAME
+
+    def ordering(self):
+        return None
+
+    def object(self):
+        return self.payload
+
+
+@dataclass(frozen=True)
+class AggregationByAggregationConfigurationNameEntity(IndexModel):
+    uid: uuid.UUID
+    aggregation_configuration_name: str
+    payload: dict
+    ordering: str = "{0}".format(int(datetime.utcnow().timestamp()) * 1000)
+
+    def id(self):
+        return str(self.uid)
+
+    @classmethod
+    def entity_name(cls):
+        return AGGREGATION_ENTITY_NAME
+
+    def index_name(self):
+        return "configuration_name"
+
+    def index_value(self):
+        return "{0}#{1}".format(self.aggregation_configuration_name, self.ordering)
+
+    @classmethod
+    def from_dynamo_db_item(cls, dynamo_db_model: DynamoDBModel) -> AggregationByAggregationConfigurationNameEntity:
+        data_split = dynamo_db_model.data.split("#")
+        configuration_name = data_split[0]
+        _id = uuid.UUID(str.replace(dynamo_db_model.pk, AGGREGATION_ENTITY_NAME + '#', ''))
+        ordering = data_split[1]
+        payload = dynamo_db_model.document
+        return AggregationByAggregationConfigurationNameEntity(_id,
+                                                               configuration_name,
+                                                               payload,
+                                                               ordering)
+
+    def to_dynamo_db_model(self) -> DynamoDBModel:
+        pk = "{0}#{1}".format(AGGREGATION_ENTITY_NAME, str(self.uid))
+        sk = "{0}#{1}".format(AGGREGATION_ENTITY_NAME, self.index_name())
+        data = self.index_value()
+        document = self.payload
+        return DynamoDBModel(pk, sk, data, document)
+
+
+class QueryAggregationByAggregationConfigurationName(Query):
+
+    def __init__(self, aggregation_configuration_name: str):
+        super(QueryAggregationByAggregationConfigurationName, self).__init__(AGGREGATION_ENTITY_NAME)
+        super(QueryAggregationByAggregationConfigurationName, self).add_begins_with("configuration_name",
+                                                                                    aggregation_configuration_name)

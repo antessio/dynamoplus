@@ -6,15 +6,15 @@ from typing import Callable, Type
 import parameterized as parameterized
 from moto import mock_dynamodb2
 
-from dynamoplus.v2.repository.repositories import DynamoDBRepositoryRepository, \
-    IndexingOperation, IndexModel, Model, Query
+from aws.dynamodb.dynamodbdao import DynamoDBModel
+from dynamoplus.v2.repository.repositories_v2 import DynamoDBRepository, \
+    IndexingOperation, IndexModel, Model, Query, QueryAll
 from dynamoplus.v2.repository.system_repositories import ClientAuthorizationEntity, IndexByCollectionNameEntity, \
     IndexEntity, CollectionEntity, QueryIndexByCollectionName, IndexByCollectionNameAndFieldsEntity, \
     QueryIndexByCollectionNameAndFields, AggregationConfigurationByCollectionNameEntity, \
-    QueryAggregationConfigurationByCollectionName, AggregationConfigurationEntity
+    QueryAggregationConfigurationByCollectionName, AggregationConfigurationEntity, \
+    AggregationByAggregationConfigurationNameEntity, QueryAggregationByAggregationConfigurationName, AggregationEntity
 from test.common_test_utils import set_up_for_integration_test, cleanup_table, get_dynamodb_table
-
-from boto3.dynamodb.conditions import Key, ComparisonCondition
 
 table_name = "system"
 
@@ -28,6 +28,72 @@ class TestSystemRepository(unittest.TestCase):
 
     def tearDown(self):
         cleanup_table(table_name)
+
+    def test_convert_dynamo_db_item_to_index_by_collection_name(self):
+        expected_uid = uuid.uuid4()
+        expected_collection_name = "collection_name"
+        expected_ordering = "121412412412"
+        expected_index_document = {
+            "name": "whatever"
+        }
+        dynamo_db_model = DynamoDBModel("index#{}".format(str(expected_uid)), "index#collection.name",
+                                        "{}#{}".format(expected_collection_name, expected_ordering),
+                                        expected_index_document)
+        result = IndexByCollectionNameEntity.from_dynamo_db_item(dynamo_db_model)
+        self.assertIsInstance(result, IndexByCollectionNameEntity)
+        self.assertEqual(result, IndexByCollectionNameEntity(expected_uid, expected_collection_name,
+                                                             expected_index_document, expected_ordering))
+
+    def test_convert_dynamo_db_item_to_index_by_collection_name_and_fields(self):
+        expected_uid = uuid.uuid4()
+        expected_collection_name = "collection_name"
+        expected_ordering = "121412412412"
+        expected_index_document = {
+            "name": "whatever"
+        }
+        dynamo_db_model = DynamoDBModel("index#{}".format(str(expected_uid)), "index#collection.name#fields",
+                                        "{}#{}#{}".format(expected_collection_name, "field1__field2",
+                                                          expected_ordering),
+                                        expected_index_document)
+        result = IndexByCollectionNameAndFieldsEntity.from_dynamo_db_item(dynamo_db_model)
+        self.assertIsInstance(result, IndexByCollectionNameAndFieldsEntity)
+        self.assertEqual(result, IndexByCollectionNameAndFieldsEntity(expected_uid, expected_collection_name,
+                                                                      ['field1', 'field2'],
+                                                                      expected_index_document, expected_ordering))
+
+    def test_convert_dynamo_db_item_to_aggregationConfiguration_by_collection_name(self):
+        expected_uid = uuid.uuid4()
+        expected_collection_name = "collection_name"
+        expected_ordering = "121412412412"
+        expected_aggregation_configuration_document = {
+            "name": "whatever"
+        }
+        dynamo_db_model = DynamoDBModel("aggregation_configuration#{}".format(str(expected_uid)),
+                                        "aggregation_configuration#collection.name",
+                                        "{}#{}".format(expected_collection_name, expected_ordering),
+                                        expected_aggregation_configuration_document)
+        result = AggregationConfigurationByCollectionNameEntity.from_dynamo_db_item(dynamo_db_model)
+        self.assertIsInstance(result, AggregationConfigurationByCollectionNameEntity)
+        self.assertEqual(result, AggregationConfigurationByCollectionNameEntity(expected_uid, expected_collection_name,
+                                                                                expected_aggregation_configuration_document,
+                                                                                expected_ordering))
+
+    def test_convert_dynamo_db_item_to_AggregationByAggregationConfigurationNameEntity(self):
+        expected_uid = uuid.uuid4()
+        expected_configuration = "count"
+        expected_ordering = "121412412412"
+        expected_aggregation_configuration_document = {
+            "name": "whatever"
+        }
+        dynamo_db_model = DynamoDBModel("aggregation#{}".format(str(expected_uid)),
+                                        "aggregation#configuration",
+                                        "{}#{}".format(expected_configuration, expected_ordering),
+                                        expected_aggregation_configuration_document)
+        result = AggregationByAggregationConfigurationNameEntity.from_dynamo_db_item(dynamo_db_model)
+        self.assertIsInstance(result, AggregationByAggregationConfigurationNameEntity)
+        self.assertEqual(result, AggregationByAggregationConfigurationNameEntity(expected_uid, expected_configuration,
+                                                                                expected_aggregation_configuration_document,
+                                                                                expected_ordering))
 
     @parameterized.parameterized.expand([
         ("client_authorization", ClientAuthorizationEntity("client_1", {
@@ -46,7 +112,7 @@ class TestSystemRepository(unittest.TestCase):
         }))
     ])
     def test_create(self, collection_name, expected_entity):
-        repository = DynamoDBRepositoryRepository(table_name, expected_entity.__class__)
+        repository = DynamoDBRepository(table_name, expected_entity.__class__)
         result = repository.create(expected_entity)
         self.assertIsInstance(result, expected_entity.__class__)
         self.assertIsNotNone(result)
@@ -84,7 +150,7 @@ class TestSystemRepository(unittest.TestCase):
          })
     ])
     def test_get(self, collection_name: str, expected_entity_key: Model, expected_document: dict):
-        repository = DynamoDBRepositoryRepository(table_name, expected_entity_key.__class__)
+        repository = DynamoDBRepository(table_name, expected_entity_key.__class__)
         get_dynamodb_table(table_name).put_item(
             Item={"pk": (collection_name + "#%s" % expected_entity_key.id()), "sk": collection_name,
                   "data": expected_entity_key.id(),
@@ -98,7 +164,7 @@ class TestSystemRepository(unittest.TestCase):
 
     def test_indexing_update_index(self):
         collection_name = "book"
-        id = uuid.uuid4()
+        uid = uuid.uuid4()
         ordering = str(int(datetime.now().timestamp()) * 1000)
         name = '{0}#author__title__genre'.format(collection_name)
         index_object = {
@@ -112,23 +178,24 @@ class TestSystemRepository(unittest.TestCase):
             "name": name
         }
         get_dynamodb_table(table_name).put_item(
-            Item={"pk": ("index#%s" % str(id)), "sk": "index", "data": str(id) + "#" + ordering,
+            Item={"pk": ("index#%s" % str(uid)), "sk": "index", "data": str(uid) + "#" + ordering,
                   "document": index_object})
         get_dynamodb_table(table_name).put_item(
-            Item={"pk": ("index#%s" % str(id)), "sk": "index#collection.name", "data": collection_name + "#" + ordering,
+            Item={"pk": ("index#%s" % str(uid)), "sk": "index#collection.name",
+                  "data": collection_name + "#" + ordering,
                   "document": index_object})
         update_index_object = {**index_object, "collection": {
             "name": "books"
         }}
-        repository = DynamoDBRepositoryRepository(table_name, IndexEntity)
+        repository = DynamoDBRepository(table_name, IndexEntity)
         repository.indexing(IndexingOperation([],
-                                              [IndexByCollectionNameEntity(id, "books", update_index_object,
+                                              [IndexByCollectionNameEntity(uid, "books", update_index_object,
                                                                            ordering)],
                                               []))
 
         loaded = get_dynamodb_table(table_name).get_item(
             Key={
-                'pk': "index#" + str(id),
+                'pk': "index#" + str(uid),
                 'sk': "index#collection.name"
             })
         self.assertIsNotNone(loaded)
@@ -154,7 +221,7 @@ class TestSystemRepository(unittest.TestCase):
         get_dynamodb_table(table_name).put_item(
             Item={"pk": ("index#%s" % str(id)), "sk": "index", "data": str(id) + "#" + ordering,
                   "document": index_object})
-        repository = DynamoDBRepositoryRepository(table_name, IndexEntity)
+        repository = DynamoDBRepository(table_name, IndexEntity)
         repository.indexing(
             IndexingOperation([],
                               [],
@@ -191,7 +258,7 @@ class TestSystemRepository(unittest.TestCase):
         expected_index = IndexByCollectionNameEntity(id, collection_name, index_object, ordering)
         get_dynamodb_table(table_name).put_item(
             Item=expected_index.to_dynamo_db_model().to_dynamo_db_item())
-        repository = DynamoDBRepositoryRepository(table_name, IndexEntity)
+        repository = DynamoDBRepository(table_name, IndexEntity)
         repository.indexing(
             IndexingOperation([expected_index],
                               [],
@@ -233,7 +300,9 @@ class TestSystemRepository(unittest.TestCase):
              "name": "book#author__title__genre"
          },
          str(int(datetime.now().timestamp()) * 1000),
-         lambda index_id, index_object, ordering: IndexByCollectionNameAndFieldsEntity(index_id, 'book', ['author', 'title', 'genre'],index_object,ordering),
+         lambda index_id, index_object, ordering: IndexByCollectionNameAndFieldsEntity(index_id, 'book',
+                                                                                       ['author', 'title', 'genre'],
+                                                                                       index_object, ordering),
          QueryIndexByCollectionNameAndFields("book", ['author', 'title', 'genre']),
          IndexEntity),
         ("aggregation_configuration_by_collection_name_and_fields",
@@ -243,15 +312,49 @@ class TestSystemRepository(unittest.TestCase):
              },
              "name": "book_count",
              "type": "COUNT",
+             "target": "book"
+         },
+         str(int(datetime.now().timestamp()) * 1000),
+         lambda index_id, index_object, ordering: AggregationConfigurationByCollectionNameEntity(index_id, 'book',
+                                                                                                 index_object,
+                                                                                                 ordering),
+         QueryAggregationConfigurationByCollectionName("book"),
+         AggregationConfigurationEntity),
+        ("aggregation_by_aggregation_configuration_name",
+         {
+             "configuration_name": "book_count",
+             "name": "book_count",
+             "type": "COUNT",
              "count": 100
          },
          str(int(datetime.now().timestamp()) * 1000),
-         lambda index_id, index_object, ordering: AggregationConfigurationByCollectionNameEntity(index_id, 'book', index_object, ordering),
-         QueryAggregationConfigurationByCollectionName("book"),
-         AggregationConfigurationEntity)
+         lambda index_id, index_object, ordering: AggregationByAggregationConfigurationNameEntity(index_id,
+                                                                                                  'book_count',
+                                                                                                  index_object,
+                                                                                                  ordering),
+         QueryAggregationByAggregationConfigurationName("book_count"),
+         AggregationEntity),
+        ("all_index",
+         {
+             "collection": {
+                 "name": "book"
+             },
+             "conditions": [
+                 "author", "title", "genre"
+
+             ],
+             "name": "book#author__title__genre"
+         },
+         str(int(datetime.now().timestamp()) * 1000),
+         lambda index_id, index_object, ordering: IndexByCollectionNameAndFieldsEntity(index_id, 'book',
+                                                                                       ['author', 'title', 'genre'],
+                                                                                       index_object, ordering),
+         QueryAll(IndexEntity),
+         IndexEntity)
     ])
     def test_query_by_field_eq(self, name: str, index_object: dict, ordering: str,
-                               index_model_builder: Callable[[uuid, dict, str], IndexModel], query: Query, target_entity:Type):
+                               index_model_builder: Callable[[uuid, dict, str], IndexModel], query: Query,
+                               target_entity: Type):
         index_id = uuid.uuid4()
         get_dynamodb_table(table_name).put_item(
             Item={"pk": ("index#%s" % str(index_id)), "sk": "index", "data": str(index_id) + "#" + ordering,
@@ -259,10 +362,9 @@ class TestSystemRepository(unittest.TestCase):
         get_dynamodb_table(table_name).put_item(
             Item=index_model_builder(index_id, index_object, ordering).to_dynamo_db_model().to_dynamo_db_item())
 
-        repository = DynamoDBRepositoryRepository(table_name, target_entity)
+        repository = DynamoDBRepository(table_name, target_entity)
         result, last_key = repository.query(query, 10)
         self.assertIsNotNone(result)
         self.assertIsNone(last_key)
         self.assertEqual(len(result), 1)
         self.assertDictEqual(result[0].object(), index_object)
-
