@@ -2,10 +2,9 @@ from typing import *
 from dynamoplus.models.query.conditions import Predicate, get_range_predicate, AnyMatch
 from dynamoplus.models.system.collection.collection import Collection
 from dynamoplus.models.system.index.index import Index, IndexConfiguration
-from aws.dynamodb.dynamodbdao import QueryResult, get_table_name, QueryRepository, DynamoDBDAO, DynamoDBModel, \
-    DynamoDBQuery, GSIDynamoDBQuery, DynamoDBQueryType, DynamoDBKey
+from dynamoplus.v2.repository.repositories import QueryResult, get_table_name, QueryRepository, Repository, Model
 from dynamoplus.v2.service.model_service import get_pk, get_sk
-from dynamoplus.v2.service.common import is_system, get_repository_factory
+from dynamoplus.v2.service.common import is_system
 
 
 def find_sk_query(collection: Collection, fields: List[str]) -> str:
@@ -46,12 +45,12 @@ class QueryService:
         else:
             result = QueryService.__query_begins_with(collection, predicate, index.conditions, start_from, limit)
         if index is not None and index.index_configuration == IndexConfiguration.OPTIMIZE_WRITE:
-            result = QueryResult(list(map(lambda m: DynamoDBDAO(get_table_name(is_system(collection))).get(m.pk, collection.name), result.data)), result.lastEvaluatedKey)
+            result = QueryResult(list(map(lambda m: Repository(get_table_name(is_system(collection))).get(m.pk, collection.name), result.data)), result.lastEvaluatedKey)
         return result
 
     @staticmethod
-    def __query(collection: Collection, predicate: Predicate, index: Index, start_from: DynamoDBModel = None,
-                limit: int = 20) -> QueryResult:
+    def __query(collection: Collection, predicate: Predicate, index: Index, start_from: Model = None,
+              limit: int = 20) -> QueryResult:
         result = None
         if predicate.is_range():
             result = QueryService.__query_range_starting_after_model(collection, predicate, index.conditions, start_from, limit)
@@ -61,7 +60,7 @@ class QueryService:
             result = QueryService.__query_begins_with_starting_after_model(collection, predicate, index.conditions, start_from, limit)
         if index is not None and index.index_configuration == IndexConfiguration.OPTIMIZE_WRITE:
             result = QueryResult(list(
-                map(lambda m: DynamoDBDAO(get_table_name(is_system(collection))).get(m.pk, collection.name),
+                map(lambda m: Repository(get_table_name(is_system(collection))).get(m.pk, collection.name),
                     result.data)), result.lastEvaluatedKey)
         return result
 
@@ -82,12 +81,12 @@ class QueryService:
         repo = QueryRepository(table_name)
         last_evaluated_item = None
         if start_from:
-            last_evaluated_item = DynamoDBDAO(table_name).get(get_pk(collection, start_from), sk)
+            last_evaluated_item = Repository(table_name).get(get_pk(collection, start_from), sk)
         return repo.query_range(sk, data1, data2, limit, last_evaluated_item)
 
     @staticmethod
-    def __query_range_starting_after_model(collection: Collection, predicate: Predicate, fields: List[str], last_evaluated_item: DynamoDBModel = None,
-                                           limit: int = 20) -> QueryResult:
+    def __query_range_starting_after_model(collection: Collection, predicate: Predicate, fields: List[str], last_evaluated_item: Model = None,
+                      limit: int = 20) -> QueryResult:
         table_name = get_table_name(is_system(collection))
         range_predicate = get_range_predicate(predicate)
         sk = find_sk_query(collection, fields)
@@ -112,12 +111,12 @@ class QueryService:
         last_evaluated_item = None
         if start_from:
             ## should start from last index row
-            last_evaluated_item = DynamoDBDAO(table_name).get(get_pk(collection, start_from), sk)
+            last_evaluated_item = Repository(table_name).get(get_pk(collection, start_from), sk)
         return repo.query_begins_with(sk, data, last_evaluated_item, limit)
 
     @staticmethod
-    def __query_begins_with_starting_after_model(collection: Collection, predicate: Predicate, fields: List[str], last_evaluated_item: DynamoDBModel = None,
-                                                 limit: int = 20) -> QueryResult:
+    def __query_begins_with_starting_after_model(collection: Collection, predicate: Predicate, fields: List[str], last_evaluated_item: Model = None,
+                            limit: int = 20) -> QueryResult:
         table_name = get_table_name(is_system(collection))
         data = "#".join(predicate.get_values())
         sk = find_sk_query(collection, fields)
@@ -126,22 +125,17 @@ class QueryService:
 
     @staticmethod
     def __query_all(collection: Collection, limit: int, start_from: str = None) -> QueryResult:
-        dao = get_repository_factory(collection)
+        table_name = get_table_name(is_system(collection))
+        repo = QueryRepository(table_name)
         last_evaluated_item = None
         if start_from:
             ## this is the main row, not the index, since there is no index
-            last_evaluated_item = dao\
-                .get(get_pk(collection, start_from), get_sk(collection))
-
+            last_evaluated_item = Repository(table_name).get(get_pk(collection, start_from), get_sk(collection))
         sk = find_sk_query(collection, [])
-        return dao.query(GSIDynamoDBQuery(sk, None, DynamoDBQueryType.ALL),
-                         limit,
-                         DynamoDBKey(last_evaluated_item.pk, last_evaluated_item.sk, last_evaluated_item.data)
-                         if last_evaluated_item else None)
-        #return repo.query_all(sk, last_evaluated_item, limit)
+        return repo.query_all(sk, last_evaluated_item, limit)
 
     @staticmethod
-    def __query_all_starting_after_model(collection: Collection, limit: int, last_evaluated_item: DynamoDBModel = None) -> QueryResult:
+    def __query_all_starting_after_model(collection: Collection, limit: int, last_evaluated_item: Model = None) -> QueryResult:
         table_name = get_table_name(is_system(collection))
         repo = QueryRepository(table_name)
         sk = find_sk_query(collection, [])

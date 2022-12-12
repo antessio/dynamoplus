@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import *
 
 from enum import Enum
@@ -21,7 +22,7 @@ class AggregationType(str, Enum):
         return [t for t, v in cls.__members__.items()]
 
     @staticmethod
-    def value_of(value) -> Enum:
+    def value_of(value) -> AggregationType:
         for m, mm in AggregationType.__members__.items():
             if m == value.upper():
                 return mm
@@ -37,7 +38,7 @@ class AggregationTrigger(Enum):
         return [t for t, v in cls.__members__.items()]
 
     @staticmethod
-    def value_of(value) -> Enum:
+    def value_of(value) -> AggregationTrigger:
         for m, mm in AggregationTrigger.__members__.items():
             if m == value.upper():
                 return mm
