@@ -140,7 +140,7 @@ class Collection:
 
 @dataclass(frozen=True)
 class ClientAuthorization(abc.ABC):
-    client_id: str
+    client_id: uuid.UUID
     client_scopes: List[Scope]
 
     @abc.abstractmethod
@@ -165,7 +165,7 @@ class ClientAuthorizationApiKey(ClientAuthorization):
     def to_dict(self) -> dict:
         result = {
             "type": "api_key",
-            "client_id": self.client_id,
+            "client_id": str(self.client_id),
             "client_scopes": list(map(lambda s: {"collection_name": s.collection_name, "scope_type": s.scope_type.name},
                                       self.client_scopes)),
             "api_key": self.api_key,
@@ -178,7 +178,7 @@ class ClientAuthorizationApiKey(ClientAuthorization):
     def from_dict(d: dict) -> ClientAuthorizationApiKey:
         client_scopes = list(
             map(lambda c: Scope(c["collection_name"], ScopesType[c["scope_type"]]), d["client_scopes"]))
-        return ClientAuthorizationApiKey(d["client_id"], client_scopes, d["api_key"],
+        return ClientAuthorizationApiKey(uuid.UUID(d["client_id"]), client_scopes, d["api_key"],
                                          d["whitelist_hosts"] if "whitelist_hosts" in d else None)
 
 
@@ -189,23 +189,22 @@ class ClientAuthorizationHttpSignature(ClientAuthorization):
     def to_dict(self) -> dict:
         return {
             "type": "http_signature",
-            "client_id": self.client_id,
+            "client_id": str(self.client_id),
             "client_scopes": list(map(lambda s: {"collection_name": s.collection_name, "scope_type": s.scope_type.name},
                                       self.client_scopes)),
             "public_key": self.client_public_key
         }
 
     @staticmethod
-    def from_dict(d: dict) -> ClientAuthorizationApiKey:
+    def from_dict(d: dict) -> ClientAuthorizationHttpSignature:
         client_scopes = list(
             map(lambda c: Scope(c["collection_name"], ScopesType[c["scope_type"]]), d["client_scopes"]))
-        return ClientAuthorizationApiKey(d["client_id"], client_scopes, d["api_key"],
-                                         d["whitelist_hosts"] if "whitelist_hosts" in d else None)
+        return ClientAuthorizationHttpSignature(uuid.UUID(d["client_id"]), client_scopes, d["public_key"])
 
 
 class ClientAuthorizationEntityAdapter(ClientAuthorizationEntity):
     def __init__(self, client_authorization: ClientAuthorization):
-        super(ClientAuthorizationEntity, self).__init__(client_authorization.client_id,
+        super(ClientAuthorizationEntityAdapter, self).__init__(client_authorization.client_id,
                                                         client_authorization.to_dict())
 
 
@@ -342,10 +341,10 @@ class AggregationConfigurationEntityAdapter(AggregationConfigurationEntity):
                                                              aggregation_configuration.to_dict())
 
 
-class CollectionService(metaclass=SingletonMeta):
+class CollectionService:
 
     def __init__(self):
-        self.repo = DynamoDBRepository('system', CollectionEntity)
+        self.repo = repositories_v2.DynamoDBRepository('system', CollectionEntity)
 
     def get_collection(self, collection_name: str) -> Collection:
         result = self.repo.get(CollectionEntity(collection_name))
@@ -379,7 +378,7 @@ class CollectionService(metaclass=SingletonMeta):
                 yield c
 
 
-class IndexService(metaclass=SingletonMeta):
+class IndexService:
 
     def __init__(self):
         self.repo = repositories_v2.DynamoDBRepository('system', IndexEntity)
@@ -416,7 +415,7 @@ class IndexService(metaclass=SingletonMeta):
         query = QueryIndexByCollectionNameAndFields(collection_name, fields)
         result, last_key = self.repo.query(query, 1, None)
         if result and len(result) == 1:
-            return result[0]
+            return Index.from_dict(result[0].object())
         else:
             return None
 
@@ -429,7 +428,8 @@ class IndexService(metaclass=SingletonMeta):
                                                    last_index_entity)
 
         return list(
-            map(lambda m: Index.from_dict(m.object()), data)), uuid.UUID(last_evaluated_key) if last_evaluated_key else None
+            map(lambda m: Index.from_dict(m.object()), data)), uuid.UUID(
+            last_evaluated_key) if last_evaluated_key else None
 
     def get_index_matching_fields(self, fields: List[str], collection_name: str):
 
@@ -448,7 +448,7 @@ class IndexService(metaclass=SingletonMeta):
         batch_size = 20
         while has_more:
             last_evaluated_key = None
-            indexes, last_evaluated_key = self.get_index_by_collection_name(collection_name,batch_size,
+            indexes, last_evaluated_key = self.get_index_by_collection_name(collection_name, batch_size,
                                                                             last_evaluated_key)
             has_more = last_evaluated_key is not None
             for i in indexes:
@@ -458,12 +458,12 @@ class IndexService(metaclass=SingletonMeta):
         return self.repo.get(IndexEntity(uid))
 
 
-class AuthorizationService(metaclass=SingletonMeta):
+class AuthorizationService:
 
     def __init__(self):
-        self.repo = DynamoDBRepository('system', ClientAuthorizationEntity)
+        self.repo = repositories_v2.DynamoDBRepository('system', ClientAuthorizationEntity)
 
-    def get_client_authorization(self, uid: str):
+    def get_client_authorization(self, uid: uuid.UUID):
         result = self.repo.get(ClientAuthorizationEntity(uid))
         if result:
             return ClientAuthorization.from_dict(result.object())
@@ -488,10 +488,10 @@ class AuthorizationService(metaclass=SingletonMeta):
         self.repo.delete(ClientAuthorizationEntity(client_id))
 
 
-class AggregationService(metaclass=SingletonMeta):
+class AggregationService:
 
     def __init__(self):
-        self.repo = DynamoDBRepository('system', AggregationEntity)
+        self.repo = repositories_v2.DynamoDBRepository('system', AggregationEntity)
 
     def get_aggregation_by_name(self, uid: uuid.UUID) -> Aggregation:
 
@@ -596,13 +596,13 @@ class AggregationService(metaclass=SingletonMeta):
         return Aggregation.from_dict(updated_entity.object())
 
 
-class AggregationConfigurationService(metaclass=SingletonMeta):
+class AggregationConfigurationService:
 
     def __from_entity_to_aggregation_configuration(m: Model):
         return AggregationConfiguration.from_dict_to_aggregation_configuration(m.object())
 
     def __init__(self):
-        self.repo = DynamoDBRepository('system', AggregationConfigurationEntity)
+        self.repo = repositories_v2.DynamoDBRepository('system', AggregationConfigurationEntity)
 
     def __get_aggregation_configuration_entity_by_id(self, uid: uuid.UUID) -> Model:
         return self.repo.get(AggregationConfigurationEntity(uid))
