@@ -26,7 +26,7 @@ system_collections = [COLLECTION_ENTITY_NAME, INDEX_ENTITY_NAME, CLIENT_AUTHORIZ
 
 @dataclass(frozen=True)
 class ClientAuthorizationEntity(Model):
-    client_id: str
+    uid: uuid.UUID
     payload: dict = None
 
     @classmethod
@@ -35,14 +35,14 @@ class ClientAuthorizationEntity(Model):
 
     @classmethod
     def from_dynamo_db_item(cls, dynamo_db_model: DynamoDBModel) -> ClientAuthorizationEntity:
-        return ClientAuthorizationEntity(str.replace(dynamo_db_model.pk, CLIENT_AUTHORIZATION_ENTITY_NAME + '#', ''),
+        return ClientAuthorizationEntity(uuid.UUID(str.replace(dynamo_db_model.pk, CLIENT_AUTHORIZATION_ENTITY_NAME + '#', '')),
                                          dynamo_db_model.document)
 
     def to_dynamo_db_item(self) -> DynamoDBModel:
         return convert_model_to_dynamo_db_item(self)
 
     def id(self):
-        return self.client_id
+        return str(self.uid)
 
     @classmethod
     def entity_name(cls):

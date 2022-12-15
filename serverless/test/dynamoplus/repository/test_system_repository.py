@@ -96,7 +96,7 @@ class TestSystemRepository(unittest.TestCase):
                                                                                 expected_ordering))
 
     @parameterized.parameterized.expand([
-        ("client_authorization", ClientAuthorizationEntity("client_1", {
+        ("client_authorization", ClientAuthorizationEntity(uuid.uuid4(), {
             "type": "http_signature",
             "public_key": "public_key"
         })),
@@ -131,7 +131,7 @@ class TestSystemRepository(unittest.TestCase):
 
     @parameterized.parameterized.expand([
         ("client_authorization",
-         ClientAuthorizationEntity("client_1", None),
+         ClientAuthorizationEntity(uuid.uuid4(), None),
          {
              "type": "http_signature",
              "public_key": "public_key"
