@@ -92,10 +92,17 @@ class Collection:
 
     @staticmethod
     def from_attribute_definition_to_dict(attribute: AttributeDefinition) -> dict:
-        nested_attributes = list(
-            map(lambda a: Collection.from_attribute_definition_to_dict(a),
-                attribute.attributes)) if attribute.attributes else None
-        return {"name": attribute.name, "type": attribute.type.value, "attributes": nested_attributes}
+
+        d = {
+            "name": attribute.name,
+            "type": attribute.type.value
+        }
+        if attribute.attributes:
+            d["attributes"] = list(
+                map(lambda a: Collection.from_attribute_definition_to_dict(a),
+                    attribute.attributes))
+
+        return d
 
     @staticmethod
     def from_dict(d: dict) -> Collection:
@@ -205,7 +212,7 @@ class ClientAuthorizationHttpSignature(ClientAuthorization):
 class ClientAuthorizationEntityAdapter(ClientAuthorizationEntity):
     def __init__(self, client_authorization: ClientAuthorization):
         super(ClientAuthorizationEntityAdapter, self).__init__(client_authorization.client_id,
-                                                        client_authorization.to_dict())
+                                                               client_authorization.to_dict())
 
 
 @dataclass(frozen=True)
@@ -358,7 +365,7 @@ class CollectionService:
     def delete_collection(self, collection_name: str) -> None:
         self.repo.delete(CollectionEntity(collection_name))
 
-    def get_all_collections(self, start_from: str = None, limit: int = None) -> ([Collection], str):
+    def get_all_collections(self, limit: int = None, start_from: str = None) -> ([Collection], str):
         starting_from_collection = None
         if start_from:
             starting_from_collection = self.repo.get(CollectionEntity(start_from))
@@ -366,13 +373,13 @@ class CollectionService:
 
         if result:
             return list(
-                map(lambda m: Collection.from_dict(m.object()), result.data)), last_evaluated_id
+                map(lambda m: Collection.from_dict(m.object()), result)), last_evaluated_id
 
     def get_all_collections_generator(self) -> Generator[Collection]:
         has_more = True
         while has_more:
             last_evaluated_key = None
-            collections, last_evaluated_key = self.get_all_collections(last_evaluated_key)
+            collections, last_evaluated_key = self.get_all_collections(start_from=last_evaluated_key)
             has_more = last_evaluated_key is not None
             for c in collections:
                 yield c
