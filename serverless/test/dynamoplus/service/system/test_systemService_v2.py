@@ -6,7 +6,7 @@ from unittest.mock import patch, call
 from dynamoplus.models.system.client_authorization.client_authorization import ScopesType, Scope
 from dynamoplus.models.system.collection.collection import AttributeDefinition, AttributeType
 from dynamoplus.models.system.index.index import IndexConfiguration
-from dynamoplus.v2.repository.repositories_v2 import IndexingOperation
+from dynamoplus.v2.repository.repositories_v2 import IndexingOperation, QueryAll
 from dynamoplus.v2.repository.system_repositories import IndexEntity, QueryIndexByCollectionNameAndFields, \
     IndexByCollectionNameAndFieldsEntity, IndexByCollectionNameEntity, QueryIndexByCollectionName, \
     ClientAuthorizationEntity, CollectionEntity
@@ -324,7 +324,8 @@ class TestSystemService(unittest.TestCase):
             AttributeDefinition('date', AttributeType.DATE),
         ]
         dynamodb_repository_mock = dynamodb_repository_mock_factory.return_value
-        expected_collection_entity = self.build_fake_collection_entity(collection_name, id_key, ordering, attributes, True)
+        expected_collection_entity = self.build_fake_collection_entity(collection_name, id_key, ordering, attributes,
+                                                                       True)
         dynamodb_repository_mock.get.return_value = expected_collection_entity
         # when
         collection = CollectionService().get_collection(collection_name)
@@ -337,25 +338,83 @@ class TestSystemService(unittest.TestCase):
         self.assertEqual(call(CollectionEntity(collection_name)),
                          dynamodb_repository_mock.get.call_args_list[0])
 
+    @patch('dynamoplus.v2.repository.repositories_v2.DynamoDBRepository')
+    def test_create_collection(self, dynamodb_repository_mock_factory):
+        # given
+        collection_name = 'book'
+        id_key = "isbn"
+        ordering = "date"
+        attributes = [
+            AttributeDefinition('title', AttributeType.STRING),
+            AttributeDefinition('date', AttributeType.DATE),
+        ]
+        dynamodb_repository_mock = dynamodb_repository_mock_factory.return_value
+        expected_collection_entity = self.build_fake_collection_entity(collection_name, id_key, ordering, attributes,
+                                                                       True)
+        dynamodb_repository_mock.create.return_value = expected_collection_entity
+        # when
+        collection = CollectionService().create_collection(
+            Collection(collection_name, id_key, ordering, attributes, True))
+
+        # then
+        self.assertIsNotNone(collection)
+        self.assertEqual(collection.name, collection_name)
+        # self.assertEqual(collection, Collection.from_dict(expected_collection_entity.object()))
+        self.assertEqual(call('system', CollectionEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(CollectionEntity(collection_name, expected_collection_entity.object())),
+                         dynamodb_repository_mock.create.call_args_list[0])
+
+    @patch('dynamoplus.v2.repository.repositories_v2.DynamoDBRepository')
+    def test_get_all_collection(self, dynamodb_repository_mock_factory):
+        # given
+
+        dynamodb_repository_mock = dynamodb_repository_mock_factory.return_value
+        expected_collection_entity_starting_from = self.build_fake_collection_entity('book', 'isbn', 'date', [
+            AttributeDefinition('title', AttributeType.STRING),
+            AttributeDefinition('date', AttributeType.DATE)], True)
+        expected_last_evaluated_key = "booking"
+        existing_index_entities = [
+            self.build_fake_collection_entity('restaurant', 'id', 'insert_date', [
+                AttributeDefinition('name', AttributeType.STRING),
+                AttributeDefinition('address', AttributeType.STRING),
+                AttributeDefinition('insert_date', AttributeType.DATE)
+            ], True)
+        ]
+        dynamodb_repository_mock.get.return_value = expected_collection_entity_starting_from
+        dynamodb_repository_mock.query.return_value = [existing_index_entities, expected_last_evaluated_key]
+        # when
+        results, last_evaluated_key = CollectionService().get_all_collections(20, 'book')
+
+        # then
+        self.assertIsNotNone(results)
+        self.assertEqual(expected_last_evaluated_key, last_evaluated_key)
+        self.assertEqual(len(results), len(existing_index_entities))
+        self.assertEqual(call('system', CollectionEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(CollectionEntity('book')), dynamodb_repository_mock.get.call_args_list[0])
+        self.assertEqual(call(QueryAll(CollectionEntity), 20, expected_collection_entity_starting_from),
+                         dynamodb_repository_mock.query.call_args_list[0])
+
+    @patch('dynamoplus.v2.repository.repositories_v2.DynamoDBRepository')
+    def test_delete_collection(self, dynamodb_repository_mock_factory):
+        # given
+        collection_name = 'book'
+
+        dynamodb_repository_mock = dynamodb_repository_mock_factory.return_value
+
+        # when
+        CollectionService().delete_collection(collection_name)
+
+        # then
+        self.assertEqual(call('system', CollectionEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(CollectionEntity(collection_name)),
+                         dynamodb_repository_mock.delete.call_args_list[0])
+
     def build_fake_index_entity(self, name: str, fields: List[str], ordering: str, collection: str):
         uid = uuid.uuid4()
         return IndexEntity(uid, self.build_fake_index_dict(uid, name, fields, ordering, collection))
 
     def build_fake_collection_entity(self, collection_name: str, id_key: str,
                                      ordering: str, attributes: List[AttributeDefinition], auto_generated_id: bool):
-        # attributes = list(
-        #     map(Collection.from_dict_to_attribute_definition, d["attributes"])) if "attributes" in d else None
-        # auto_generate_id = d["auto_generate_id"] if "auto_generate_id" in d else False
-        # return Collection(d["name"], d["id_key"], d["ordering"] if "ordering" in d else None, attributes,
-        #                   auto_generate_id)
-        # attributes = None
-        # if "attributes" in d and d["attributes"] is not None:
-        #     attributes = list(map(Collection.from_dict_to_attribute_definition, d["attributes"]))
-        # return AttributeDefinition(d["name"], Collection.from_string_to_attribute_type(d["type"]),
-        #                            Collection.from_array_to_constraints_list(
-        #                                d["constraints"]) if "constraints" in d else None,
-        #                            attributes)
-
         return CollectionEntity(collection_name, {
             "name": collection_name,
             "id_key": id_key,
