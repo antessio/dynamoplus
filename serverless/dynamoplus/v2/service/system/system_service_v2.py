@@ -227,14 +227,15 @@ class Aggregation(abc.ABC):
 
     @staticmethod
     def from_dict(d: dict) -> Aggregation:
+        uid = d["id"]
         name = d["name"]
         configuration = d["configuration_name"]
         if "count" in d:
-            return AggregationCount(name, configuration, d["count"])
+            return AggregationCount(uid, name, configuration, d["count"])
         elif "sum" in d:
-            return AggregationSum(name, configuration, d["sum"])
+            return AggregationSum(uid, name, configuration, d["sum"])
         elif "avg" in d:
-            return AggregationAvg(name, configuration, d["avg"])
+            return AggregationAvg(uid, name, configuration, d["avg"])
         else:
             raise ValueError('{} is not supported'.format(configuration))
 
@@ -244,10 +245,12 @@ class AggregationCount(Aggregation):
     count: int
 
     def to_dict(self) -> dict:
-        return {"name": self.name,
-                "configuration_name": self.configuration_name,
-                "count": self.count,
-                "type": "COLLECTION_COUNT"}
+        return {
+            "id": self.id,
+            "name": self.name,
+            "configuration_name": self.configuration_name,
+            "count": self.count,
+            "type": "COLLECTION_COUNT"}
 
 
 @dataclass(frozen=True)
@@ -255,7 +258,8 @@ class AggregationSum(Aggregation):
     sum: float
 
     def to_dict(self) -> dict:
-        return {"name": self.name, "configuration_name": self.configuration_name, "sum": self.sum, "type": "SUM"}
+        return {"id": self.id, "name": self.name, "configuration_name": self.configuration_name, "sum": self.sum,
+                "type": "SUM"}
 
 
 @dataclass(frozen=True)
@@ -263,7 +267,8 @@ class AggregationAvg(Aggregation):
     avg: float
 
     def to_dict(self) -> dict:
-        return {"name": self.name, "configuration_name": self.configuration_name, "avg": Decimal(self.avg),
+        return {"id": self.id, "name": self.name, "configuration_name": self.configuration_name,
+                "avg": Decimal(self.avg),
                 "type": "AVG"}
 
 
@@ -500,7 +505,7 @@ class AggregationService:
     def __init__(self):
         self.repo = repositories_v2.DynamoDBRepository('system', AggregationEntity)
 
-    def get_aggregation_by_name(self, uid: uuid.UUID) -> Aggregation:
+    def get_aggregation_by_id(self, uid: uuid.UUID) -> Aggregation:
 
         result = self.__get_aggregation_entity_by_id(uid)
         if result:
