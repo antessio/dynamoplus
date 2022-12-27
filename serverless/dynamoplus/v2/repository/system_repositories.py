@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List, Type
 
 from aws.dynamodb.dynamodbdao import DynamoDBModel, DynamoDBKey, Counter
-from dynamoplus.v2.repository.repositories_v2 import IndexModel, convert_model_to_dynamo_db_item, Model, Query
+from dynamoplus.v2.repository.repositories_v2 import IndexModel, convert_entity_to_dynamo_db_model, Model, Query
 
 INDEX_FIELD_SEPARATOR = "__"
 
@@ -38,8 +38,8 @@ class ClientAuthorizationEntity(Model):
         return ClientAuthorizationEntity(uuid.UUID(str.replace(dynamo_db_model.pk, CLIENT_AUTHORIZATION_ENTITY_NAME + '#', '')),
                                          dynamo_db_model.document)
 
-    def to_dynamo_db_item(self) -> DynamoDBModel:
-        return convert_model_to_dynamo_db_item(self)
+    def to_dynamo_db_model(self) -> DynamoDBModel:
+        return convert_entity_to_dynamo_db_model(self)
 
     def id(self):
         return str(self.uid)
@@ -69,8 +69,8 @@ class CollectionEntity(Model):
         return CollectionEntity(str.replace(dynamo_db_model.pk, COLLECTION_ENTITY_NAME + '#', ''),
                                 dynamo_db_model.document)
 
-    def to_dynamo_db_item(self) -> DynamoDBModel:
-        return convert_model_to_dynamo_db_item(self)
+    def to_dynamo_db_model(self) -> DynamoDBModel:
+        return convert_entity_to_dynamo_db_model(self)
 
     def id(self):
         return self.name
@@ -100,8 +100,8 @@ class IndexEntity(Model):
         return IndexEntity(uuid.UUID(str.replace(dynamo_db_model.pk, INDEX_ENTITY_NAME + '#', '')),
                            dynamo_db_model.document)
 
-    def to_dynamo_db_item(self) -> DynamoDBModel:
-        return convert_model_to_dynamo_db_item(self)
+    def to_dynamo_db_model(self) -> DynamoDBModel:
+        return convert_entity_to_dynamo_db_model(self)
 
     def id(self):
         return str(self.uid)
@@ -230,8 +230,8 @@ class AggregationConfigurationEntity(Model):
             uuid.UUID(str.replace(dynamo_db_model.pk, AGGREGATION_CONFIGURATION_ENTITY_NAME + '#', '')),
             dynamo_db_model.document)
 
-    def to_dynamo_db_item(self) -> DynamoDBModel:
-        return convert_model_to_dynamo_db_item(self)
+    def to_dynamo_db_model(self) -> DynamoDBModel:
+        return convert_entity_to_dynamo_db_model(self)
 
     def id(self):
         return str(self.uid)
@@ -309,8 +309,8 @@ class AggregationEntity(Model):
             uuid.UUID(str.replace(dynamo_db_model.pk, AGGREGATION_ENTITY_NAME + '#', '')),
             dynamo_db_model.document)
 
-    def to_dynamo_db_item(self) -> DynamoDBModel:
-        return convert_model_to_dynamo_db_item(self)
+    def to_dynamo_db_model(self) -> DynamoDBModel:
+        return convert_entity_to_dynamo_db_model(self)
 
     def id(self):
         return str(self.uid)

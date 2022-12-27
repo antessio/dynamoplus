@@ -19,7 +19,7 @@ class Model(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def to_dynamo_db_item(self) -> DynamoDBModel:
+    def to_dynamo_db_model(self) -> DynamoDBModel:
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -278,20 +278,20 @@ class DynamoDBRepository(RepositoryInterface):
         self.model_class = model_class
 
     def create(self, model: Model):
-        result = self.dao.create(model.to_dynamo_db_item())
+        result = self.dao.create(model.to_dynamo_db_model())
         return self.model_class.from_dynamo_db_item(result)
 
     def update(self, model: Model) -> Model:
-        result = self.dao.update(model.to_dynamo_db_item())
+        result = self.dao.update(model.to_dynamo_db_model())
         return self.model_class.from_dynamo_db_item(result)
 
     def get(self, model: Model) -> Model:
-        dynamo_db_model = model.to_dynamo_db_item()
+        dynamo_db_model = model.to_dynamo_db_model()
         result = self.dao.get(dynamo_db_model.pk, dynamo_db_model.sk)
         return self.model_class.from_dynamo_db_item(result)
 
     def delete(self, model: Model):
-        dynamo_db_model = model.to_dynamo_db_item()
+        dynamo_db_model = model.to_dynamo_db_model()
         self.dao.delete(dynamo_db_model.pk, dynamo_db_model.sk)
 
     def indexing(self, indexing: IndexingOperation) -> None:
@@ -308,7 +308,7 @@ class DynamoDBRepository(RepositoryInterface):
     def query(self, query: Query, limit: int, starting_after: Model = None) -> (List[Model], str):
         start_from = None
         if starting_after:
-            starting_after_dynamo_db_model = starting_after.to_dynamo_db_item()
+            starting_after_dynamo_db_model = starting_after.to_dynamo_db_model()
             start_from = DynamoDBKey(starting_after_dynamo_db_model.pk, starting_after_dynamo_db_model.sk,
                                      starting_after_dynamo_db_model.data)
         result = self.dao.query(query.build_dynamo_query(), limit, start_from)
@@ -318,10 +318,10 @@ class DynamoDBRepository(RepositoryInterface):
         return list(map(lambda d: self.model_class.from_dynamo_db_item(d), result.data)), last_evaluated_model
 
     def increment_counter(self, model: Model, counters: List[Counter]):
-        self.dao.increment_counter(AtomicIncrement(model.to_dynamo_db_item().pk, model.to_dynamo_db_item().sk, counters))
+        self.dao.increment_counter(AtomicIncrement(model.to_dynamo_db_model().pk, model.to_dynamo_db_model().sk, counters))
 
 
-def convert_model_to_dynamo_db_item(model: Model):
+def convert_entity_to_dynamo_db_model(model: Model):
     pk = model.entity_name() + "#" + model.id()
     sk = model.entity_name()
     data = model.ordering() if model.ordering() else model.id()
