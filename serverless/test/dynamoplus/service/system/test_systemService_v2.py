@@ -8,13 +8,14 @@ from dynamoplus.models.system.aggregation.aggregation import AggregationType
 from dynamoplus.models.system.client_authorization.client_authorization import ScopesType, Scope
 from dynamoplus.models.system.collection.collection import AttributeDefinition, AttributeType
 from dynamoplus.models.system.index.index import IndexConfiguration
+from aws.dynamodb.dynamodbdao import Counter
 from dynamoplus.v2.repository.repositories_v2 import IndexingOperation, QueryAll
 from dynamoplus.v2.repository.system_repositories import IndexEntity, QueryIndexByCollectionNameAndFields, \
     IndexByCollectionNameAndFieldsEntity, IndexByCollectionNameEntity, QueryIndexByCollectionName, \
-    ClientAuthorizationEntity, CollectionEntity, AggregationEntity
+    ClientAuthorizationEntity, CollectionEntity, AggregationEntity, QueryAggregationByAggregationConfigurationName
 from dynamoplus.v2.service.system.system_service_v2 import CollectionService, IndexService, Index, IndexEntityAdapter, \
     AuthorizationService, ClientAuthorization, ClientAuthorizationApiKey, ClientAuthorizationEntityAdapter, \
-    ClientAuthorizationHttpSignature, Collection, AggregationService
+    ClientAuthorizationHttpSignature, Collection, AggregationService, AggregationCount, AggregationSum
 
 domain_table_name = "domain"
 system_table_name = "system"
@@ -440,27 +441,157 @@ class TestSystemService(unittest.TestCase):
         # given
         starting_from = uuid.uuid4()
         dynamodb_repository_mock = dynamodb_repository_mock_factory.return_value
+        aggregation_configuration_name = 'fake_count_config'
         expected_aggregation_entity_starting_from = TestSystemService.build_fake_aggregation_entity(starting_from,
                                                                                                     'fake_count',
-                                                                                                    'fake_count_config',
+                                                                                                    aggregation_configuration_name,
                                                                                                     lambda
                                                                                                         p: TestSystemService.add_count(
                                                                                                         p, 10))
+        expected_aggregation_entity_last_evaluated_id = uuid.uuid4()
         dynamodb_repository_mock.get.return_value = expected_aggregation_entity_starting_from
+        expected_entities = [
+            TestSystemService.build_fake_aggregation_entity(uuid.uuid4(),
+                                                            'fake_count_1',
+                                                            aggregation_configuration_name,
+                                                            lambda
+                                                                p: TestSystemService.add_count(
+                                                                p, 10)),
+            TestSystemService.build_fake_aggregation_entity(uuid.uuid4(),
+                                                            'fake_count_2',
+                                                            aggregation_configuration_name,
+                                                            lambda
+                                                                p: TestSystemService.add_avg(
+                                                                p, 10))
+        ]
         dynamodb_repository_mock.query.return_value = [
-            []
+            expected_entities, expected_aggregation_entity_last_evaluated_id
         ]
 
         # when
-        result = AggregationService().get_aggregations_by_configuration_name('fake_count_config', 20, starting_from)
+        result, last_key = AggregationService().get_aggregations_by_configuration_name(aggregation_configuration_name,
+                                                                                       20, starting_from)
 
         # then
         self.assertIsNotNone(result)
-        self.assertEqual(result.id, starting_from)
-        self.assertEqual(result.to_dict(), expected_aggregation_entity_starting_from.object())
+        self.assertEqual(len(result), len(expected_entities))
+        self.assertEqual(last_key, expected_aggregation_entity_last_evaluated_id)
         self.assertEqual(call('system', AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(AggregationEntity(starting_from)),
                          dynamodb_repository_mock.get.call_args_list[0])
+        self.assertEqual(call(QueryAggregationByAggregationConfigurationName(aggregation_configuration_name), 20,
+                              expected_aggregation_entity_starting_from),
+                         dynamodb_repository_mock.query.call_args_list[0])
+
+    @patch('dynamoplus.v2.repository.repositories_v2.DynamoDBRepository')
+    def test_get_all_aggregations(self, dynamodb_repository_mock_factory):
+        # given
+        starting_from = uuid.uuid4()
+        dynamodb_repository_mock = dynamodb_repository_mock_factory.return_value
+        aggregation_configuration_name = 'fake_count_config'
+        expected_aggregation_entity_starting_from = TestSystemService.build_fake_aggregation_entity(starting_from,
+                                                                                                    'fake_count',
+                                                                                                    aggregation_configuration_name,
+                                                                                                    lambda
+                                                                                                        p: TestSystemService.add_count(
+                                                                                                        p, 10))
+        expected_aggregation_entity_last_evaluated_id = uuid.uuid4()
+        dynamodb_repository_mock.get.return_value = expected_aggregation_entity_starting_from
+        expected_entities = [
+            TestSystemService.build_fake_aggregation_entity(uuid.uuid4(),
+                                                            'fake_count_1',
+                                                            aggregation_configuration_name,
+                                                            lambda
+                                                                p: TestSystemService.add_count(
+                                                                p, 10)),
+            TestSystemService.build_fake_aggregation_entity(uuid.uuid4(),
+                                                            'fake_count_2',
+                                                            aggregation_configuration_name,
+                                                            lambda
+                                                                p: TestSystemService.add_avg(
+                                                                p, 10))
+        ]
+        dynamodb_repository_mock.query.return_value = [
+            expected_entities, expected_aggregation_entity_last_evaluated_id
+        ]
+
+        # when
+        result, last_key = AggregationService().get_all_aggregations(20, starting_from)
+
+        # then
+        self.assertIsNotNone(result)
+        self.assertEqual(len(result), len(expected_entities))
+        self.assertEqual(last_key, expected_aggregation_entity_last_evaluated_id)
+        self.assertEqual(call('system', AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(AggregationEntity(starting_from)),
+                         dynamodb_repository_mock.get.call_args_list[0])
+        self.assertEqual(call(QueryAll(AggregationEntity), 20,
+                              expected_aggregation_entity_starting_from),
+                         dynamodb_repository_mock.query.call_args_list[0])
+
+    @patch('dynamoplus.v2.repository.repositories_v2.DynamoDBRepository')
+    def test_increment_counter(self, dynamodb_repository_mock_factory):
+        # given
+        dynamodb_repository_mock = dynamodb_repository_mock_factory.return_value
+        aggregation_count = AggregationCount(uuid.uuid4(), 'count', 'count_books', 10)
+
+        # when
+        result = AggregationService().increment_count(aggregation_count)
+
+        # then
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, AggregationCount)
+        self.assertEqual(
+            call(
+                AggregationEntity(aggregation_count.id, aggregation_count.to_dict()).to_dynamo_db_model().to_dynamo_db_item(),
+                [Counter("count", decimal.Decimal(1), True)]
+            ),
+            dynamodb_repository_mock.increment_counter.call_args_list[0]
+        )
+
+    @patch('dynamoplus.v2.repository.repositories_v2.DynamoDBRepository')
+    def test_decrement_counter(self, dynamodb_repository_mock_factory):
+        # given
+        dynamodb_repository_mock = dynamodb_repository_mock_factory.return_value
+        aggregation_count = AggregationCount(uuid.uuid4(), 'count', 'count_books', 10)
+
+        # when
+        result = AggregationService().decrement_count(aggregation_count)
+
+        # then
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, AggregationCount)
+        self.assertEqual(
+            call(
+                AggregationEntity(aggregation_count.id,
+                                  aggregation_count.to_dict()).to_dynamo_db_model().to_dynamo_db_item(),
+                [Counter("count", decimal.Decimal(1), False)]
+            ),
+            dynamodb_repository_mock.increment_counter.call_args_list[0]
+        )
+
+    @patch('dynamoplus.v2.repository.repositories_v2.DynamoDBRepository')
+    def test_increment_sum(self, dynamodb_repository_mock_factory):
+        # given
+        dynamodb_repository_mock = dynamodb_repository_mock_factory.return_value
+        existing_value = 10
+        existing_aggregation = AggregationSum(uuid.uuid4(), 'sum', 'sum_books', existing_value)
+
+        # when
+        new_value = 5
+        result = AggregationService().increment(existing_aggregation, decimal.Decimal(new_value))
+
+        # then
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, AggregationSum)
+        self.assertEqual(
+            call(
+                AggregationEntity(existing_aggregation.id,
+                                  existing_aggregation.to_dict()).to_dynamo_db_model().to_dynamo_db_item(),
+                [Counter("sum", decimal.Decimal(new_value-existing_value), False)]
+            ),
+            dynamodb_repository_mock.increment_counter.call_args_list[0]
+        )
 
     @staticmethod
     def add_count(payload: dict, count: int) -> dict:

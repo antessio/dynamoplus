@@ -495,7 +495,7 @@ class AuthorizationService:
         if model:
             return ClientAuthorization.from_dict(model.object())
 
-    def delete_authorization(self, client_id: str):
+    def delete_authorization(self, client_id: uuid.UUID):
         logging.info("deleting client authorization {}".format(client_id))
         self.repo.delete(ClientAuthorizationEntity(client_id))
 
@@ -549,14 +549,14 @@ class AggregationService:
                 map(lambda m: Aggregation.from_dict(m.object()), result)), last_key
 
     def increment_count(self, aggregation: AggregationCount) -> Aggregation:
-        entity = AggregationEntity(aggregation.id, aggregation.to_dict()).to_dynamo_db_item()
+        entity = AggregationEntity(aggregation.id, aggregation.to_dict()).to_dynamo_db_model()
 
         self.repo.increment_counter(entity.to_dynamo_db_item(), [Counter("count", Decimal(1), True)])
         return AggregationCount(aggregation.id, aggregation.name, aggregation.configuration_name, aggregation.count + 1)
 
     def increment(self, aggregation: Aggregation, new_value: Decimal) -> Aggregation:
 
-        entity = AggregationEntity(aggregation.id, aggregation.to_dict()).to_dynamo_db_item()
+        entity = AggregationEntity(aggregation.id, aggregation.to_dict()).to_dynamo_db_model()
         counter, converter = AggregationService.__get_increment(aggregation, new_value)
 
         result = self.repo.increment_counter(entity.to_dynamo_db_item(), [counter])
@@ -575,26 +575,26 @@ class AggregationService:
                 AggregationCount(aggregation.id,
                                  aggregation.name,
                                  aggregation.configuration_name,
-                                 int(delta.to_integral()))
+                                 int(abs(delta.to_integral())))
         elif isinstance(aggregation, AggregationSum):
             delta = new_value - aggregation.sum
             return Counter('sum', delta, True if delta >= 0 else False), lambda a: \
                 AggregationSum(aggregation.id,
                                aggregation.name,
                                aggregation.configuration_name,
-                               float(delta))
+                               float(abs(delta)))
         elif isinstance(aggregation, AggregationAvg):
             delta = new_value - Decimal(aggregation.avg)
             return Counter('avg', delta, True if delta >= 0 else False), lambda a: \
                 AggregationAvg(aggregation.id,
                                aggregation.name,
                                aggregation.configuration_name,
-                               float(delta))
+                               float(abs(delta)))
         else:
             raise ValueError("invalid aggregation {}".format(aggregation))
 
     def decrement_count(self, aggregation: AggregationCount) -> Aggregation:
-        entity = AggregationEntity(aggregation.id, aggregation.to_dict()).to_dynamo_db_item()
+        entity = AggregationEntity(aggregation.id, aggregation.to_dict()).to_dynamo_db_model()
 
         self.repo.increment_counter(entity.to_dynamo_db_item(), [Counter("count", Decimal(1), False)])
         return AggregationCount(aggregation.id, aggregation.name, aggregation.configuration_name, aggregation.count - 1)
