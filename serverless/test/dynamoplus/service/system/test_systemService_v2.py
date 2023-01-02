@@ -15,7 +15,7 @@ from dynamoplus.v2.repository.system_repositories import IndexEntity, QueryIndex
     ClientAuthorizationEntity, CollectionEntity, AggregationEntity, QueryAggregationByAggregationConfigurationName
 from dynamoplus.v2.service.system.system_service_v2 import CollectionService, IndexService, Index, IndexEntityAdapter, \
     AuthorizationService, ClientAuthorization, ClientAuthorizationApiKey, ClientAuthorizationEntityAdapter, \
-    ClientAuthorizationHttpSignature, Collection, AggregationService, AggregationCount, AggregationSum
+    ClientAuthorizationHttpSignature, Collection, AggregationService, AggregationCount, AggregationSum, AggregationAvg
 
 domain_table_name = "domain"
 system_table_name = "system"
@@ -589,6 +589,29 @@ class TestSystemService(unittest.TestCase):
                 AggregationEntity(existing_aggregation.id,
                                   existing_aggregation.to_dict()).to_dynamo_db_model().to_dynamo_db_item(),
                 [Counter("sum", decimal.Decimal(new_value-existing_value), False)]
+            ),
+            dynamodb_repository_mock.increment_counter.call_args_list[0]
+        )
+
+    @patch('dynamoplus.v2.repository.repositories_v2.DynamoDBRepository')
+    def test_increment_avg(self, dynamodb_repository_mock_factory):
+        # given
+        dynamodb_repository_mock = dynamodb_repository_mock_factory.return_value
+        existing_value = 10.5
+        existing_aggregation = AggregationAvg(uuid.uuid4(), 'avg', 'avg_books', existing_value)
+
+        # when
+        new_value = decimal.Decimal(11.2)
+        result = AggregationService().increment(existing_aggregation, new_value)
+
+        # then
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, AggregationAvg)
+        self.assertEqual(
+            call(
+                AggregationEntity(existing_aggregation.id,
+                                  existing_aggregation.to_dict()).to_dynamo_db_model().to_dynamo_db_item(),
+                [Counter("avg", new_value - decimal.Decimal(existing_value), True)]
             ),
             dynamodb_repository_mock.increment_counter.call_args_list[0]
         )
