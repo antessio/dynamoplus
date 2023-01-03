@@ -274,7 +274,7 @@ class AggregationAvg(Aggregation):
 
 @dataclass(frozen=True)
 class AggregationConfiguration:
-    id: uuid.UUID
+    uid: uuid.UUID
     collection_name: str
     type: AggregationType
     on: List[AggregationTrigger]
@@ -296,17 +296,17 @@ class AggregationConfiguration:
     def from_dict(document: dict) -> AggregationConfiguration:
         collection_name = document["collection"]["name"]
         t = AggregationType.value_of(document["type"])
-        inner_aggregation_document = document["aggregation"]
-        on = list(map(lambda o: AggregationTrigger.value_of(o), inner_aggregation_document["on"]))
+        inner_aggregation_document = document["aggregation"] if 'aggregation' in document else None
+        on = list(map(lambda o: AggregationTrigger.value_of(o), inner_aggregation_document["on"])) if inner_aggregation_document else None
         target_field = None
         matches = None
         join = None
-        if "target_field" in inner_aggregation_document:
+        if inner_aggregation_document and "target_field" in inner_aggregation_document:
             target_field = inner_aggregation_document["target_field"]
-        if "join" in inner_aggregation_document:
+        if inner_aggregation_document and  "join" in inner_aggregation_document:
             join = AggregationJoin(inner_aggregation_document["join"]["collection_name"],
                                    inner_aggregation_document["join"]["using_field"])
-        if "matches" in inner_aggregation_document:
+        if inner_aggregation_document and "matches" in inner_aggregation_document:
             matches = AggregationConfiguration.from_dict_to_predicate(inner_aggregation_document["matches"])
 
         uid = uuid.UUID(document["id"])
@@ -332,7 +332,7 @@ class AggregationConfiguration:
         if self.matches:
             a["matches"] = AggregationConfiguration.from_predicate_to_dict(self.matches)
         d["aggregation"] = a
-        d["id"] = self.id
+        d["id"] = self.uid
         return d
 
     @staticmethod
@@ -349,7 +349,7 @@ class AggregationConfiguration:
 
 class AggregationConfigurationEntityAdapter(AggregationConfigurationEntity):
     def __init__(self, aggregation_configuration: AggregationConfiguration):
-        super(AggregationConfigurationEntity, self).__init__(aggregation_configuration.id,
+        super(AggregationConfigurationEntityAdapter, self).__init__(aggregation_configuration.uid,
                                                              aggregation_configuration.to_dict())
 
 
@@ -611,7 +611,7 @@ class AggregationService:
 class AggregationConfigurationService:
 
     def __from_entity_to_aggregation_configuration(m: Model):
-        return AggregationConfiguration.from_dict_to_aggregation_configuration(m.object())
+        return AggregationConfiguration.from_dict(m.object())
 
     def __init__(self):
         self.repo = repositories_v2.DynamoDBRepository('system', AggregationConfigurationEntity)
@@ -619,7 +619,7 @@ class AggregationConfigurationService:
     def __get_aggregation_configuration_entity_by_id(self, uid: uuid.UUID) -> Model:
         return self.repo.get(AggregationConfigurationEntity(uid))
 
-    def get_aggregation_by_uid(self, uid: uuid.UUID):
+    def get_aggregation_configuration_by_uid(self, uid: uuid.UUID):
         entity = self.__get_aggregation_configuration_entity_by_id(uid)
         return AggregationConfigurationService.__from_entity_to_aggregation_configuration(entity)
 
@@ -628,9 +628,9 @@ class AggregationConfigurationService:
         start_after_entity = None
         if start_from:
             start_after_entity = self.__get_aggregation_configuration_entity_by_id(start_from)
-        result, last_evaluated_key = self.repo.query(QueryAll(AggregationEntity), limit, start_after_entity)
+        result, last_evaluated_key = self.repo.query(QueryAll(AggregationConfigurationEntity), limit, start_after_entity)
         if result:
-            return list(map(lambda m: AggregationConfigurationService.__from_entity_to_aggregation_configuration(),
+            return list(map(lambda m: AggregationConfigurationService.__from_entity_to_aggregation_configuration(m),
                             result)), uuid.UUID(last_evaluated_key) if last_evaluated_key is not None else None
 
     def create_aggregation_configuration(self, aggregation_configuration: AggregationConfiguration):
@@ -661,5 +661,5 @@ class AggregationConfigurationService:
         result, last_evaluated_key = self.repo.query(QueryAggregationConfigurationByCollectionName(collection_name),
                                                      limit, start_after_entity)
         if result:
-            return list(map(lambda m: AggregationConfigurationService.__from_entity_to_aggregation_configuration(),
+            return list(map(lambda m: AggregationConfigurationService.__from_entity_to_aggregation_configuration(m),
                             result)), uuid.UUID(last_evaluated_key) if last_evaluated_key is not None else None

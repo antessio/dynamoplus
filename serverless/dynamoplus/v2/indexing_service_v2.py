@@ -1,16 +1,18 @@
 import logging
 
-# from dynamoplus.models.system.aggregation.aggregation import AggregationTrigger
 from dynamoplus.models.system.aggregation.aggregation import AggregationTrigger
+# from dynamoplus.models.system.aggregation.aggregation import AggregationTrigger
 from dynamoplus.models.system.index.index import IndexConfiguration
 from dynamoplus.models.system.collection.collection import Collection
-from dynamoplus.v2.service.system.system_service import IndexService, CollectionService, AggregationConfigurationService
+from dynamoplus.v2.service.system.aggregation_service_v2 import AggregationProcessingService
+from dynamoplus.v2.service.system.system_service import IndexService, CollectionService
 from dynamoplus.v2.service.model_service import get_index_model
 from dynamoplus.v2.service.common import is_system, get_repository_factory
 from dynamoplus.utils.utils import find_added_values, find_removed_values, find_updated_values, \
     filter_out_not_included_fields
 
-from dynamoplus.v2.service.system.aggregation_service import AggregationProcessingService
+
+from dynamoplus.v2.service.system.system_service_v2 import AggregationConfigurationService
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -36,7 +38,7 @@ def __indexing(collection_metadata: Collection,
         for update in to_update_index_models:
             repository.update(update)
 
-        aggregations = AggregationConfigurationService.get_aggregation_configurations_by_collection_name_generator(
+        aggregations = AggregationConfigurationService().get_aggregation_configurations_by_collection_name_generator(
             collection_metadata.name)
         trigger = AggregationTrigger.UPDATE
         if old_record is None:
@@ -45,7 +47,7 @@ def __indexing(collection_metadata: Collection,
             trigger = AggregationTrigger.DELETE
         for a in aggregations:
             if trigger in a.on:
-                AggregationProcessingService.execute_aggregation(a, collection_metadata, new_record, old_record)
+                AggregationProcessingService(a).execute_aggregation(collection_metadata, new_record, old_record)
 
 
 def get_index_models_to_remove(collection_metadata, new_record: dict, old_record: dict):
