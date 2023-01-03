@@ -9,7 +9,8 @@ from mock import call
 from unittest.mock import patch
 
 from aws.dynamodb.dynamodbdao import DynamoDBDAO, DynamoDBModel
-from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, AggregationConfigurationService
+from dynamoplus.v2.service.system.system_service import CollectionService, IndexService
+from dynamoplus.v2.service.system.system_service_v2 import AggregationConfigurationService
 
 domain_table_name = "domain"
 system_table_name = "system"
