@@ -356,7 +356,7 @@ class AggregationConfigurationEntityAdapter(AggregationConfigurationEntity):
 class CollectionService:
 
     def __init__(self):
-        self.repo = repositories_v2.DynamoDBRepository('system', CollectionEntity)
+        self.repo = repositories_v2.DynamoDBRepository(CollectionEntity)
 
     def get_collection(self, collection_name: str) -> Collection:
         result = self.repo.get(CollectionEntity(collection_name))
@@ -393,7 +393,7 @@ class CollectionService:
 class IndexService:
 
     def __init__(self):
-        self.repo = repositories_v2.DynamoDBRepository('system', IndexEntity)
+        self.repo = repositories_v2.DynamoDBRepository(IndexEntity)
 
     def create_index(self, index: Index) -> Index:
         logger.debug("index : {}".format(index.__str__()))
@@ -473,7 +473,7 @@ class IndexService:
 class AuthorizationService:
 
     def __init__(self):
-        self.repo = repositories_v2.DynamoDBRepository('system', ClientAuthorizationEntity)
+        self.repo = repositories_v2.DynamoDBRepository(ClientAuthorizationEntity)
 
     def get_client_authorization(self, uid: uuid.UUID):
         result = self.repo.get(ClientAuthorizationEntity(uid))
@@ -503,7 +503,7 @@ class AuthorizationService:
 class AggregationService:
 
     def __init__(self):
-        self.repo = repositories_v2.DynamoDBRepository('system', AggregationEntity)
+        self.repo = repositories_v2.DynamoDBRepository(AggregationEntity)
 
     def get_aggregation_by_id(self, uid: uuid.UUID) -> Aggregation:
 
@@ -614,7 +614,7 @@ class AggregationConfigurationService:
         return AggregationConfiguration.from_dict(m.object())
 
     def __init__(self):
-        self.repo = repositories_v2.DynamoDBRepository('system', AggregationConfigurationEntity)
+        self.repo = repositories_v2.DynamoDBRepository(AggregationConfigurationEntity)
 
     def __get_aggregation_configuration_entity_by_id(self, uid: uuid.UUID) -> Model:
         return self.repo.get(AggregationConfigurationEntity(uid))

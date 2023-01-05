@@ -1,3 +1,4 @@
+import os
 import unittest
 import uuid
 from datetime import datetime
@@ -25,6 +26,7 @@ class TestSystemRepository(unittest.TestCase):
     @mock_dynamodb2
     def setUp(self):
         set_up_for_integration_test(table_name)
+
 
     def tearDown(self):
         cleanup_table(table_name)
@@ -112,7 +114,10 @@ class TestSystemRepository(unittest.TestCase):
         }))
     ])
     def test_create(self, collection_name, expected_entity):
-        repository = DynamoDBRepository(table_name, expected_entity.__class__)
+        os.environ["DYNAMODB_DOMAIN_TABLE"] = 'domain'
+        os.environ["DYNAMODB_SYSTEM_TABLE"] = 'system'
+
+        repository = DynamoDBRepository(expected_entity.__class__)
         result = repository.create(expected_entity)
         self.assertIsInstance(result, expected_entity.__class__)
         self.assertIsNotNone(result)
@@ -150,7 +155,9 @@ class TestSystemRepository(unittest.TestCase):
          })
     ])
     def test_get(self, collection_name: str, expected_entity_key: Model, expected_document: dict):
-        repository = DynamoDBRepository(table_name, expected_entity_key.__class__)
+        os.environ["DYNAMODB_DOMAIN_TABLE"] = 'domain'
+        os.environ["DYNAMODB_SYSTEM_TABLE"] = 'system'
+        repository = DynamoDBRepository(expected_entity_key.__class__)
         get_dynamodb_table(table_name).put_item(
             Item={"pk": (collection_name + "#%s" % expected_entity_key.id()), "sk": collection_name,
                   "data": expected_entity_key.id(),
@@ -187,7 +194,7 @@ class TestSystemRepository(unittest.TestCase):
         update_index_object = {**index_object, "collection": {
             "name": "books"
         }}
-        repository = DynamoDBRepository(table_name, IndexEntity)
+        repository = DynamoDBRepository(IndexEntity)
         repository.indexing(IndexingOperation([],
                                               [IndexByCollectionNameEntity(uid, "books", update_index_object,
                                                                            ordering)],
@@ -221,7 +228,7 @@ class TestSystemRepository(unittest.TestCase):
         get_dynamodb_table(table_name).put_item(
             Item={"pk": ("index#%s" % str(id)), "sk": "index", "data": str(id) + "#" + ordering,
                   "document": index_object})
-        repository = DynamoDBRepository(table_name, IndexEntity)
+        repository = DynamoDBRepository(IndexEntity)
         repository.indexing(
             IndexingOperation([],
                               [],
@@ -258,7 +265,7 @@ class TestSystemRepository(unittest.TestCase):
         expected_index = IndexByCollectionNameEntity(id, collection_name, index_object, ordering)
         get_dynamodb_table(table_name).put_item(
             Item=expected_index.to_dynamo_db_model().to_dynamo_db_item())
-        repository = DynamoDBRepository(table_name, IndexEntity)
+        repository = DynamoDBRepository(IndexEntity)
         repository.indexing(
             IndexingOperation([expected_index],
                               [],
@@ -362,7 +369,7 @@ class TestSystemRepository(unittest.TestCase):
         get_dynamodb_table(table_name).put_item(
             Item=index_model_builder(index_id, index_object, ordering).to_dynamo_db_model().to_dynamo_db_item())
 
-        repository = DynamoDBRepository(table_name, target_entity)
+        repository = DynamoDBRepository(target_entity)
         result, last_key = repository.query(query, 10)
         self.assertIsNotNone(result)
         self.assertIsNone(last_key)
