@@ -15,6 +15,11 @@ class Model(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
+    def table_name(cls):
+        raise NotImplementedError()
+
+    @classmethod
+    @abc.abstractmethod
     def from_dynamo_db_item(cls, dynamo_db_model: DynamoDBModel) -> Model:
         raise NotImplementedError()
 
@@ -43,6 +48,7 @@ class Model(abc.ABC):
     @abc.abstractmethod
     def from_dynamo_db_key(cls, last_evaluated_key: DynamoDBKey) -> str:
         pass
+
 
 @dataclass(frozen=True)
 class IndexingOperation:
@@ -273,8 +279,8 @@ class RepositoryInterface(abc.ABC):
 
 class DynamoDBRepository(RepositoryInterface):
 
-    def __init__(self, table_name: str, model_class: Type[Model]):
-        self.dao = DynamoDBDAO(table_name)
+    def __init__(self, model_class: Type[Model]):
+        self.dao = DynamoDBDAO(model_class.table_name())
         self.model_class = model_class
 
     def create(self, model: Model):
@@ -318,7 +324,8 @@ class DynamoDBRepository(RepositoryInterface):
         return list(map(lambda d: self.model_class.from_dynamo_db_item(d), result.data)), last_evaluated_model
 
     def increment_counter(self, model: Model, counters: List[Counter]):
-        self.dao.increment_counter(AtomicIncrement(model.to_dynamo_db_model().pk, model.to_dynamo_db_model().sk, counters))
+        self.dao.increment_counter(
+            AtomicIncrement(model.to_dynamo_db_model().pk, model.to_dynamo_db_model().sk, counters))
 
 
 def convert_entity_to_dynamo_db_model(model: Model):

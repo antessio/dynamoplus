@@ -10,6 +10,7 @@ from dynamoplus.models.system.aggregation.aggregation import AggregationType, Ag
 def set_up_for_integration_test(table_name: str):
     os.environ["TEST_FLAG"] = "true"
     os.environ["DYNAMODB_DOMAIN_TABLE"] = table_name
+    os.environ["DYNAMODB_SYSTEM_TABLE"] = table_name
     dynamodb = boto3.resource("dynamodb")
     dynamodb.create_table(TableName=table_name,
                           KeySchema=[
@@ -38,6 +39,7 @@ def cleanup_table(table_name: str):
     table.delete()
     if "DYNAMODB_DOMAIN_TABLE" in os.environ:
         del os.environ["DYNAMODB_DOMAIN_TABLE"]
+        del os.environ["DYNAMODB_SYSTEM_TABLE"]
 
 
 def get_dynamodb_table(table_name):

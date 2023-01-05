@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import os
 import uuid
-from dataclasses import dataclass, field
+from abc import ABC
+from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Type
+from typing import List
 
-from aws.dynamodb.dynamodbdao import DynamoDBModel, DynamoDBKey, Counter
+from aws.dynamodb.dynamodbdao import DynamoDBModel, DynamoDBKey
 from dynamoplus.v2.repository.repositories_v2 import IndexModel, convert_entity_to_dynamo_db_model, Model, Query
 
 INDEX_FIELD_SEPARATOR = "__"
@@ -24,8 +26,14 @@ system_collections = [COLLECTION_ENTITY_NAME, INDEX_ENTITY_NAME, CLIENT_AUTHORIZ
                       AGGREGATION_CONFIGURATION_ENTITY_NAME, AGGREGATION_ENTITY_NAME]
 
 
+class SystemModel(Model, ABC):
+    @classmethod
+    def table_name(cls):
+        return os.environ['DYNAMODB_SYSTEM_TABLE']
+
+
 @dataclass(frozen=True)
-class ClientAuthorizationEntity(Model):
+class ClientAuthorizationEntity(SystemModel):
     uid: uuid.UUID
     payload: dict = None
 
@@ -35,8 +43,9 @@ class ClientAuthorizationEntity(Model):
 
     @classmethod
     def from_dynamo_db_item(cls, dynamo_db_model: DynamoDBModel) -> ClientAuthorizationEntity:
-        return ClientAuthorizationEntity(uuid.UUID(str.replace(dynamo_db_model.pk, CLIENT_AUTHORIZATION_ENTITY_NAME + '#', '')),
-                                         dynamo_db_model.document)
+        return ClientAuthorizationEntity(
+            uuid.UUID(str.replace(dynamo_db_model.pk, CLIENT_AUTHORIZATION_ENTITY_NAME + '#', '')),
+            dynamo_db_model.document)
 
     def to_dynamo_db_model(self) -> DynamoDBModel:
         return convert_entity_to_dynamo_db_model(self)
@@ -56,7 +65,7 @@ class ClientAuthorizationEntity(Model):
 
 
 @dataclass(frozen=True)
-class CollectionEntity(Model):
+class CollectionEntity(SystemModel):
     name: str
     payload: dict = None
 
@@ -87,7 +96,7 @@ class CollectionEntity(Model):
 
 
 @dataclass(frozen=True)
-class IndexEntity(Model):
+class IndexEntity(SystemModel):
     uid: uuid.UUID
     payload: dict = None
 
@@ -216,7 +225,7 @@ class QueryIndexByCollectionNameAndFields(Query):
 
 
 @dataclass(frozen=True)
-class AggregationConfigurationEntity(Model):
+class AggregationConfigurationEntity(SystemModel):
     uid: uuid.UUID
     payload: dict = None
 
@@ -295,7 +304,7 @@ class QueryAggregationConfigurationByCollectionName(Query):
 
 
 @dataclass(frozen=True)
-class AggregationEntity(Model):
+class AggregationEntity(SystemModel):
     uid: uuid.UUID
     payload: dict = None
 

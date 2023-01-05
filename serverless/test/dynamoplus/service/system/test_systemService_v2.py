@@ -43,7 +43,7 @@ class TestSystemServiceIndexService(unittest.TestCase):
 
         # then
         self.assertEqual(index_created, index)
-        self.assertEqual(call('system', IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(QueryIndexByCollectionNameAndFields(expected_collection_name, expected_fields), 1, None),
                          dynamodb_repository_mock.query.call_args_list[0])
         self.assertEqual(call(expected_index_entity),
@@ -78,7 +78,7 @@ class TestSystemServiceIndexService(unittest.TestCase):
         # then
         self.assertNotEqual(index_created, index)
         self.assertEqual(uuid.UUID(existing_index_entity.id()), index_created.id)
-        self.assertEqual(call('system', IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(QueryIndexByCollectionNameAndFields(expected_collection_name, expected_fields), 1, None),
                          dynamodb_repository_mock.query.call_args_list[0])
         self.assertFalse(dynamodb_repository_mock.create.called)
@@ -100,7 +100,7 @@ class TestSystemServiceIndexService(unittest.TestCase):
 
         # then
         self.assertIsNotNone(index)
-        self.assertEqual(call('system', IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(QueryIndexByCollectionNameAndFields(collection_name, fields), 1, None),
                          dynamodb_repository_mock.query.call_args_list[0])
 
@@ -126,7 +126,7 @@ class TestSystemServiceIndexService(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertIsNotNone(last_key)
         self.assertEqual(2, len(result))
-        self.assertEqual(call('system', IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(IndexEntity(starting_after, None)), dynamodb_repository_mock.get.call_args_list[0])
         self.assertEqual(call(QueryIndexByCollectionName(collection_name), limit, expected_starting_after_index),
                          dynamodb_repository_mock.query.call_args_list[0])
@@ -146,7 +146,7 @@ class TestSystemServiceIndexService(unittest.TestCase):
 
         # then
         self.assertIsNotNone(index)
-        self.assertEqual(call('system', IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(QueryIndexByCollectionNameAndFields(collection_name, fields), 1, None),
                          dynamodb_repository_mock.query.call_args_list[0])
 
@@ -167,7 +167,7 @@ class TestSystemServiceIndexService(unittest.TestCase):
 
         # then
         self.assertIsNotNone(index)
-        self.assertEqual(call('system', IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(QueryIndexByCollectionNameAndFields(collection_name, fields), 1, None),
                          dynamodb_repository_mock.query.call_args_list[0])
         self.assertEqual(call(QueryIndexByCollectionNameAndFields(collection_name, ['author']), 1, None),
@@ -183,7 +183,7 @@ class TestSystemServiceIndexService(unittest.TestCase):
         IndexService().delete_index(index_id)
 
         # then
-        self.assertEqual(call('system', IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(IndexEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(IndexEntity(index_id)), dynamodb_repository_mock.delete.call_args_list[0])
 
 
@@ -208,7 +208,7 @@ class TestSystemServiceClientAuthorizationService(unittest.TestCase):
         self.assertIsInstance(client_authorization, ClientAuthorizationApiKey)
         self.assertEqual(client_authorization.client_id, expected_client_authorization_id)
         # self.assertEqual(client_authorization, ClientAuthorization.from_dict(client_authorization.to_dict()))
-        self.assertEqual(call('system', ClientAuthorizationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(ClientAuthorizationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(ClientAuthorizationEntity(expected_client_authorization_id)),
                          dynamodb_repository_mock.get.call_args_list[0])
 
@@ -232,7 +232,7 @@ class TestSystemServiceClientAuthorizationService(unittest.TestCase):
         self.assertIsInstance(client_authorization, ClientAuthorizationHttpSignature)
         self.assertEqual(client_authorization.client_id, expected_client_authorization_id)
         # self.assertEqual(client_authorization, ClientAuthorization.from_dict(client_authorization.to_dict()))
-        self.assertEqual(call('system', ClientAuthorizationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(ClientAuthorizationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(ClientAuthorizationEntity(expected_client_authorization_id)),
                          dynamodb_repository_mock.get.call_args_list[0])
 
@@ -256,7 +256,7 @@ class TestSystemServiceClientAuthorizationService(unittest.TestCase):
         # then
         self.assertIsNotNone(created_client_authorization_api_key)
         self.assertEqual(str(created_client_authorization_api_key.client_id), expected_entity.id())
-        self.assertEqual(call('system', ClientAuthorizationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(ClientAuthorizationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(ClientAuthorizationEntityAdapter(authorization_api_key)),
                          dynamodb_repository_mock.create.call_args_list[0])
 
@@ -279,7 +279,7 @@ class TestSystemServiceClientAuthorizationService(unittest.TestCase):
         # then
         self.assertIsNotNone(created_client_authorization_http_signature)
         self.assertEqual(str(created_client_authorization_http_signature.client_id), expected_entity.id())
-        self.assertEqual(call('system', ClientAuthorizationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(ClientAuthorizationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(ClientAuthorizationEntityAdapter(authorization_http_signature)),
                          dynamodb_repository_mock.create.call_args_list[0])
 
@@ -302,7 +302,7 @@ class TestSystemServiceClientAuthorizationService(unittest.TestCase):
         # then
         self.assertIsNotNone(created_client_authorization_http_signature)
         self.assertEqual(str(created_client_authorization_http_signature.client_id), expected_entity.id())
-        self.assertEqual(call('system', ClientAuthorizationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(ClientAuthorizationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(ClientAuthorizationEntityAdapter(authorization_http_signature)),
                          dynamodb_repository_mock.update.call_args_list[0])
 
@@ -316,7 +316,7 @@ class TestSystemServiceClientAuthorizationService(unittest.TestCase):
         AuthorizationService().delete_authorization(client_id)
 
         # then
-        self.assertEqual(call('system', ClientAuthorizationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(ClientAuthorizationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(ClientAuthorizationEntity(client_id)),
                          dynamodb_repository_mock.delete.call_args_list[0])
 
@@ -343,7 +343,7 @@ class TestSystemServiceCollectionService(unittest.TestCase):
         self.assertIsNotNone(collection)
         self.assertEqual(collection.name, collection_name)
         # self.assertEqual(collection, Collection.from_dict(expected_collection_entity.object()))
-        self.assertEqual(call('system', CollectionEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(CollectionEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(CollectionEntity(collection_name)),
                          dynamodb_repository_mock.get.call_args_list[0])
 
@@ -369,7 +369,7 @@ class TestSystemServiceCollectionService(unittest.TestCase):
         self.assertIsNotNone(collection)
         self.assertEqual(collection.name, collection_name)
         # self.assertEqual(collection, Collection.from_dict(expected_collection_entity.object()))
-        self.assertEqual(call('system', CollectionEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(CollectionEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(CollectionEntity(collection_name, expected_collection_entity.object())),
                          dynamodb_repository_mock.create.call_args_list[0])
 
@@ -398,7 +398,7 @@ class TestSystemServiceCollectionService(unittest.TestCase):
         self.assertIsNotNone(results)
         self.assertEqual(expected_last_evaluated_key, last_evaluated_key)
         self.assertEqual(len(results), len(existing_index_entities))
-        self.assertEqual(call('system', CollectionEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(CollectionEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(CollectionEntity('book')), dynamodb_repository_mock.get.call_args_list[0])
         self.assertEqual(call(QueryAll(CollectionEntity), 20, expected_collection_entity_starting_from),
                          dynamodb_repository_mock.query.call_args_list[0])
@@ -414,7 +414,7 @@ class TestSystemServiceCollectionService(unittest.TestCase):
         CollectionService().delete_collection(collection_name)
 
         # then
-        self.assertEqual(call('system', CollectionEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(CollectionEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(CollectionEntity(collection_name)),
                          dynamodb_repository_mock.delete.call_args_list[0])
 
@@ -440,7 +440,7 @@ class TestSystemServiceAggregationService(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.id, uid)
         self.assertEqual(result.to_dict(), expected_aggregation_entity.object())
-        self.assertEqual(call('system', AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(AggregationEntity(uid)),
                          dynamodb_repository_mock.get.call_args_list[0])
 
@@ -484,7 +484,7 @@ class TestSystemServiceAggregationService(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(len(result), len(expected_entities))
         self.assertEqual(last_key, expected_aggregation_entity_last_evaluated_id)
-        self.assertEqual(call('system', AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(AggregationEntity(starting_from)),
                          dynamodb_repository_mock.get.call_args_list[0])
         self.assertEqual(call(QueryAggregationByAggregationConfigurationName(aggregation_configuration_name), 20,
@@ -530,7 +530,7 @@ class TestSystemServiceAggregationService(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(len(result), len(expected_entities))
         self.assertEqual(last_key, expected_aggregation_entity_last_evaluated_id)
-        self.assertEqual(call('system', AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(call(AggregationEntity(starting_from)),
                          dynamodb_repository_mock.get.call_args_list[0])
         self.assertEqual(call(QueryAll(AggregationEntity), 20,
@@ -549,7 +549,7 @@ class TestSystemServiceAggregationService(unittest.TestCase):
         # then
         self.assertIsNotNone(result)
         self.assertIsInstance(result, AggregationCount)
-        self.assertEqual(call('system', AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(
             call(
                 AggregationEntity(aggregation_count.id,
@@ -571,7 +571,7 @@ class TestSystemServiceAggregationService(unittest.TestCase):
         # then
         self.assertIsNotNone(result)
         self.assertIsInstance(result, AggregationCount)
-        self.assertEqual(call('system', AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(
             call(
                 AggregationEntity(aggregation_count.id,
@@ -595,7 +595,7 @@ class TestSystemServiceAggregationService(unittest.TestCase):
         # then
         self.assertIsNotNone(result)
         self.assertIsInstance(result, AggregationSum)
-        self.assertEqual(call('system', AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(
             call(
                 AggregationEntity(existing_aggregation.id,
@@ -619,7 +619,7 @@ class TestSystemServiceAggregationService(unittest.TestCase):
         # then
         self.assertIsNotNone(result)
         self.assertIsInstance(result, AggregationAvg)
-        self.assertEqual(call('system', AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(
             call(
                 AggregationEntity(existing_aggregation.id,
@@ -648,7 +648,7 @@ class TestSystemServiceAggregationService(unittest.TestCase):
         # then
         self.assertIsNotNone(result)
         self.assertIsInstance(result, AggregationAvg)
-        self.assertEqual(call('system', AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(
             call(AggregationEntity(aggregation.id, aggregation.to_dict())),
             dynamodb_repository_mock.create.call_args_list[0]
@@ -673,7 +673,7 @@ class TestSystemServiceAggregationService(unittest.TestCase):
         # then
         self.assertIsNotNone(result)
         self.assertIsInstance(result, AggregationAvg)
-        self.assertEqual(call('system', AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
+        self.assertEqual(call(AggregationEntity), dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(
             call(AggregationEntity(aggregation.id, aggregation.to_dict())),
             dynamodb_repository_mock.update.call_args_list[0]
@@ -697,7 +697,7 @@ class TestSystemServiceAggregationConfigurationService(unittest.TestCase):
         # then
         self.assertIsNotNone(result)
         self.assertIsInstance(result, AggregationConfiguration)
-        self.assertEqual(call('system', AggregationConfigurationEntity),
+        self.assertEqual(call(AggregationConfigurationEntity),
                          dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(
             call(AggregationConfigurationEntity(uid)),
@@ -730,7 +730,7 @@ class TestSystemServiceAggregationConfigurationService(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(len(result),len(existing_aggregation_configurations))
 
-        self.assertEqual(call('system', AggregationConfigurationEntity),
+        self.assertEqual(call(AggregationConfigurationEntity),
                          dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(
             call(AggregationConfigurationEntity(starting_after_uid)),
@@ -757,7 +757,7 @@ class TestSystemServiceAggregationConfigurationService(unittest.TestCase):
         self.assertIsNotNone(result)
 
 
-        self.assertEqual(call('system', AggregationConfigurationEntity),
+        self.assertEqual(call(AggregationConfigurationEntity),
                          dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(
             call(AggregationConfigurationEntityAdapter(aggregation_configuration)),
@@ -792,7 +792,7 @@ class TestSystemServiceAggregationConfigurationService(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(len(result),len(existing_aggregation_configurations))
 
-        self.assertEqual(call('system', AggregationConfigurationEntity),
+        self.assertEqual(call(AggregationConfigurationEntity),
                          dynamodb_repository_mock_factory.call_args_list[0])
         self.assertEqual(
             call(AggregationConfigurationEntity(starting_after_uid)),
