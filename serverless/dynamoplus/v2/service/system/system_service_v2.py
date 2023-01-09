@@ -663,3 +663,5 @@ class AggregationConfigurationService:
         if result:
             return list(map(lambda m: AggregationConfigurationService.__from_entity_to_aggregation_configuration(m),
                             result)), uuid.UUID(last_evaluated_key) if last_evaluated_key is not None else None
+        else:
+            return [], None
