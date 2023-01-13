@@ -5,7 +5,7 @@ except ImportError:
 
 import json
 import logging
-VERSION = "0.5.0.1xxxs"
+VERSION = "0.5.0.1"
 logging.basicConfig(level=logging.INFO)
 
 
