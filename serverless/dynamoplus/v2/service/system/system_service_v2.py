@@ -9,7 +9,7 @@ from typing import *
 
 from aws.dynamodb.dynamodbdao import Counter
 from dynamoplus.models.query.conditions import Eq, Predicate, Range, And
-from dynamoplus.models.system.aggregation.aggregation import AggregationConfiguration, AggregationTrigger, \
+from dynamoplus.models.system.aggregation.aggregation import AggregationTrigger, \
     AggregationJoin, \
     AggregationType, Aggregation, AggregationCount, AggregationSum, AggregationAvg
 from dynamoplus.models.system.client_authorization.client_authorization import ClientAuthorization, \
@@ -22,7 +22,7 @@ from dynamoplus.v2.repository.system_repositories import CollectionEntity, Index
     IndexByCollectionNameAndFieldsEntity, QueryIndexByCollectionNameAndFields, IndexByCollectionNameEntity, \
     QueryIndexByCollectionName, ClientAuthorizationEntity, AggregationEntity, \
     QueryAggregationByAggregationConfigurationName, AggregationConfigurationEntity, \
-    QueryAggregationConfigurationByCollectionName
+    QueryAggregationConfigurationByCollectionName, AggregationConfigurationByCollectionNameEntity
 from dynamoplus.v2.service.common import SingletonMeta
 
 logger = logging.getLogger()
@@ -227,7 +227,7 @@ class Aggregation(abc.ABC):
 
     @staticmethod
     def from_dict(d: dict) -> Aggregation:
-        uid = d["id"]
+        uid = uuid.UUID(d["id"])
         name = d["name"]
         configuration = d["configuration_name"]
         if "count" in d:
@@ -246,7 +246,7 @@ class AggregationCount(Aggregation):
 
     def to_dict(self) -> dict:
         return {
-            "id": self.id,
+            "id": str(self.id),
             "name": self.name,
             "configuration_name": self.configuration_name,
             "count": self.count,
@@ -258,7 +258,7 @@ class AggregationSum(Aggregation):
     sum: float
 
     def to_dict(self) -> dict:
-        return {"id": self.id, "name": self.name, "configuration_name": self.configuration_name, "sum": self.sum,
+        return {"id": str(self.id), "name": self.name, "configuration_name": self.configuration_name, "sum": self.sum,
                 "type": "SUM"}
 
 
@@ -267,7 +267,7 @@ class AggregationAvg(Aggregation):
     avg: float
 
     def to_dict(self) -> dict:
-        return {"id": self.id, "name": self.name, "configuration_name": self.configuration_name,
+        return {"id": str(self.id), "name": self.name, "configuration_name": self.configuration_name,
                 "avg": Decimal(self.avg),
                 "type": "AVG"}
 
@@ -280,7 +280,7 @@ class AggregationConfiguration:
     on: List[AggregationTrigger]
     target_field: str
     matches: Predicate
-    join: AggregationJoin
+    join: AggregationJoin = None
 
     @staticmethod
     def from_dict_to_predicate(d: dict):
@@ -297,13 +297,14 @@ class AggregationConfiguration:
         collection_name = document["collection"]["name"]
         t = AggregationType.value_of(document["type"])
         inner_aggregation_document = document["aggregation"] if 'aggregation' in document else None
-        on = list(map(lambda o: AggregationTrigger.value_of(o), inner_aggregation_document["on"])) if inner_aggregation_document else None
+        on = list(map(lambda o: AggregationTrigger.value_of(o),
+                      inner_aggregation_document["on"])) if inner_aggregation_document else None
         target_field = None
         matches = None
         join = None
         if inner_aggregation_document and "target_field" in inner_aggregation_document:
             target_field = inner_aggregation_document["target_field"]
-        if inner_aggregation_document and  "join" in inner_aggregation_document:
+        if inner_aggregation_document and "join" in inner_aggregation_document:
             join = AggregationJoin(inner_aggregation_document["join"]["collection_name"],
                                    inner_aggregation_document["join"]["using_field"])
         if inner_aggregation_document and "matches" in inner_aggregation_document:
@@ -313,6 +314,7 @@ class AggregationConfiguration:
         return AggregationConfiguration(uid, collection_name, t, on, target_field, matches, join)
 
     def to_dict(self) -> dict:
+        a = {}
         a = {
             "on": list(map(lambda o: o.name, self.on))
         }
@@ -332,7 +334,7 @@ class AggregationConfiguration:
         if self.matches:
             a["matches"] = AggregationConfiguration.from_predicate_to_dict(self.matches)
         d["aggregation"] = a
-        d["id"] = self.uid
+        d["id"] = str(self.uid)
         return d
 
     @staticmethod
@@ -350,7 +352,7 @@ class AggregationConfiguration:
 class AggregationConfigurationEntityAdapter(AggregationConfigurationEntity):
     def __init__(self, aggregation_configuration: AggregationConfiguration):
         super(AggregationConfigurationEntityAdapter, self).__init__(aggregation_configuration.uid,
-                                                             aggregation_configuration.to_dict())
+                                                                    aggregation_configuration.to_dict())
 
 
 class CollectionService:
@@ -379,6 +381,8 @@ class CollectionService:
         if result:
             return list(
                 map(lambda m: Collection.from_dict(m.object()), result)), last_evaluated_id
+        else:
+            return [], None
 
     def get_all_collections_generator(self) -> Generator[Collection]:
         has_more = True
@@ -527,6 +531,14 @@ class AggregationService:
         if result:
             return list(
                 map(lambda m: Aggregation.from_dict(m.object()), result)), last_key
+        else:
+            return [], None
+
+    def get_aggregation_by_configuration_name(self, configuration_name: str) -> Aggregation:
+        result, last_key = self.repo.query(QueryAggregationByAggregationConfigurationName(configuration_name), 1,
+                                           None)
+        if result and len(result) == 1:
+            return Aggregation.from_dict(result[0].object())
 
     def get_aggregations_by_configuration_name_generator(self, configuration_name: str) -> Generator[Aggregation]:
         has_more = True
@@ -547,6 +559,8 @@ class AggregationService:
         if result:
             return list(
                 map(lambda m: Aggregation.from_dict(m.object()), result)), last_key
+        else:
+            return [], None
 
     def increment_count(self, aggregation: AggregationCount) -> Aggregation:
         entity = AggregationEntity(aggregation.id, aggregation.to_dict()).to_dynamo_db_model()
@@ -628,14 +642,23 @@ class AggregationConfigurationService:
         start_after_entity = None
         if start_from:
             start_after_entity = self.__get_aggregation_configuration_entity_by_id(start_from)
-        result, last_evaluated_key = self.repo.query(QueryAll(AggregationConfigurationEntity), limit, start_after_entity)
+        result, last_evaluated_key = self.repo.query(QueryAll(AggregationConfigurationEntity), limit,
+                                                     start_after_entity)
         if result:
             return list(map(lambda m: AggregationConfigurationService.__from_entity_to_aggregation_configuration(m),
                             result)), uuid.UUID(last_evaluated_key) if last_evaluated_key is not None else None
+        else:
+            return [], None
 
     def create_aggregation_configuration(self, aggregation_configuration: AggregationConfiguration):
         created_entity = self.repo.create(AggregationConfigurationEntityAdapter(aggregation_configuration))
-        return AggregationConfigurationService.__from_entity_to_aggregation_configuration(created_entity)
+        created_aggregation = AggregationConfigurationService.__from_entity_to_aggregation_configuration(created_entity)
+        self.repo.indexing(IndexingOperation([],
+                                             [],
+                                             [AggregationConfigurationByCollectionNameEntity(created_aggregation.uid,
+                                                                                             created_aggregation.collection_name,
+                                                                                             created_entity.object())]))
+        return created_aggregation
 
     def get_aggregation_configurations_by_collection_name_generator(self, collection_name: str) \
             -> Generator[AggregationConfiguration]:
