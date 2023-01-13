@@ -256,7 +256,6 @@ class Converter:
         if aggregation_configuration.matches:
             a["matches"] = Converter.from_predicate_to_dict(aggregation_configuration.matches)
         d["configuration"] = a
-        d["name"] = aggregation_configuration.name
         if aggregation:
             d["aggregation"]=Converter.from_aggregation_to_API(aggregation)
         return d

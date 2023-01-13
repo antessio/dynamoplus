@@ -833,7 +833,7 @@ def build_fake_aggregation_configuration_entity_simple(uid: uuid.UUID, collectio
 def build_fake_aggregation_entity(uid: uuid.UUID, name: str, configuration_name: str,
                                   add_type: Callable[[dict], dict]) -> AggregationEntity:
     payload = {
-        'id': uid,
+        'id': str(uid),
         'name': name,
         'configuration_name': configuration_name,
     }
