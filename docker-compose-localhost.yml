@@ -18,5 +18,9 @@ services:
             DYNAMODB_PORT: 8000
             ROOT_PASSWORD: 12345
             SERVICE_NAME: e2e-tests
+        volumes:
+            - ./serverless/dynamoplus:/app/dynamoplus/serverless/dynamoplus
+            - ./serverless/aws:/app/dynamoplus/serverless/aws
+            - ./serverless/custom:/app/dynamoplus/serverless/custom
         ports:
             - 3000:3000
