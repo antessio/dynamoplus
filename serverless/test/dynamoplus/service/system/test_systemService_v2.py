@@ -709,7 +709,8 @@ class TestSystemServiceAggregationConfigurationService(unittest.TestCase):
         # given
         dynamodb_repository_mock = dynamodb_repository_mock_factory.return_value
         starting_after_uid = uuid.uuid4()
-        aggregation_configuration_entity_starting_from = build_fake_aggregation_configuration_entity_simple(starting_after_uid, 'book', AggregationType.SUM, 'whatever')
+        aggregation_configuration_entity_starting_from = build_fake_aggregation_configuration_entity_simple(
+            starting_after_uid, 'book', AggregationType.SUM, 'whatever')
         dynamodb_repository_mock.get.return_value = aggregation_configuration_entity_starting_from
         existing_aggregation_configurations = [
             build_fake_aggregation_configuration_entity_simple(uuid.uuid4(),
@@ -724,11 +725,11 @@ class TestSystemServiceAggregationConfigurationService(unittest.TestCase):
         dynamodb_repository_mock.query.return_value = [existing_aggregation_configurations, None]
         # when
 
-        result, last_uid = AggregationConfigurationService().get_all_aggregation_configurations(20,starting_after_uid)
+        result, last_uid = AggregationConfigurationService().get_all_aggregation_configurations(20, starting_after_uid)
 
         # then
         self.assertIsNotNone(result)
-        self.assertEqual(len(result),len(existing_aggregation_configurations))
+        self.assertEqual(len(result), len(existing_aggregation_configurations))
 
         self.assertEqual(call(AggregationConfigurationEntity),
                          dynamodb_repository_mock_factory.call_args_list[0])
@@ -737,17 +738,21 @@ class TestSystemServiceAggregationConfigurationService(unittest.TestCase):
             dynamodb_repository_mock.get.call_args_list[0]
         )
         self.assertEqual(
-            call(QueryAll(AggregationConfigurationEntity), 20,aggregation_configuration_entity_starting_from ),
+            call(QueryAll(AggregationConfigurationEntity), 20, aggregation_configuration_entity_starting_from),
             dynamodb_repository_mock.query.call_args_list[0]
         )
+
     @patch('dynamoplus.v2.repository.repositories_v2.DynamoDBRepository')
     def test_create_aggregation_configuration(self, dynamodb_repository_mock_factory):
         # given
         dynamodb_repository_mock = dynamodb_repository_mock_factory.return_value
         uid = uuid.uuid4()
-        aggregation_configuration_entity_starting_from = build_fake_aggregation_configuration_entity_simple(uid, 'book', AggregationType.SUM, 'whatever')
+        aggregation_configuration_entity_starting_from = build_fake_aggregation_configuration_entity_simple(uid, 'book',
+                                                                                                            AggregationType.SUM,
+                                                                                                            'whatever')
         dynamodb_repository_mock.create.return_value = aggregation_configuration_entity_starting_from
-        aggregation_configuration = AggregationConfiguration(uid,'book', AggregationType.SUM, [], 'whatever', None, None)
+        aggregation_configuration = AggregationConfiguration(uid, 'book', AggregationType.SUM, [], 'whatever', None,
+                                                             None)
 
         # when
 
@@ -755,7 +760,6 @@ class TestSystemServiceAggregationConfigurationService(unittest.TestCase):
 
         # then
         self.assertIsNotNone(result)
-
 
         self.assertEqual(call(AggregationConfigurationEntity),
                          dynamodb_repository_mock_factory.call_args_list[0])
@@ -770,8 +774,9 @@ class TestSystemServiceAggregationConfigurationService(unittest.TestCase):
         dynamodb_repository_mock = dynamodb_repository_mock_factory.return_value
         starting_after_uid = uuid.uuid4()
         expected_collection_name = 'book'
-        aggregation_configuration_entity_starting_from = build_fake_aggregation_configuration_entity_simple(starting_after_uid,
-                                                                                                            expected_collection_name, AggregationType.SUM, 'whatever')
+        aggregation_configuration_entity_starting_from = build_fake_aggregation_configuration_entity_simple(
+            starting_after_uid,
+            expected_collection_name, AggregationType.SUM, 'whatever')
         dynamodb_repository_mock.get.return_value = aggregation_configuration_entity_starting_from
         existing_aggregation_configurations = [
             build_fake_aggregation_configuration_entity_simple(uuid.uuid4(),
@@ -786,11 +791,12 @@ class TestSystemServiceAggregationConfigurationService(unittest.TestCase):
         dynamodb_repository_mock.query.return_value = [existing_aggregation_configurations, None]
         # when
 
-        result, last_uid = AggregationConfigurationService().get_aggregation_configurations_by_collection_name(expected_collection_name, 20, starting_after_uid)
+        result, last_uid = AggregationConfigurationService().get_aggregation_configurations_by_collection_name(
+            expected_collection_name, 20, starting_after_uid)
 
         # then
         self.assertIsNotNone(result)
-        self.assertEqual(len(result),len(existing_aggregation_configurations))
+        self.assertEqual(len(result), len(existing_aggregation_configurations))
 
         self.assertEqual(call(AggregationConfigurationEntity),
                          dynamodb_repository_mock_factory.call_args_list[0])
@@ -799,7 +805,8 @@ class TestSystemServiceAggregationConfigurationService(unittest.TestCase):
             dynamodb_repository_mock.get.call_args_list[0]
         )
         self.assertEqual(
-            call(QueryAggregationConfigurationByCollectionName(expected_collection_name), 20,aggregation_configuration_entity_starting_from ),
+            call(QueryAggregationConfigurationByCollectionName(expected_collection_name), 20,
+                 aggregation_configuration_entity_starting_from),
             dynamodb_repository_mock.query.call_args_list[0]
         )
 
@@ -821,6 +828,7 @@ def build_fake_aggregation_configuration_entity_simple(uid: uuid.UUID, collectio
                                                        target_field: str):
     payload = {
         "id": str(uid),
+        "name": "{}_{}".format(collection_name, type.name.lower()),
         "collection": {
             "name": collection_name
         },

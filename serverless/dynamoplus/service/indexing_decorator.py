@@ -24,7 +24,7 @@ def create_document(fun):
         is_local_env = is_local_environment()
         result = fun(*args,**kwargs)
         if result and is_local_env:
-            collection_name = args[0]
+            collection_name = args[1]
             is_system_collection = is_system(Collection(collection_name, None))
             if not is_system_collection:
                 if result and isinstance(result,dict):
@@ -38,8 +38,8 @@ def create_document(fun):
 def update_document(fun):
     def update(*args,**kwargs):
         is_local_env = is_local_environment()
-        collection_name = args[0]
-        id = args[2]
+        collection_name = args[1]
+        id = args[3]
         before = DomainService(CollectionService.get_collection(collection_name)).get_document(id)
         after = fun(*args,**kwargs)
         if after and is_local_env:
@@ -55,8 +55,8 @@ def delete_document(fun):
     def delete(*args,**kwargs):
         is_local_env = is_local_environment()
         if is_local_env:
-            collection_name = args[0]
-            id = args[1]
+            collection_name = args[1]
+            id = args[2]
             is_system_collection = is_system(Collection(collection_name, None))
             if not is_system_collection:
                 before = DomainService(CollectionService.get_collection(collection_name)).get_document(id)

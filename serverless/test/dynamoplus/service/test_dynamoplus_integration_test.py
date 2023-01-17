@@ -18,6 +18,7 @@ class TestDynamoPlusService(unittest.TestCase):
     def setUp(self):
         domain_table_name = "domain"
         system_table_name = "system"
+        os.environ["STAGE"] = "local"
         os.environ["DYNAMODB_DOMAIN_TABLE"] = domain_table_name
         os.environ["DYNAMODB_SYSTEM_TABLE"] = system_table_name
         self.dynamodb = boto3.resource("dynamodb", region_name='eu-west-1')
@@ -33,6 +34,7 @@ class TestDynamoPlusService(unittest.TestCase):
         self.domain_table.delete()
         del os.environ["DYNAMODB_DOMAIN_TABLE"]
         del os.environ["DYNAMODB_SYSTEM_TABLE"]
+        del os.environ["STAGE"]
 
     def test_create_collection(self):
         collection_name = "example"
