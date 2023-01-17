@@ -105,7 +105,7 @@ class AvgAggregationExecutor(AggregationExecutor):
                                          aggregation_configuration.name, 1))
                     _count = 1
                 except Exception as e:
-                    logger.error("unable to count the value {} with message {}".format(x, e))
+                    logger.error("unable to count the value", e)
                     raise e
 
             if sum_target_field_aggregation:
@@ -121,7 +121,7 @@ class AvgAggregationExecutor(AggregationExecutor):
 
 
                 except Exception as e:
-                    logger.error("unable to count the value {} with message {}".format(x, e))
+                    logger.error("unable to count the value ", e )
                     raise e
             else:
                 try:
@@ -134,7 +134,7 @@ class AvgAggregationExecutor(AggregationExecutor):
                                        aggregation_configuration.name, value))
                     _sum = value
                 except Exception as e:
-                    logger.error("unable to sum the value with message {}".format(e))
+                    logger.error("unable to sum the value with message", e)
                     raise e
 
             logger.info("sum {} ".format(_sum))
@@ -144,10 +144,9 @@ class AvgAggregationExecutor(AggregationExecutor):
             if avg_target_field_aggregation:
                 try:
 
-                    avg_target_field_aggregation.avg = avg
-                    return self.aggregation_service.update_aggregation(avg_target_field_aggregation)
+                    return self.aggregation_service.update_aggregation(AggregationAvg(avg_target_field_aggregation.id, avg_target_field_aggregation.name, avg_target_field_aggregation.configuration_name, avg))
                 except Exception as e:
-                    logger.error("unable to sum the value {}".format(x))
+                    logger.error("unable to sum the value ", e)
                     raise e
 
             else:
@@ -178,7 +177,7 @@ class SumAggregationExecutor(AggregationExecutor):
                         result = self.aggregation_service.increment(sum_target_field_aggregation, Decimal(value))
                         sum_target_field_aggregation.sum = result.sum
                     except Exception as e:
-                        logger.error("unable to sum the value {}".format(e))
+                        logger.error("unable to sum the value", e)
 
             return sum_target_field_aggregation
         else:
@@ -192,34 +191,42 @@ class SumAggregationExecutor(AggregationExecutor):
                     return self.aggregation_service.create_aggregation(
                         AggregationSum(uuid.uuid4(), aggregation_configuration.name, aggregation_configuration.name, value))
                 except Exception as e:
-                    logger.error("unable to sum the value {}".format(e))
+                    logger.error("unable to sum the value ", e)
 
 
 class CountAggregationExecutor(AggregationExecutor):
     def execute_aggregation(self, aggregation_configuration: AggregationConfiguration, new_record: dict,
                             old_record: dict):
         ## load aggregation
-        count_target_field_aggregation = next(filter(lambda a: isinstance(a, AggregationSum),
+        count_target_field_aggregation = next(filter(lambda a: isinstance(a, AggregationCount),
                                                      self.aggregation_service.get_aggregations_by_configuration_name_generator(
                                                          aggregation_configuration.name)
                                                      ), None)
         if count_target_field_aggregation:
+            logger.info("aggregation already exists {} ".format(count_target_field_aggregation))
             if isinstance(count_target_field_aggregation, AggregationCount):
-                is_increment = True if old_record is None else False
+                is_increment = True if new_record and old_record is None else False
                 is_decrement = True if new_record is None else False
                 if is_increment:
                     if self.aggregation_service.increment_count(count_target_field_aggregation):
-                        ## TODO: avoid set and copy
-                        count_target_field_aggregation.count = count_target_field_aggregation.count + 1
+                        logger.info("increment count count {} ".format(aggregation_configuration.name))
+                        count_target_field_aggregation = AggregationCount(count_target_field_aggregation.id,
+                                                                          count_target_field_aggregation.name,
+                                                                          count_target_field_aggregation.configuration_name,
+                                                                          count_target_field_aggregation.count + 1)
 
                 elif is_decrement:
                     if self.aggregation_service.decrement_count(count_target_field_aggregation):
-                        count_target_field_aggregation.count = count_target_field_aggregation.count - 1
+                        logger.info("decrement count count {} ".format(aggregation_configuration.name))
+                        count_target_field_aggregation = AggregationCount(count_target_field_aggregation.id,
+                                                                          count_target_field_aggregation.name,
+                                                                          count_target_field_aggregation.configuration_name,
+                                                                          count_target_field_aggregation.count - 1)
             return count_target_field_aggregation
 
         else:
             ## create the aggregation if it doesn't exist
-            logger.info("found aggregation configuration {}".format(aggregation_configuration))
+            logger.info("creating new aggregation count {} ".format(aggregation_configuration.name))
             return self.aggregation_service.create_aggregation(
                 AggregationCount(uuid.uuid4(), "count_" + aggregation_configuration.name,
                                  aggregation_configuration.name,
@@ -277,6 +284,7 @@ class AggregationProcessingService:
 
         if self.aggregation_configuration.on is None or aggregation_trigger in self.aggregation_configuration.on:
             executor = self.aggregation_executor_factory[self.aggregation_configuration.type]
+            logger.info("executing aggregation on {} - {}".format(collection.name, self.aggregation_configuration.name))
             return executor.execute_aggregation(self.aggregation_configuration,
                                                 new_record,
                                                 old_record)

@@ -128,7 +128,6 @@ class Dynamoplus:
             elif collection_name == 'aggregation_configuration':
                 aggregation_configuration_list, last_evaluated_key = self.aggregation_configuration_service.get_all_aggregation_configurations(
                     limit, uuid.UUID(last_key) if last_key else None)
-                self.aggregation_service.get_aggregations_by_configuration_name_generator()
                 documents = list(map(lambda c: from_aggregation_configuration_to_API(c,
                                                                                      self.aggregation_service.get_aggregation_by_configuration_name(
                                                                                          c.name)),

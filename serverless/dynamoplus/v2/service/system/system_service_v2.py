@@ -23,7 +23,8 @@ from dynamoplus.v2.repository.system_repositories import CollectionEntity, Index
     QueryIndexByCollectionName, ClientAuthorizationEntity, AggregationEntity, \
     QueryAggregationByAggregationConfigurationName, AggregationConfigurationEntity, \
     QueryAggregationConfigurationByCollectionName, AggregationConfigurationByCollectionNameEntity, \
-    QueryAggregationConfigurationByName, AggregationConfigurationByNameEntity
+    QueryAggregationConfigurationByName, AggregationConfigurationByNameEntity, \
+    AggregationByAggregationConfigurationNameEntity
 from dynamoplus.v2.service.common import SingletonMeta
 
 logger = logging.getLogger()
@@ -519,6 +520,7 @@ class AuthorizationService:
         self.repo.delete(ClientAuthorizationEntity(client_id))
 
 
+
 class AggregationService:
 
     def __init__(self):
@@ -543,9 +545,10 @@ class AggregationService:
 
         result, last_key = self.repo.query(QueryAggregationByAggregationConfigurationName(configuration_name), limit,
                                            start_from_entity)
+
         if result:
             return list(
-                map(lambda m: Aggregation.from_dict(m.object()), result)), last_key
+                map(lambda m: self.get_aggregation_by_id(uuid.UUID(m.id())), result)), last_key
         else:
             return [], None
 
@@ -553,7 +556,7 @@ class AggregationService:
         result, last_key = self.repo.query(QueryAggregationByAggregationConfigurationName(configuration_name), 1,
                                            None)
         if result and len(result) == 1:
-            return Aggregation.from_dict(result[0].object())
+            return self.get_aggregation_by_id(uuid.UUID(result[0].id()))
 
     def get_aggregations_by_configuration_name_generator(self, configuration_name: str) -> Generator[Aggregation]:
         has_more = True
@@ -578,17 +581,17 @@ class AggregationService:
             return [], None
 
     def increment_count(self, aggregation: AggregationCount) -> Aggregation:
-        entity = AggregationEntity(aggregation.id, aggregation.to_dict()).to_dynamo_db_model()
+        entity = AggregationEntity(aggregation.id, aggregation.to_dict())
 
-        self.repo.increment_counter(entity.to_dynamo_db_item(), [Counter("count", Decimal(1), True)])
+        self.repo.increment_counter(entity, [Counter("count", Decimal(1), True)])
         return AggregationCount(aggregation.id, aggregation.name, aggregation.configuration_name, aggregation.count + 1)
 
     def increment(self, aggregation: Aggregation, new_value: Decimal) -> Aggregation:
 
-        entity = AggregationEntity(aggregation.id, aggregation.to_dict()).to_dynamo_db_model()
+        entity = AggregationEntity(aggregation.id, aggregation.to_dict())
         counter, converter = AggregationService.__get_increment(aggregation, new_value)
 
-        result = self.repo.increment_counter(entity.to_dynamo_db_item(), [counter])
+        result = self.repo.increment_counter(entity, [counter])
         if result:
             return converter(aggregation)
         else:
@@ -630,6 +633,12 @@ class AggregationService:
 
     def create_aggregation(self, aggregation: Aggregation) -> Aggregation:
         created_entity = self.repo.create(AggregationEntity(aggregation.id, aggregation.to_dict()))
+        self.repo.indexing(IndexingOperation([],
+                                             [],
+                                             [AggregationByAggregationConfigurationNameEntity(created_entity.id(),
+                                                                                             aggregation.configuration_name,
+                                                                                              created_entity.object())]))
+
         return Aggregation.from_dict(created_entity.object())
 
     def update_aggregation(self, aggregation: Aggregation) -> Aggregation:
