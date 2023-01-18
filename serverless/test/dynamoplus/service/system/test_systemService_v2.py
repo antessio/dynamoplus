@@ -553,7 +553,7 @@ class TestSystemServiceAggregationService(unittest.TestCase):
         self.assertEqual(
             call(
                 AggregationEntity(aggregation_count.id,
-                                  aggregation_count.to_dict()).to_dynamo_db_model().to_dynamo_db_item(),
+                                  aggregation_count.to_dict()),
                 [Counter("count", decimal.Decimal(1), True)]
             ),
             dynamodb_repository_mock.increment_counter.call_args_list[0]
@@ -599,7 +599,7 @@ class TestSystemServiceAggregationService(unittest.TestCase):
         self.assertEqual(
             call(
                 AggregationEntity(existing_aggregation.id,
-                                  existing_aggregation.to_dict()).to_dynamo_db_model().to_dynamo_db_item(),
+                                  existing_aggregation.to_dict()),
                 [Counter("sum", decimal.Decimal(new_value - existing_value), False)]
             ),
             dynamodb_repository_mock.increment_counter.call_args_list[0]
@@ -623,7 +623,7 @@ class TestSystemServiceAggregationService(unittest.TestCase):
         self.assertEqual(
             call(
                 AggregationEntity(existing_aggregation.id,
-                                  existing_aggregation.to_dict()).to_dynamo_db_model().to_dynamo_db_item(),
+                                  existing_aggregation.to_dict()),
                 [Counter("avg", new_value - decimal.Decimal(existing_value), True)]
             ),
             dynamodb_repository_mock.increment_counter.call_args_list[0]
