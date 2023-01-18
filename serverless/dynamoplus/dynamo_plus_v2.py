@@ -6,7 +6,9 @@ from datetime import datetime
 import time
 from enum import Enum
 
+import dynamoplus.v2.service.system.system_service_v2
 from dynamoplus.models.system.aggregation.aggregation import AggregationJoin, AggregationTrigger, AggregationType
+from dynamoplus.models.system.collection.collection import AttributeDefinition
 from dynamoplus.v2.service.query_service import QueryService
 from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, \
     AuthorizationService, Converter, Collection
@@ -21,8 +23,6 @@ from dynamoplus.v2.service.system.system_service_v2 import AggregationConfigurat
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-
 
 
 class HandlerExceptionErrorCodes(Enum):
@@ -109,12 +109,39 @@ def from_aggregation_to_API(aggregation: Aggregation):
     return a
 
 
+def from_collection_to_API(collection: dynamoplus.v2.service.system.system_service_v2.Collection) -> dict:
+    result = {"name": collection.name, "id_key": collection.id_key,
+              "auto_generated_id": True if collection.auto_generated_id else False}
+    if collection.ordering:
+        result["ordering_key"] = collection.ordering
+    if collection.attributes:
+        result["attributes"] = list(map(lambda a: from_attribute_definition_to_API(a), collection.attributes))
+
+    return result
+
+
+def from_attribute_definition_to_API(attribute_definition: AttributeDefinition):
+    result = {"name": attribute_definition.name, "type": attribute_definition.type.name}
+    if attribute_definition.attributes:
+        result["attributes"] = list(map(lambda a: from_attribute_definition_to_API(a), attribute_definition.attributes))
+    return result
+
+def from_dict_to_collection(d: dict):
+    attributes = list(
+        map(Converter.from_dict_to_attribute_definition, d["attributes"])) if "attributes" in d else None
+    auto_generate_id = d["auto_generate_id"] if "auto_generate_id" in d else False
+    return dynamoplus.v2.service.system.system_service_v2.Collection(d["name"], d["id_key"], d["ordering"] if "ordering" in d else None, attributes,
+                      auto_generate_id)
+
+
 class Dynamoplus:
 
     def __init__(self):
         self.aggregation_configuration_service = AggregationConfigurationService()
         self.aggregation_service = AggregationService()
-
+        self.index_service = dynamoplus.v2.service.system.system_service_v2.IndexService()
+        self.collection_service = dynamoplus.v2.service.system.system_service_v2.CollectionService()
+        self.client_authorization_service = dynamoplus.v2.service.system.system_service_v2.AuthorizationService()
 
     def get_all(self, collection_name: str, last_key: str, limit: int):
         is_system_collection = is_system(Collection(collection_name, None))
@@ -122,8 +149,8 @@ class Dynamoplus:
             logger.info("Get {} metadata from system".format(collection_name))
             if collection_name == 'collection':
 
-                collections, last_evaluated_key = CollectionService.get_all_collections(last_key, limit)
-                documents = list(map(lambda c: Converter.from_collection_to_API(c), collections))
+                collections, last_evaluated_key = self.collection_service.get_all_collections(limit, last_key)
+                documents = list(map(lambda c: from_collection_to_API(c), collections))
                 return documents, last_evaluated_key
             elif collection_name == 'aggregation_configuration':
                 aggregation_configuration_list, last_evaluated_key = self.aggregation_configuration_service.get_all_aggregation_configurations(
@@ -134,7 +161,8 @@ class Dynamoplus:
                                      aggregation_configuration_list))
                 return documents, last_evaluated_key
             elif collection_name == 'aggregation':
-                aggregations, last_evaluated_key = self.aggregation_service.get_all_aggregations(limit, uuid.UUID(last_key) if last_key else None)
+                aggregations, last_evaluated_key = self.aggregation_service.get_all_aggregations(limit, uuid.UUID(
+                    last_key) if last_key else None)
                 documents = list(map(lambda c: from_aggregation_to_API(c), aggregations))
                 return documents, last_evaluated_key
             else:
@@ -151,7 +179,6 @@ class Dynamoplus:
             documents, last_evaluated_key = domain_service.find_all(limit, last_key)
             return documents, last_evaluated_key
 
-
     def aggregation_configurations(self, collection_name: str, last_key: str, limit: int):
         is_system_collection = is_system(Collection(collection_name, None))
         if is_system_collection:
@@ -161,23 +188,22 @@ class Dynamoplus:
             aggregation_configurations, last_evaluated_key = self.aggregation_configuration_service.get_aggregation_configurations_by_collection_name(
                 collection_name, limit, uuid.UUID(last_key) if last_key else None)
             documents = list(map(lambda c: from_aggregation_configuration_to_API(c,
-                                                                                           self.aggregation_service.get_aggregation_by_configuration_name(
-                                                                                               c.name)),
+                                                                                 self.aggregation_service.get_aggregation_by_configuration_name(
+                                                                                     c.name)),
                                  aggregation_configurations))
             return documents, last_evaluated_key
-
 
     def get(self, collection_name: str, document_id: str):
         is_system_collection = is_system(Collection(collection_name, None))
         if is_system_collection:
             logger.info("Get {} metadata from system".format(collection_name))
             if collection_name == 'collection':
-                collection_metadata = CollectionService.get_collection(document_id)
-                if collection_metadata is None:
+                collection = self.collection_service.get_collection(document_id)
+                if collection is None:
                     raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
                                            "{} not found with name {}".format(collection_name, document_id))
-                logger.info("Found collection {}".format(collection_metadata.__str__))
-                return Converter.from_collection_to_API(collection_metadata)
+                logger.info("Found collection {}".format(collection.__str__))
+                return from_collection_to_API(collection)
             elif collection_name == 'index':
                 index_metadata = IndexService.get_index_by_name_and_collection_name(document_id, collection_name)
                 if index_metadata is None:
@@ -209,20 +235,20 @@ class Dynamoplus:
                 logger.info("Found aggregation {}".format(aggregation.__str__))
                 return from_aggregation_to_API(aggregation)
             else:
-                raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "{} not a valid collection".format(collection_name))
+                raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
+                                       "{} not a valid collection".format(collection_name))
 
         else:
             logger.info("Get {} document".format(collection_name))
-            collection_metadata = CollectionService.get_collection(collection_name)
-            if collection_metadata is None:
+            collection = CollectionService.get_collection(collection_name)
+            if collection is None:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "{} is not a valid collection".format(collection_name))
-            document = DomainService(collection_metadata).get_document(document_id)
+            document = DomainService(collection).get_document(document_id)
             if document is None:
                 raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
                                        "{} not found with id {}".format(collection_name, document_id))
             return document
-
 
     @create_document
     def create(self, collection_name: str, document: dict) -> dict:
@@ -231,10 +257,9 @@ class Dynamoplus:
             logger.info("Creating {} metadata {}".format(collection_name, document))
             if collection_name == 'collection':
                 validate_collection(document)
-                collection_metadata = Converter.from_dict_to_collection(document)
-                collection_metadata = CollectionService.create_collection(collection_metadata)
-                logger.info("Created collection {}".format(collection_metadata.__str__))
-                return Converter.from_collection_to_API(collection_metadata)
+                collection = self.collection_service.create_collection(from_dict_to_collection(document))
+                logger.info("Created collection {}".format(collection.__str__))
+                return from_collection_to_API(collection)
             elif collection_name == 'index':
                 validate_index(document)
                 index_metadata = Converter.from_dict_to_index(document)
@@ -258,21 +283,20 @@ class Dynamoplus:
                                        "{} is not a valid collection".format(collection_name))
         else:
             logger.info("Create {} document {}".format(collection_name, document))
-            collection_metadata = CollectionService.get_collection(collection_name)
-            if collection_metadata is None:
+            collection = CollectionService.get_collection(collection_name)
+            if collection is None:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "{} is not a valid collection".format(collection_name))
-            validate_document(document, collection_metadata)
+            validate_document(document, collection)
             timestamp = datetime.utcnow()
             ## TODO: key generator
-            if collection_metadata.auto_generate_id:
-                document[collection_metadata.id_key] = str(uuid.uuid1())
+            if collection.auto_generate_id:
+                document[collection.id_key] = str(uuid.uuid1())
             document["creation_date_time"] = timestamp.isoformat()
             document["order_unique"] = str(int(time.time() * 1000.0))
-            d = DomainService(collection_metadata).create_document(document)
+            d = DomainService(collection).create_document(document)
             logger.info("Created document {}".format(d))
             return d
-
 
     @update_document
     def update(self, collection_name: str, document: dict, document_id: str = None):
@@ -304,15 +328,14 @@ class Dynamoplus:
             logger.info("updated document {}".format(d))
             return d
 
-
     def query(self, collection_name: str, query: dict = None, start_from: str = None,
               limit: int = None):
         is_system_collection = is_system(Collection(collection_name, None))
         documents = []
         if is_system_collection:
             if collection_name == 'collection':
-                collections, last_key = CollectionService.get_all_collections(limit, start_from)
-                documents = list(map(lambda c: Converter.from_collection_to_API(c), collections))
+                collections, last_key = self.collection_service.get_all_collections(limit, start_from)
+                documents = list(map(lambda c: from_collection_to_API(c), collections))
                 last_evaluated_key = last_key
             elif collection_name == 'index' and "matches" in query and "eq" in query["matches"] and "value" in \
                     query["matches"]["eq"]:
@@ -349,14 +372,13 @@ class Dynamoplus:
             last_evaluated_key = result.lastEvaluatedKey
         return documents, last_evaluated_key
 
-
     @delete_document
     def delete(self, collection_name: str, id: str):
         is_system_collection = is_system(Collection(collection_name, None))
         if is_system_collection:
             logger.info("delete {} metadata from system".format(collection_name))
             if collection_name == 'collection':
-                CollectionService.delete_collection(id)
+                self.collection_service.delete_collection(id)
             elif collection_name == 'index':
                 index_metadata = IndexService.delete_index(id)
             elif collection_name == 'client_authorization':
