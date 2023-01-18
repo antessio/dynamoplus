@@ -9,6 +9,7 @@ from enum import Enum
 import dynamoplus.v2.service.system.system_service_v2
 from dynamoplus.models.system.aggregation.aggregation import AggregationJoin, AggregationTrigger, AggregationType
 from dynamoplus.models.system.collection.collection import AttributeDefinition
+from dynamoplus.models.system.index.index import IndexConfiguration
 from dynamoplus.v2.service.query_service import QueryService
 from dynamoplus.v2.service.system.system_service import CollectionService, IndexService, \
     AuthorizationService, Converter, Collection
@@ -120,18 +121,43 @@ def from_collection_to_API(collection: dynamoplus.v2.service.system.system_servi
     return result
 
 
+def from_index_to_API(index: dynamoplus.v2.service.system.system_service_v2.Index) -> dict:
+    return {
+        "id": str(index.id),
+        "name": index.name,
+        "configuration": index.index_configuration.name,
+        "collection": {
+            "name": index.collection_name
+        },
+        "conditions": index.conditions,
+        "ordering_key": index.ordering_key
+    }
+
+
+def from_dict_to_index(d: dict):
+    return dynamoplus.v2.service.system.system_service_v2.Index(
+        uuid.uuid4(),
+        d["collection"]["name"],
+        d["conditions"],
+        IndexConfiguration.value_of(d["configuration"]) if "configuration" in d else None,
+        d["ordering_key"] if "ordering_key" in d else None)
+
+
 def from_attribute_definition_to_API(attribute_definition: AttributeDefinition):
     result = {"name": attribute_definition.name, "type": attribute_definition.type.name}
     if attribute_definition.attributes:
         result["attributes"] = list(map(lambda a: from_attribute_definition_to_API(a), attribute_definition.attributes))
     return result
 
+
 def from_dict_to_collection(d: dict):
     attributes = list(
         map(Converter.from_dict_to_attribute_definition, d["attributes"])) if "attributes" in d else None
     auto_generate_id = d["auto_generate_id"] if "auto_generate_id" in d else False
-    return dynamoplus.v2.service.system.system_service_v2.Collection(d["name"], d["id_key"], d["ordering"] if "ordering" in d else None, attributes,
-                      auto_generate_id)
+    return dynamoplus.v2.service.system.system_service_v2.Collection(d["name"], d["id_key"],
+                                                                     d["ordering"] if "ordering" in d else None,
+                                                                     attributes,
+                                                                     auto_generate_id)
 
 
 class Dynamoplus:
@@ -205,12 +231,13 @@ class Dynamoplus:
                 logger.info("Found collection {}".format(collection.__str__))
                 return from_collection_to_API(collection)
             elif collection_name == 'index':
-                index_metadata = IndexService.get_index_by_name_and_collection_name(document_id, collection_name)
-                if index_metadata is None:
+                index = self.index_service.get_index_by_id(uuid.UUID(document_id))
+
+                if index is None:
                     raise HandlerException(HandlerExceptionErrorCodes.NOT_FOUND,
                                            "{} not found with name {}".format(collection_name, document_id))
-                logger.info("Found index {}".format(index_metadata.__str__))
-                return index_metadata.__dict__
+                logger.info("Found index {}".format(index.__str__))
+                return from_index_to_API(index)
             elif collection_name == 'client_authorization':
 
                 client_authorization = AuthorizationService.get_client_authorization(document_id)
@@ -262,10 +289,10 @@ class Dynamoplus:
                 return from_collection_to_API(collection)
             elif collection_name == 'index':
                 validate_index(document)
-                index_metadata = Converter.from_dict_to_index(document)
-                index_metadata = IndexService.create_index(index_metadata)
-                logger.info("Created index {}".format(index_metadata.__str__()))
-                return Converter.from_index_to_dict(index_metadata)
+                index = from_dict_to_index(document)
+                index = self.index_service.create_index(index)
+                logger.info("Created index {}".format(index))
+                return from_index_to_API(index)
             elif collection_name == 'client_authorization':
                 validate_client_authorization(document)
                 client_authorization = Converter.from_dict_to_client_authorization(document)
@@ -361,8 +388,10 @@ class Dynamoplus:
             domain_service = DomainService(collection_metadata)
             ## TODO - missing order unique in the query
             query_id = "__".join(predicate.get_fields())
-            index_matching_conditions = IndexService.get_index_matching_fields(predicate.get_fields(), collection_name,
-                                                                               None)
+            index_matching_conditions = self.index_service.get_index_by_collection_name_and_conditions(collection_name,
+                                                                                                       predicate.get_fields())
+            # index_matching_conditions = IndexService.get_index_matching_fields(predicate.get_fields(), collection_name,
+            #                                                                    None)
             logger.info("Found index matching {}".format(index_matching_conditions.conditions))
             if index_matching_conditions is None:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
@@ -380,7 +409,7 @@ class Dynamoplus:
             if collection_name == 'collection':
                 self.collection_service.delete_collection(id)
             elif collection_name == 'index':
-                index_metadata = IndexService.delete_index(id)
+                index_metadata = self.index_service.delete_index(uuid.UUID(id))
             elif collection_name == 'client_authorization':
                 AuthorizationService.delete_authorization(id)
             else:

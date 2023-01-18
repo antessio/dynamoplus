@@ -486,6 +486,10 @@ class IndexService:
             for i in indexes:
                 yield i
 
+    def get_index_by_id(self, uid: uuid.UUID) -> Index:
+        index_model = self.__get_index_entity_by_id(uid)
+        return Index.from_dict(index_model.object())
+
     def __get_index_entity_by_id(self, uid: uuid.UUID) -> Model:
         return self.repo.get(IndexEntity(uid))
 
@@ -518,7 +522,6 @@ class AuthorizationService:
     def delete_authorization(self, client_id: uuid.UUID):
         logging.info("deleting client authorization {}".format(client_id))
         self.repo.delete(ClientAuthorizationEntity(client_id))
-
 
 
 class AggregationService:
@@ -636,7 +639,7 @@ class AggregationService:
         self.repo.indexing(IndexingOperation([],
                                              [],
                                              [AggregationByAggregationConfigurationNameEntity(created_entity.id(),
-                                                                                             aggregation.configuration_name,
+                                                                                              aggregation.configuration_name,
                                                                                               created_entity.object())]))
 
         return Aggregation.from_dict(created_entity.object())
