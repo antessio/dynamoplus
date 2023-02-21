@@ -3,12 +3,15 @@ import random
 from enum import Enum
 
 import boto3
+from moto import mock_dynamodb2
 
 from dynamoplus.models.system.aggregation.aggregation import AggregationType, AggregationTrigger
 
 
+@mock_dynamodb2
 def set_up_for_integration_test(table_name: str):
     os.environ["TEST_FLAG"] = "true"
+    os.environ["AWS_REGION"] = "eu-west-1"
     os.environ["DYNAMODB_DOMAIN_TABLE"] = table_name
     os.environ["DYNAMODB_SYSTEM_TABLE"] = table_name
     dynamodb = boto3.resource("dynamodb")

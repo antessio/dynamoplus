@@ -25,6 +25,7 @@ class TestSystemRepository(unittest.TestCase):
 
     @mock_dynamodb2
     def setUp(self):
+        os.environ["AWS_REGION"] = "eu-west-1"
         set_up_for_integration_test(table_name)
 
 
