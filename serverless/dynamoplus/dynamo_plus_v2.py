@@ -112,7 +112,7 @@ def from_aggregation_to_API(aggregation: Aggregation):
 
 def from_collection_to_API(collection: dynamoplus.v2.service.system.system_service_v2.Collection) -> dict:
     result = {"name": collection.name, "id_key": collection.id_key,
-              "auto_generated_id": True if collection.auto_generated_id else False}
+              "auto_generate_id": True if collection.auto_generated_id else False}
     if collection.ordering:
         result["ordering_key"] = collection.ordering
     if collection.attributes:
@@ -122,16 +122,18 @@ def from_collection_to_API(collection: dynamoplus.v2.service.system.system_servi
 
 
 def from_index_to_API(index: dynamoplus.v2.service.system.system_service_v2.Index) -> dict:
-    return {
+    index_dict = {
         "id": str(index.id),
         "name": index.name,
-        "configuration": index.index_configuration.name,
         "collection": {
             "name": index.collection_name
         },
         "conditions": index.conditions,
         "ordering_key": index.ordering_key
     }
+    if index.index_configuration:
+        index_dict["configuration"] = index.index_configuration.name
+    return index_dict
 
 
 def from_dict_to_index(d: dict):
@@ -392,9 +394,10 @@ class Dynamoplus:
                                                                                                        predicate.get_fields())
             # index_matching_conditions = IndexService.get_index_matching_fields(predicate.get_fields(), collection_name,
             #                                                                    None)
-            logger.info("Found index matching {}".format(index_matching_conditions.conditions))
+
             if index_matching_conditions is None:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
+            logger.info("Found index matching {}".format(index_matching_conditions.conditions))
             ## Since the sk should be built using the index it is necessary to pass the index matching the conditions
             result = QueryService.query(collection_metadata, predicate, index_matching_conditions, start_from, limit)
             documents = list(map(lambda m: m.document, result.data))

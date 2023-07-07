@@ -47,20 +47,9 @@ class DomainService:
 
     def query(self, predicate: Predicate, index: Index, limit: int = None, start_from: str = None) -> (
             List[dict], str):
-        # if predicate.is_range():
-        #     result = QueryService.__query_range(collection, predicate, index.conditions, start_from, limit)
-        # elif isinstance(predicate, AnyMatch):
-        #     result = QueryService.__query_all(collection, limit, start_from)
-        # else:
-        #     result = QueryService.__query_begins_with(collection, predicate, index.conditions, start_from, limit)
-        # if index is not None and index.index_configuration == IndexConfiguration.OPTIMIZE_WRITE:
-        #     result = QueryResult(list(map(lambda m: Repository(get_table_name(is_system(collection))).get(m.pk, collection.name), result.data)), result.lastEvaluatedKey)
-        # return result
 
         query = QueryAll(DomainEntity)
-        if len(predicate.get_fields()) > 0:
-            ## TODO: foreach non-range field add eq condition, then add between condition
-            data_prefix = ""
+        if predicate and len(predicate.get_fields())>0:
             query = QueryByField(index.collection_name)
             query = add_to_query(query, predicate)
 
