@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 #from dynamoplus.service.indexing_service import create_indexes,update_indexes,delete_indexes
 from dynamoplus.models.system.collection.collection import Collection
@@ -8,6 +9,9 @@ from dynamoplus.v2.service.system.system_service import CollectionService
 import os
 
 from dynamoplus.v2.service.common import is_system
+from dynamoplus.v2.service.system.system_service_v2 import IndexService
+from dynamoplus.v2.service.system.system_service_v2 import CollectionService as CollectionServiceV2
+from dynamoplus.v2.service.system.system_service_v2 import AuthorizationService
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -24,7 +28,7 @@ def create_document(fun):
         is_local_env = is_local_environment()
         result = fun(*args,**kwargs)
         if result and is_local_env:
-            collection_name = args[0]
+            collection_name = args[1]
             is_system_collection = is_system(Collection(collection_name, None))
             if not is_system_collection:
                 if result and isinstance(result,dict):
@@ -38,12 +42,22 @@ def create_document(fun):
 def update_document(fun):
     def update(*args,**kwargs):
         is_local_env = is_local_environment()
-        collection_name = args[0]
-        id = args[2]
-        before = DomainService(CollectionService.get_collection(collection_name)).get_document(id)
+        collection_name = args[1]
+        id = args[3]
+        is_system_collection = is_system(Collection(collection_name, None))
+        before = None
+        if is_system_collection:
+            if collection_name == 'index':
+                before = IndexService().get_index_by_id(uuid.UUID(id)).to_dict()
+            elif collection_name == 'collection':
+                before = CollectionServiceV2().get_collection(collection_name).to_dict()
+            elif collection_name == 'client_authorization':
+                before = AuthorizationService().get_client_authorization(uuid.UUID(id)).to_dict()
+
+        else:
+            before = DomainService(CollectionService.get_collection(collection_name)).get_document(id)
         after = fun(*args,**kwargs)
         if after and is_local_env:
-            is_system_collection = is_system(Collection(collection_name, None))
             if not is_system_collection:
                 update_indexes(collection_name,before,after)
                 logger.info("updating document index for {}".format(collection_name))
@@ -55,8 +69,8 @@ def delete_document(fun):
     def delete(*args,**kwargs):
         is_local_env = is_local_environment()
         if is_local_env:
-            collection_name = args[0]
-            id = args[1]
+            collection_name = args[1]
+            id = args[2]
             is_system_collection = is_system(Collection(collection_name, None))
             if not is_system_collection:
                 before = DomainService(CollectionService.get_collection(collection_name)).get_document(id)

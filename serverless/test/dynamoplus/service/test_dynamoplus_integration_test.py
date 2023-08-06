@@ -2,7 +2,7 @@ import unittest
 import logging
 import uuid
 
-from dynamoplus.dynamo_plus_v2 import create
+from dynamoplus.dynamo_plus_v2 import Dynamoplus
 
 from moto import mock_dynamodb2
 import boto3
@@ -13,10 +13,12 @@ logging.getLogger('boto').setLevel(logging.DEBUG)
 
 @mock_dynamodb2
 class TestDynamoPlusService(unittest.TestCase):
+    dyamoplus_instance: Dynamoplus
 
     def setUp(self):
         domain_table_name = "domain"
         system_table_name = "system"
+        os.environ["STAGE"] = "local"
         os.environ["DYNAMODB_DOMAIN_TABLE"] = domain_table_name
         os.environ["DYNAMODB_SYSTEM_TABLE"] = system_table_name
         self.dynamodb = boto3.resource("dynamodb", region_name='eu-west-1')
@@ -25,16 +27,18 @@ class TestDynamoPlusService(unittest.TestCase):
         self.domain_table = self.getMockTable(domain_table_name)
         # self.fillSystemData()
         # self.getMockTable("example-domain")
+        self.dyamoplus_instance = Dynamoplus()
 
     def tearDown(self):
         self.system_table.delete()
         self.domain_table.delete()
         del os.environ["DYNAMODB_DOMAIN_TABLE"]
         del os.environ["DYNAMODB_SYSTEM_TABLE"]
+        del os.environ["STAGE"]
 
     def test_create_collection(self):
         collection_name = "example"
-        response = create("collection", {
+        response = self.dyamoplus_instance.create("collection", {
             "name": collection_name,
             "id_key": "id",
             "ordering": "ordering",
@@ -48,7 +52,7 @@ class TestDynamoPlusService(unittest.TestCase):
 
     def test_create_index(self):
         collection_name = "example"
-        response = create("collection", {
+        response = self.dyamoplus_instance.create("collection", {
             "name": collection_name,
             "id_key": "id",
             "ordering": "ordering",
@@ -60,17 +64,17 @@ class TestDynamoPlusService(unittest.TestCase):
         })
         index = {
             "name": "index",
-            "collection":{
+            "collection": {
                 "id_key": "id",
                 "name": collection_name
             },
-            "conditions":["a","b"]
+            "conditions": ["a", "b"]
         }
-        create("index", index)
+        self.dyamoplus_instance.create("index", index)
 
     def test_create_document(self):
         collection_name = "example"
-        response = create("collection", {
+        response = self.dyamoplus_instance.create("collection", {
             "name": collection_name,
             "id_key": "name",
             "ordering": "ordering",
@@ -80,7 +84,7 @@ class TestDynamoPlusService(unittest.TestCase):
                 {"name": "c", "type": "STRING"}
             ]
         })
-        response = create(collection_name, {
+        response = self.dyamoplus_instance.create(collection_name, {
             "name": "1",
             "ordering": "2",
             "attributes": {
@@ -94,7 +98,7 @@ class TestDynamoPlusService(unittest.TestCase):
 
     def test_create_document_nested_attributes(self):
         collection_name = "example"
-        response = create("collection", {
+        response = self.dyamoplus_instance.create("collection", {
             "name": collection_name,
             "id_key": "id",
             "ordering": "ordering",
@@ -107,7 +111,7 @@ class TestDynamoPlusService(unittest.TestCase):
                 ]}
             ]
         })
-        response = create(collection_name, {
+        response = self.dyamoplus_instance.create(collection_name, {
             "id": "1",
             "ordering": "2",
             "attributes": {
@@ -131,7 +135,17 @@ class TestDynamoPlusService(unittest.TestCase):
                 }
             ]
         }
-        response = create("client_authorization", http_signature_client_authorization)
+        response = self.dyamoplus_instance.create("client_authorization", http_signature_client_authorization)
+        print("{}".format(response))
+
+    def test_create_aggregation_configuration(self):
+        aggregation_configuration = {'type': 'COLLECTION_COUNT',
+                                     'collection': {'id_key': 'id', 'name': 'restaurant___api_key_test',
+                                                    'attributes': [{'name': 'name', 'type': 'STRING'},
+                                                                   {'name': 'type', 'type': 'STRING'}]},
+                                     'configuration': {'on': ['DELETE', 'INSERT']}}
+
+        response = self.dyamoplus_instance.create("aggregation_configuration", aggregation_configuration)
         print("{}".format(response))
 
     # @mock_dynamodb2

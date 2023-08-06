@@ -5,7 +5,7 @@ except ImportError:
 import logging
 
 ## TODO: use an interface and not directly the repo
-from dynamoplus.v2.repository.repositories import create_tables,cleanup_tables
+from aws.dynamodb.dynamodbdao import create_tables,cleanup_tables
 
 
 logging.basicConfig(level=logging.INFO)

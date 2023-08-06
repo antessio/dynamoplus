@@ -11,7 +11,7 @@ from dynamoplus.models.system.client_authorization.client_authorization import C
 from dynamoplus.models.system.collection.collection import Collection, AttributeDefinition, AttributeType, \
     AttributeConstraint
 from dynamoplus.models.system.index.index import Index, IndexConfiguration
-from dynamoplus.v2.repository.repositories import AtomicIncrement,Counter
+from aws.dynamodb.dynamodbdao import AtomicIncrement,Counter
 from dynamoplus.v2.service.common import get_repository_factory
 from dynamoplus.v2.service.model_service import get_model, get_index_model
 from dynamoplus.v2.service.query_service import QueryService
@@ -256,7 +256,6 @@ class Converter:
         if aggregation_configuration.matches:
             a["matches"] = Converter.from_predicate_to_dict(aggregation_configuration.matches)
         d["configuration"] = a
-        d["name"] = aggregation_configuration.name
         if aggregation:
             d["aggregation"]=Converter.from_aggregation_to_API(aggregation)
         return d

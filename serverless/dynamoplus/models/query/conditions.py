@@ -126,13 +126,15 @@ def is_valid(field_match: FieldMatch):
     return results is None or len(results) <= 1
 
 
-def get_range_predicate(predicate: Predicate):
+def get_range_predicate(predicate: Predicate) -> Range:
     results = __get_range_conditions(predicate)
     if results and len(results) >= 1:
-        return results[0]
+        for r in results:
+            if isinstance(r, Range):
+                return r
 
 
-def __get_range_conditions(field_match: FieldMatch):
+def __get_range_conditions(field_match: FieldMatch) -> List[Predicate]:
     if isinstance(field_match, Range):
         return [field_match]
     elif isinstance(field_match, And):
