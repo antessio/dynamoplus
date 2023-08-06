@@ -55,11 +55,11 @@ class TestHttpHandler(unittest.TestCase):
 
     def fill_system_data(self):
         self._create_collection("example",
-                                "id_key", [
-                                    {"field1": "string"},
-                                    {"field2.field21": "string"}
+                                "id", [
+                                    {"name": "field1", "type": "string"},
+                                    {"name": "field2.field21", "type": "string"}
                                 ])
-
+        self.assert_collection_created()
         ## client authorization
         self._create_client_authorization_api_key("example-client-id",
                                                   "test-api-key",
@@ -69,6 +69,18 @@ class TestHttpHandler(unittest.TestCase):
                                                           "scope_type": "GET"
                                                       }
                                                   ])
+        get_result = self.httpHandler.get(path_parameters={"collection": "client_authorization", "id": "example-client-id"})
+        self._assertOkWithBody(get_result, {
+            "type": "api_key",
+            "client_id": "example-client-id",
+            "api_key": "test-api-key",
+            "client_scopes":[
+                {
+                    "collection_name": "example",
+                    "scope_type": "GET"
+                }
+            ]
+        })
         ## index 1 - field1__field2.field21
         self._create_index(index_name="example__field1__field2.field21", collection_name='example',
                            collection_id_key='id',
@@ -76,7 +88,9 @@ class TestHttpHandler(unittest.TestCase):
                                {'field1': 'string'},
                                {'field2.field21': 'string'}
                            ])
-
+        get_index_1_result = self.httpHandler.get(path_parameters={"collection": "index", "id": "example__field1__field2.field21"})
+        self.assertHttpStatusCode(get_index_1_result, 200)
+        self.assertDictEqual()
         ##index 2 - even
         self._create_index(index_name="example__even", collection_name="example", collection_id_key='id',
                            index_fields=[{"even": "boolean"}])
@@ -85,20 +99,23 @@ class TestHttpHandler(unittest.TestCase):
         self._create_index(index_name="example__starting", collection_name="example", collection_id_key='id',
                            index_fields=[{"starting": "boolean"}])
 
+    def assert_collection_created(self, collection_name="example", expected_id="id", expected_attributes=[
+        {"name": "field1", "type": "STRING"},
+        {"name": "field2.field21", "type": "STRING"},
+    ]):
+        get_collection = self.httpHandler.get(path_parameters={"collection": "collection", "id": collection_name})
+        self.assertHttpStatusCode(get_collection, 200)
+        self.assertDictEqualsIgnoringFields(json.loads(get_collection["body"]), {
+            "name": collection_name,
+            "id_key": expected_id,
+            "attributes": expected_attributes,
+            "auto_generate_id": False
+        })
+
     def _create_index(self, index_name: str,
                       collection_name: str,
                       collection_id_key: str,
                       index_fields: [dict]):
-        # self.systemTable.put_item(Item={"pk": "index#example__even", "sk": "index", "data": "example__even",
-        #                                 "document": json.loads(
-        #                                     "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}")})
-        # self.systemTable.put_item(Item={"pk": "index#example__even", "sk": "index#name", "data": "example",
-        #                                 "document": json.loads(
-        #                                     "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}")})
-        # self.systemTable.put_item(
-        #     Item={"pk": "index#example__even", "sk": "index#collection.name#name", "data": "example#example__even",
-        #           "document": json.loads(
-        #               "{\"uid\": \"2\",\"name\":\"even\",\"collection\":{\"id_key\":\"id\",\"name\":\"example\"},\"conditions\": [\"even\"]}")})
         index_fields_names = [next(iter(d)) for d in index_fields]
         index_document = {
             'id': uuid.uuid4().hex,
@@ -141,7 +158,7 @@ class TestHttpHandler(unittest.TestCase):
         self.insert_system_table(("collection#%s" % collection_name), "collection", ("%s" % collection_name), {
             "id_key": id_key,
             "name": collection_name,
-            "fields": fields
+            "attributes": fields
         })
 
     def insert_system_table(self, pk: str,
@@ -184,7 +201,8 @@ class TestHttpHandler(unittest.TestCase):
     def test_update_client_authorization(self):
         ## given
         client_id = uuid.uuid4()
-        self._create_client_authorization_api_key(client_id, "test-api-key-1", [{"collection_name": "example", "scope_type": "GET"}])
+        self._create_client_authorization_api_key(client_id, "test-api-key-1",
+                                                  [{"collection_name": "example", "scope_type": "GET"}])
 
         ## when
         path_parameters = {"collection": "client_authorization", "id": client_id}
@@ -233,27 +251,30 @@ class TestHttpHandler(unittest.TestCase):
     def test_get_entityNotHandled(self):
         self._create_collection("example",
                                 "id_key", [
-                                    {"field1": "string"},
-                                    {"field2.field21": "string"}
+                                    {"name": "field1", "type": "string"},
+                                    {"name": "field2.field21", "type": "string"}
                                 ])
         result = self.httpHandler.get({"collection": "whatever", "id": "1"})
         self.assertEqual(result["statusCode"], 400)
 
-    def test_get_found(self):
+    def test_get_document_found(self):
         self._create_collection("example",
                                 "id_key", [
-                                    {"field1": "string"},
-                                    {"field2.field21": "string"}
+                                    {"title": "string"}
                                 ])
-
-        id = 1
-        document = {"id": ("%s" % id), "title": "data_1", "ordering": "1"}
-        self.table.put_item(
-            Item={"pk": "example#" + str(id), "sk": "example", "data": str(id), "document": document})
-        expected_result = {"id": ("%s" % id), "title": "data_1", "ordering": "1"}
+        document_id = "1"
+        expected_result = {"id": ("%s" % document_id), "title": "data_1", "ordering": "1"}
+        id = self._create_document("example", document_id, {"title": "data_1", "ordering": "1", "id": document_id})
         result = self.httpHandler.get({"collection": "example", "id": "1"})
         self.assertEqual(result["statusCode"], 200)
         self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expected_result, ["even", "starting", "ending"])
+
+    def _create_document(self, collection_name: str, document_id: str, document: dict):
+        self.table.put_item(
+            Item={"pk": collection_name + "#" + str(document_id), "sk": ("%s" % collection_name),
+                  "data": str(document_id),
+                  "document": document})
+        return document_id
 
     def test_create_client_authorization(self):
         path_parameters = {"collection": "client_authorization"}
@@ -263,9 +284,9 @@ class TestHttpHandler(unittest.TestCase):
         self.assertHttpStatusCode(create_result)
         self.assertDictEqual(json.loads(create_result["body"]), body)
         self._assert_stored_in_system_table(body,
-                                           "client_authorization#test",
-                                           "client_authorization",
-                                           "test")
+                                            "client_authorization#test",
+                                            "client_authorization",
+                                            "test")
         get_result = self.httpHandler.get(path_parameters={"collection": "client_authorization", "id": "test"})
         self._assertOkWithBody(get_result, json.loads(create_result["body"]))
 
@@ -291,30 +312,17 @@ class TestHttpHandler(unittest.TestCase):
         get_result = self.httpHandler.get(path_parameters={"collection": "collection", "id": collection_name})
         self._assertOkWithBody(get_result, json.loads(create_result["body"]))
 
-    def _assertOkWithBody(self, result:dict, expected_body:dict):
-        self.assertEqual(result["statusCode"], 200)
-        self.assertDictEqual(json.loads(result["body"]), expected_body)
-
-    def _assert_stored_in_system_table(self, expected_document:dict,
-                                       expected_pk:str,
-                                       expected_sk:str,
-                                       expected_data:str):
-        client_authorization_created = self.systemTable.get_item(
-            Key={"pk": expected_pk, "sk": expected_sk})
-        self.assertEqual(client_authorization_created["Item"]["data"], expected_data)
-        self.assertDictEqual(client_authorization_created["Item"]["document"], expected_document)
-
-    def test_create(self):
-        self._create_collection('example','id', [{"title": "string"}])
+    def test_create_document(self):
+        self._create_collection('example', 'id', [{"title": "string"}])
         expected_result = {"id": "1000", "title": "test_1", "ordering": "21"}
         result = self.httpHandler.create({"collection": "example"},
                                          body="{\"id\":\"1000\", \"title\": \"test_1\",\"ordering\": \"21\"}")
-        self.assertHttpStatusCode(result)
+        self.assertHttpStatusCode(result, 201)
         self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expected_result,
                                             ["id", "creation_date_time", "order_unique"])
 
-    def assertHttpStatusCode(self, result):
-        self.assertEqual(result["statusCode"], 201, result["body"])
+    def assertHttpStatusCode(self, result, expected_status_code=201):
+        self.assertEqual(result["statusCode"], expected_status_code, result["body"])
 
     @unittest.skip("not supported by moto")
     def test_update_adding_new_field(self):
@@ -339,10 +347,14 @@ class TestHttpHandler(unittest.TestCase):
         self.assertDictEqualsIgnoringFields(json.loads(result["body"]), expected_result,
                                             ["creation_date_time", "update_date_time"])
 
-    def test_delete(self):
-        self.fill_system_data()
-        self.fill_data()
-        result = self.httpHandler.delete({"collection": "example", "id": "1"})
+    def test_delete_document(self):
+        self._create_collection("example",
+                                "id_key", [
+                                    {"title": "string"}
+                                ])
+        document_id = "1"
+        id = self._create_document("example", document_id, {"title": "data_1", "ordering": "1", "id": document_id})
+        result = self.httpHandler.delete({"collection": "example", "id": id})
         self.assertEqual(result["statusCode"], 200)
 
     def test_query(self):
@@ -475,6 +487,20 @@ class TestHttpHandler(unittest.TestCase):
         d1 = {k: v for k, v in d1.items() if k not in fields}
         d2 = {k: v for k, v in d2.items() if k not in fields}
         self.assertDictEqual(d1, d2)
+
+    def _assertOkWithBody(self, result: dict, expected_body: dict):
+        self.assertEqual(result["statusCode"], 200)
+        self.assertDictEqual(json.loads(result["body"]), expected_body)
+
+    def _assert_stored_in_system_table(self, expected_document: dict,
+                                       expected_pk: str,
+                                       expected_sk: str,
+                                       expected_data: str):
+        client_authorization_created = self.systemTable.get_item(
+            Key={"pk": expected_pk, "sk": expected_sk})
+        self.assertEqual(client_authorization_created["Item"]["data"], expected_data)
+        self.assertDictEqual(client_authorization_created["Item"]["document"], expected_document)
+
 
 def assert_dicts_equal_except_keys(dict1, dict2, ignore_keys):
     """
