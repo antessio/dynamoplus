@@ -6,15 +6,16 @@ from decimal import Decimal
 
 from fastjsonschema import JsonSchemaException
 
-from dynamoplus.dynamo_plus_v2 import Dynamoplus, HandlerException
+from dynamoplus import Dynamoplus, HandlerException
 
-from dynamoplus.utils.decimalencoder import DecimalEncoder
+from dynamoplus import DecimalEncoder
 from custom.custom_service import CustomService
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 custom_service = CustomService()
+
 
 ## TODO : it has to be converter in "Router"
 
@@ -23,10 +24,10 @@ class HttpHandler(object):
     def __init__(self):
         self.dynamoplus = Dynamoplus()
 
-    def custom(self, method,path, path_parameters, query_string_parameters=[], body=None, headers=None):
-        return custom_service.route(method,path, path_parameters, query_string_parameters, headers, body)
+    def custom(self, method, path, path_parameters, query_string_parameters=[], body=None, headers=None):
+        return custom_service.route(method, path, path_parameters, query_string_parameters, headers, body)
 
-    def get(self, path_parameters, query_string_parameters=[], body=None, headers=None, path:str=None):
+    def get(self, path_parameters, query_string_parameters=[], body=None, headers=None, path: str = None):
         collection = self.get_document_type_from_path_parameters(path_parameters)
         if 'id' in path_parameters:
             id = path_parameters['id']
@@ -53,10 +54,10 @@ class HttpHandler(object):
             limit = int(query_string_parameters[
                             "limit"]) if query_string_parameters and "limit" in query_string_parameters else None
 
-
             try:
-                if path.startswith("/dynamoplus/"+collection+"/aggregation_configuration"):
-                    documents, last_evaluated_key = self.dynamoplus.aggregation_configurations(collection,last_key,limit)
+                if path.startswith("/dynamoplus/" + collection + "/aggregation_configuration"):
+                    documents, last_evaluated_key = self.dynamoplus.aggregation_configurations(collection, last_key,
+                                                                                               limit)
                 else:
                     documents, last_evaluated_key = self.dynamoplus.get_all(collection, last_key, limit)
 
@@ -99,7 +100,7 @@ class HttpHandler(object):
         logger.info("Updating " + data.__str__())
         try:
 
-            dto = self.dynamoplus.update(collection, data,id)
+            dto = self.dynamoplus.update(collection, data, id)
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
                                           body=self.format_json(dto))
         except HandlerException as e:
@@ -142,7 +143,7 @@ class HttpHandler(object):
         logger.debug("limit = {}".format(limit))
         try:
             documents, last_evaluated_key = self.dynamoplus.query(collection, q, last_key,
-                                                             limit)
+                                                                  limit)
             result = {"data": documents, "has_more": last_evaluated_key is not None}
             return self.get_http_response(body=self.format_json(result), headers=self.get_response_headers(headers),
                                           statusCode=200)

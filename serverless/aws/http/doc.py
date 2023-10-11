@@ -8,9 +8,9 @@ import logging
 from apispec import APISpec
 
 from aws.http.info import VERSION
-from dynamoplus.models.system.index.index import Index
+from dynamoplus.models.system import Index
 from dynamoplus.v2.service.system.system_service import CollectionService, IndexService
-from dynamoplus.service.validation_service import COLLECTION_SCHEMA_DEFINITION, INDEX_SCHEMA_DEFINITION, \
+from dynamoplus import COLLECTION_SCHEMA_DEFINITION, INDEX_SCHEMA_DEFINITION, \
     CLIENT_AUTHORIZATION_SCHEMA_DEFINITION, CLIENT_AUTHORIZATION_HTTP_SIGNATURE_SCHEMA_DEFINITION, \
     CLIENT_AUTHORIZATION_API_KEY_SCHEMA_DEFINITION, QUERY_SCHEMA_DEFINITION, CLIENT_SCOPE_SCHEMA_DEFINITION, \
     AGGREGATION_SCHEMA_DEFINITION
@@ -646,7 +646,7 @@ def add_collection(c, spec):
 
 
 def add_query_to_spec(i: Index, spec):
-    formatted_fields = " & ".join(["{}"] * len(i.conditions)).format(*i.conditions)
+    formatted_fields = " & ".join(["{}"] * len(i.eq_conditions)).format(*i.eq_conditions)
     description = "get all {} by {}".format(i.collection_name, formatted_fields)
     spec.path(path="/dynamoplus/collection/query/{}".format(i.index_name), operations={
         'post': {
@@ -660,7 +660,7 @@ def add_query_to_spec(i: Index, spec):
                         "properties": {
                             "matches": {
                                 "type": "object",
-                                "properties": get_schema_from_conditions(i.conditions)
+                                "properties": get_schema_from_conditions(i.eq_conditions)
 
                             }
                         },

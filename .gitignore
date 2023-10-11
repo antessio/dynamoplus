@@ -115,3 +115,6 @@ venv.bak/
 .idea/
 /dynamodb-docker-data/*
 /my-dynamodb-data/*
+
+/core_venv
+/core_venv_test

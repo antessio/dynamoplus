@@ -5,7 +5,7 @@ except ImportError:
 import os
 import logging
 import json
-from dynamoplus.service.security.security import SecurityService
+from dynamoplus.service.security import SecurityService
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)

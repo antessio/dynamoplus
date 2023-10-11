@@ -1,9 +1,9 @@
 import unittest
 from decimal import Decimal
 
-from aws.dynamodb.dynamodbdao import DynamoDBDAO, DynamoDBModel, QueryRepository, AtomicIncrement, Counter, \
-    DynamoDBQuery, GSIDynamoDBQuery
-from dynamoplus.models.system.collection.collection import Collection
+from dynamodb.aws.dynamodb.dynamodbdao import DynamoDBDAO, DynamoDBModel, QueryRepository, AtomicIncrement, Counter, \
+    GSIDynamoDBQuery
+from dynamoplus.models.system import Collection
 from moto import mock_dynamodb2
 import boto3
 import os
