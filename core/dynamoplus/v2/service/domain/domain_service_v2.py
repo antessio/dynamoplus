@@ -1,10 +1,10 @@
 from typing import List
 
-from dynamoplus.models.query.conditions import Predicate, AnyMatch, Eq, And, Range
+from dynamoplus.models.query.conditions import Predicate, AnyMatch, Eq, And, Range, QueryCommand
 from dynamoplus.v2.repository.domain_repository import DomainEntity
 from dynamoplus.v2.repository.repositories_v2 import RepositoryInterface, IndexingOperation, \
-    AnyCondition, Condition, BetweenCondition, EqCondition, AndCondition
-from dynamoplus.v2.service.system.system_service_v2 import Collection
+    AnyCondition, Condition, BetweenCondition, EqCondition, AndCondition, BeginsWithCondition
+from dynamoplus.v2.service.system.system_service_v2 import Collection, Index
 
 
 def get_domain_entity_from_id(id: str, collection: Collection):
@@ -46,15 +46,17 @@ class DomainService:
         self.repo.delete(id, collection.name)
 
     def find_all(self, collection: Collection, limit: int = None, start_from: str = None):
-        return self.query(collection, AnyMatch(), limit, start_from)
+        return self.query(collection, QueryCommand(AnyMatch(), None, []), limit, start_from)
 
-    def query(self, collection: Collection, predicate: Predicate, limit: int = None,
+    def query(self, collection: Collection, query:QueryCommand, limit: int = None,
               start_from: str = None) -> (
             List[dict], str):
-
+        predicate = query.predicate
         condition = AnyCondition()
         if predicate and len(predicate.get_fields()) > 0:
-            condition = create_condition(predicate)
+            # if the index is not fully match, the last field should be begins with
+            index_is_fully_match = predicate.get_fields() == query.index_fields
+            condition = create_condition(predicate, index_is_fully_match, query.index_fields)
         result, last_evaluated_key = self.repo.query(collection.name, condition, limit, start_from)
         return result, last_evaluated_key
 
@@ -62,15 +64,18 @@ class DomainService:
         self.repo.indexing(indexing_operation)
 
 
-def create_condition(predicate: Predicate) -> Condition:
+def create_condition(predicate: Predicate, index_is_fully_match:bool, index_fields:List[str]) -> Condition:
     if isinstance(predicate, Range):
         return BetweenCondition(predicate.field_name, predicate.from_value, predicate.to_value)
     elif isinstance(predicate, Eq):
-        return EqCondition(predicate.field_name, predicate.value)
+        if index_is_fully_match:
+            return EqCondition(predicate.field_name, predicate.value)
+        else:
+            return BeginsWithCondition("__".join(index_fields), predicate.value)
     elif isinstance(predicate, AnyMatch):
         return AnyCondition()
     elif isinstance(predicate, And):
         eq_conditions = list(map(lambda c: EqCondition(c.field_name, c.value), predicate.eq_conditions))
-        last_condition = create_condition(predicate.last_condition)
+        last_condition = create_condition(predicate.last_condition, index_is_fully_match, index_fields)
         return AndCondition(eq_conditions, last_condition)
 

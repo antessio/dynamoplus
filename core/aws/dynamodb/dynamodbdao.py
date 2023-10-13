@@ -56,7 +56,7 @@ class DynamoDBModel:
         data = dynamo_db_item["data"] if "data" in dynamo_db_item else None
 
         document = None
-        if "document" in dynamo_db_item:
+        if "document" in dynamo_db_item and dynamo_db_item["document"] is not None:
             if isinstance(dynamo_db_item["document"], dict):
                 document = dynamo_db_item["document"]
             else:
@@ -367,6 +367,8 @@ class DynamoDBDAO:
             logging.debug("last key = {}", last_key)
         return QueryResult(list(map(lambda i: DynamoDBModel.from_dynamo_db_item(i), response[u'Items'])),
                            DynamoDBKey.from_dynamo_db_item(last_key) if last_key else None)
+
+
 
     def __query_gsi(self, key, limit, last_key):
         start_from = None

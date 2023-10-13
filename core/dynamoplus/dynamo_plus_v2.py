@@ -8,6 +8,8 @@ from enum import Enum
 from typing import List
 
 import dynamoplus.v2.service.system.system_service_v2
+from dynamoplus.models.query.conditions import QueryCommand
+from dynamoplus.models.query.index import Predicate, Eq, Range, And, Query
 from dynamoplus.models.system.aggregation.aggregation import AggregationJoin, AggregationTrigger, AggregationType
 from dynamoplus.models.system.client_authorization.client_authorization import ScopesType, Scope
 from dynamoplus.models.system.collection.collection import AttributeDefinition, AttributeConstraint, AttributeType
@@ -17,10 +19,9 @@ from dynamoplus.v2.service.system.system_service_v2 import Collection, \
     ClientAuthorizationHttpSignature, ClientAuthorizationApiKey, ClientAuthorization, \
     ClientAuthorizationHttpSignatureCreateCommand, ClientAuthorizationApiKeyCreateCommand, \
     ClientAuthorizationCreateCommand, Index, IndexCreateCommand
-from dynamoplus.models.query.conditions import Predicate, Eq, Range, And
 from dynamoplus.v2.service.common import is_system_collection as is_system
 from dynamoplus.service.validation_service import validate_collection, validate_index, validate_document, \
-    validate_client_authorization, validate_aggregation
+    validate_client_authorization, validate_aggregation, validate_query
 from dynamoplus.service.indexing_decorator import create_document, update_document, delete_document
 from dynamoplus.v2.service.system.system_service_v2 import AggregationConfigurationService, AggregationConfiguration, \
     Aggregation, AggregationCount, AggregationSum, AggregationAvg, AggregationService
@@ -30,6 +31,27 @@ logger.setLevel(logging.INFO)
 
 
 class Converter:
+
+    @staticmethod
+    def convert_to_predicate(matches: Predicate) -> dynamoplus.models.query.conditions.Predicate:
+        if isinstance(matches, And):
+            and_predicate: And = matches
+            return dynamoplus.models.query.conditions.And(
+                list(
+                    map(lambda eq_predicate: dynamoplus.models.query.conditions.Eq(eq_predicate.field_name,
+                                                                                   eq_predicate.value),
+                        filter(lambda p: isinstance(p, Eq),
+                               and_predicate.predicates))
+                ),
+                Converter.convert_to_predicate(next(filter(lambda p: not isinstance(p, Eq), and_predicate.predicates), None))
+            )
+        elif isinstance(matches, Eq):
+            eq_predicate: Eq = matches
+            return dynamoplus.models.query.conditions.Eq(eq_predicate.field_name, eq_predicate.value)
+        elif isinstance(matches, Range):
+            range_predicate: Range = matches
+            return dynamoplus.models.query.conditions.Range(range_predicate.field_name, range_predicate.from_value,
+                                                            range_predicate.to_value)
 
     @staticmethod
     def from_predicate_to_dict(predicate: Predicate):
@@ -42,14 +64,20 @@ class Converter:
             return {"and": list(map(lambda c: Converter.from_predicate_to_dict(c), predicate.conditions))}
 
     @staticmethod
-    def from_dict_to_predicate(d: dict):
-        if "eq" in d:
-            return Eq(d["eq"]["field_name"], d["eq"]["value"])
-        elif "range" in d:
-            return Range(d["range"]["field_name"], d["range"]["from"], d["range"]["to"])
-        elif "and" in d:
-            conditions = list(map(lambda cd: Converter.from_dict_to_predicate(cd), d["and"]))
+    def from_API_to_predicate(matches_dict: dict):
+        if "eq" in matches_dict:
+            return Eq(matches_dict["eq"]["field_name"], matches_dict["eq"]["value"])
+        elif "range" in matches_dict:
+            return Range(matches_dict["range"]["field_name"], matches_dict["range"]["from"], matches_dict["range"]["to"])
+        elif "and" in matches_dict:
+            conditions = list(map(lambda cd: Converter.from_API_to_predicate(cd), matches_dict["and"]))
             return And(conditions)
+
+    @staticmethod
+    def from_API_to_query(d: dict) -> Query:
+        if "matches" in d:
+            matches_dict = d["matches"]
+            return Query(Converter.from_API_to_predicate(matches_dict))
 
     @staticmethod
     def from_collection_to_API(collection: Collection):
@@ -338,7 +366,7 @@ class Converter:
             join = AggregationJoin(inner_aggregation_document["join"]["collection_name"],
                                    inner_aggregation_document["join"]["using_field"])
         if "matches" in inner_aggregation_document:
-            matches = Converter.from_dict_to_predicate(inner_aggregation_document["matches"])
+            matches = Converter.from_API_to_query(inner_aggregation_document["matches"])
 
         return AggregationConfiguration(id, collection_name, t, on, target_field, matches, join)
 
@@ -358,7 +386,7 @@ class Converter:
             join = AggregationJoin(inner_aggregation_document["join"]["collection_name"],
                                    inner_aggregation_document["join"]["using_field"])
         if "matches" in inner_aggregation_document:
-            matches = Converter.from_dict_to_predicate(inner_aggregation_document["matches"])
+            matches = Converter.from_API_to_query(inner_aggregation_document["matches"])
 
         return AggregationConfiguration(id, collection_name, t, on, target_field, matches, join)
 
@@ -404,7 +432,7 @@ def from_API_to_aggregation_configuration(document: dict):
         join = AggregationJoin(inner_aggregation_document["join"]["collection_name"],
                                inner_aggregation_document["join"]["using_field"])
     if "matches" in inner_aggregation_document:
-        matches = Converter.from_dict_to_predicate(inner_aggregation_document["matches"])
+        matches = Converter.from_API_to_query(inner_aggregation_document["matches"])
 
     return AggregationConfiguration(uuid.uuid4(), collection_name, t, on, target_field, matches, join)
 
@@ -478,9 +506,10 @@ def from_index_to_API(index: dynamoplus.v2.service.system.system_service_v2.Inde
         "collection": {
             "name": index.collection_name
         },
-        "conditions": index.conditions,
-        "ordering_key": index.ordering_key
+        "conditions": index.conditions
     }
+    if index.ordering_key:
+        index_dict["ordering_key"] = index.ordering_key
     if index.index_configuration:
         index_dict["configuration"] = index.index_configuration.name
     return index_dict
@@ -520,6 +549,9 @@ def from_dict_to_collection(d: dict):
                                                                      auto_generate_id)
 
 
+
+
+
 class Dynamoplus:
 
     def __init__(self,
@@ -546,6 +578,11 @@ class Dynamoplus:
 
                 collections, last_evaluated_key = self.collection_service.get_all_collections(limit, last_key)
                 documents = list(map(lambda c: from_collection_to_API(c), collections))
+                return documents, last_evaluated_key
+            elif collection_name == 'index':
+                indexes, last_evaluated_key = self.index_service.get_all_indexes(limit, uuid.UUID(
+                    last_key) if last_key else None)
+                documents = list(map(lambda c: from_index_to_API(c), indexes))
                 return documents, last_evaluated_key
             elif collection_name == 'aggregation_configuration':
                 aggregation_configuration_list, last_evaluated_key = self.aggregation_configuration_service.get_all_aggregation_configurations(
@@ -754,28 +791,42 @@ class Dynamoplus:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "{} is not a valid collection".format(collection_name))
         else:
+
             if "matches" in query:
-                predicate: Predicate = Converter.from_dict_to_predicate(query["matches"])
+                validate_query(query)
+                query: Query = Converter.from_API_to_query(query)
+                # further validation
+                if isinstance(query.matches, And):
+                    and_condition: And = query.matches
+                    non_eq_count = 0
+                    for predicate in and_condition.predicates:
+                        if not isinstance(predicate, Eq):
+                            non_eq_count += 1
+                            if non_eq_count > 1:
+                                raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
+                                                       "Invalid predicate list in \"and\". At most one non-eq predicate is allowed.")
+
             else:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "invalid predicate")
-            logger.info("query {} collection by {} ".format(collection_name, predicate))
+            logger.info("query {} collection by {} ".format(collection_name, query))
             collection_metadata = self.collection_service.get_collection(collection_name)
             if collection_metadata is None:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "{} is not a valid collection".format(collection_name))
 
             ## TODO - missing order unique in the query
-            query_id = "__".join(predicate.get_fields())
             index_matching_conditions = self.index_service.get_index_by_collection_name_and_conditions(collection_name,
-                                                                                                       predicate.get_fields())
+                                                                                                       query.matches.get_field_names())
 
             if index_matching_conditions is None:
-                raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index {} found".format(query_id))
+                raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "no index found")
             logger.info("Found index matching {}".format(index_matching_conditions.conditions))
-            result = self.domain_service.query(predicate, limit, start_from)
-            documents = list(map(lambda m: m.document, result.data))
-            last_evaluated_key = result.lastEvaluatedKey
+            query_command = QueryCommand(
+                Converter.convert_to_predicate(query.matches),
+                index_matching_conditions.name,
+                index_matching_conditions.conditions)
+            documents, last_evaluated_key = self.domain_service.query(collection_metadata, query_command, limit, start_from)
         return documents, last_evaluated_key
 
     @delete_document

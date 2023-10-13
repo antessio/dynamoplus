@@ -100,22 +100,45 @@ def find_matching_indexes(index_service: IndexService, values: dict,
         logger.debug("changed fields = {}".format(changed_fields))
         for index in index_service.get_indexes_from_collection_name_generator(collection_metadata.name):
             for field in changed_fields:
-                if field in index.eq_conditions or index.index_configuration == IndexConfiguration.OPTIMIZE_READ or field == index.ordering_key:
+                if field in index.conditions or index.index_configuration == IndexConfiguration.OPTIMIZE_READ or field == index.ordering_key:
                     document = record if index and (
                             index.index_configuration is None or index.index_configuration == IndexConfiguration.OPTIMIZE_READ) \
-                        else filter_out_not_included_fields(record, index.eq_conditions + [collection_metadata.id_key])
+                        else filter_out_not_included_fields(record, index.conditions + [collection_metadata.id_key])
 
                     index_model = get_index_model(collection_metadata, index, document)
                     if index_model not in result:
                         result.append(index_model)
     return result
 
+def extract_value(data_dict, keys):
+    if not keys:
+        return data_dict
+
+    key = keys[0]
+    rest_of_keys = keys[1:]
+
+    if key in data_dict:
+        if rest_of_keys:
+            # If there are more keys, continue navigating the nested structure
+            return extract_value(data_dict[key], rest_of_keys)
+        else:
+            # If this is the last key, return the value
+            return data_dict[key]
+    else:
+        return None  # Key not found
 
 def get_index_model(collection_metadata: Collection, index: Index, document: dict):
-    index_value = ''.join([document[attr] for attr in index.conditions if attr in document])
+    index_values = []
+    for attr in index.conditions:
+        value = extract_value(document, attr.split('.'))
+        if value:
+            index_values.append(value)
+
+    index_value = '#'.join(index_values)
+    index_name = collection_metadata.name+"#"+"__".join(index.conditions)
     return IndexDomainEntity(collection_metadata.name,
                              document[collection_metadata.id_key],
-                             index.name,
+                             index_name,
                              index_value,
                              document if index.index_configuration == IndexConfiguration.OPTIMIZE_READ else None)
 

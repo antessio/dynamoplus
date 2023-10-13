@@ -162,7 +162,7 @@ class IndexByCollectionNameAndFieldsEntity(IndexModel):
         return INDEX_ENTITY_NAME
 
     def index_name(self):
-        return "{0}#collection.name#fields".format(self.entity_name())
+        return "{0}#collection.name__fields".format(self.entity_name())
 
     def index_value(self):
         return "{0}#{1}#{2}".format(self.collection_name, INDEX_FIELD_SEPARATOR.join(self.fields), self.ordering)

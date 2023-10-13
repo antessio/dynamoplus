@@ -8,6 +8,8 @@ from aws.dynamodb.dynamodb_repository import DynamoDBRepository
 load_dotenv()
 
 app = Flask(__name__)
+app.json.sort_keys = False
+
 system_repository = DynamoDBRepository('system')
 domain_repository = DynamoDBRepository('domain')
 dynamoplus = dynamo_plus_v2.Dynamoplus(
@@ -70,7 +72,7 @@ def add_to_collection(collection_name: str):
     return jsonify(created_document), 201
 
 
-@app.route('/dynamoplus/<collection_name>/<document_id>', methods=['PATCH'])
+@app.route('/dynamoplus/<collection_name>/<document_id>', methods=['PUT'])
 def update_collection(collection_name: str, document_id: str):
     data = request.get_json()  # Parse JSON data from the request body
     updated_document = dynamoplus.update(collection_name, data, document_id)
@@ -82,7 +84,6 @@ def query_collection(collection_name: str):
     limit = request.args.get('limit', default=20, type=int)
     start_from = request.args.get('last_key', default=None, type=str)
     query = request.get_json()  # Parse JSON data from the request body
-    dynamoplus.query(collection_name, query, start_from, limit)
     documents, last_element_key = dynamoplus.query(collection_name, query, start_from, limit)
 
     return jsonify({

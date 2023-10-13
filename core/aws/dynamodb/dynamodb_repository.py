@@ -5,7 +5,7 @@ from aws.dynamodb.dynamodbdao import DynamoDBDAO, DynamoDBKey, AtomicIncrement, 
 from dynamoplus.models.query.conditions import Predicate, AnyMatch, And, Range
 from dynamoplus.v2.repository.repositories_v2 import RepositoryInterface, Model, Query, Counter, IndexingOperation, \
     IndexModel, EqCondition, GtCondition, GteCondition, LteCondition, LtCondition, Condition, AndCondition, \
-    AnyCondition, BeginsWithCondition
+    AnyCondition, BeginsWithCondition, BetweenCondition
 
 
 class DynamoDBRepository(RepositoryInterface):
@@ -24,7 +24,10 @@ class DynamoDBRepository(RepositoryInterface):
     def get(self, id: str, entity_name: str) -> dict:
         pk, sk = self.__get_pk_sk(entity_name, id)
         result = self.dao.get(pk, sk)
-        return result.document
+        if result:
+            return result.document
+        else:
+            return None
 
     def __get_pk_sk(self, entity_name, id):
         pk = entity_name + FIELD_SEPARATOR + id
@@ -63,7 +66,14 @@ class DynamoDBRepository(RepositoryInterface):
         if result.lastEvaluatedKey:
             last_evaluated_model = from_dynamo_db_key(result.lastEvaluatedKey, entity_name)
 
-        return list(map(lambda d: d.document, result.data)), last_evaluated_model
+        return list(map(lambda d: self.handle_optimized_write_result(d, entity_name),
+                        result.data)), last_evaluated_model
+
+    def handle_optimized_write_result(self, dynamo_db_model: DynamoDBModel, entity_name: str):
+        if dynamo_db_model.document is None:
+            return self.get(dynamo_db_model.pk.replace(entity_name+"#", ''), entity_name)
+        else:
+            return dynamo_db_model.document
 
     def increment_counter(self, model: Model, counters: List[Counter]):
 
@@ -152,30 +162,34 @@ def handle_lte_condition(dynamo_db_query: GSIDynamoDBQuery, predicate: LteCondit
     # collection_name#field1#field2#eq
     # value1#value2#eqvalue
     separator = FIELD_SEPARATOR if len(fields) > 0 else ""
-    pk = collection_name + FIELD_SEPARATOR + FIELD_SEPARATOR.join(fields) + separator + predicate.field_name
+    pk = collection_name + FIELD_SEPARATOR + "__".join(fields) + "__" + predicate.field_name
     sk = FIELD_SEPARATOR.join(values) + separator + predicate.field_value
     dynamo_db_query.lte(pk, sk)
     return dynamo_db_query
 
 
-def handle_range_condition(dynamo_db_query: GSIDynamoDBQuery, predicate: Range, collection_name: str,
+def handle_range_condition(dynamo_db_query: GSIDynamoDBQuery, predicate: BetweenCondition, collection_name: str,
                            fields: List[str], values: List[str]):
     # collection_name#field1#field2#eq
     # value1#value2#eqvalue
     separator = FIELD_SEPARATOR if len(fields) > 0 else ""
-    pk = collection_name + FIELD_SEPARATOR + FIELD_SEPARATOR.join(fields) + separator + predicate.field_name
-    sk_from = FIELD_SEPARATOR.join(values) + separator + predicate.from_value
-    sk_to = FIELD_SEPARATOR.join(values) + separator + predicate.to_value
+    pk = collection_name + FIELD_SEPARATOR + "__".join(fields) + "__" + predicate.field_name
+    sk_from = FIELD_SEPARATOR.join(values) + separator + predicate.field_value_from
+    sk_to = FIELD_SEPARATOR.join(values) + separator + predicate.field_value_to
     dynamo_db_query.between(pk, sk_from, sk_to)
     return dynamo_db_query
 
 
-def handle_begins_with_condition(dynamo_db_query: GSIDynamoDBQuery, predicate: BeginsWithCondition, collection_name: str,
+def handle_begins_with_condition(dynamo_db_query: GSIDynamoDBQuery, predicate: BeginsWithCondition,
+                                 collection_name: str,
                                  fields: List[str], values: List[str]):
     # collection_name#field1#field2#eq
     # value1#value2#eqvalue
     separator = FIELD_SEPARATOR if len(fields) > 0 else ""
-    pk = collection_name + FIELD_SEPARATOR + FIELD_SEPARATOR.join(fields) + separator + predicate.field_name
+    x = ""
+    if len(fields) > 0:
+        x = "__".join(fields)  +"__"
+    pk = collection_name + FIELD_SEPARATOR + x + predicate.field_name
     sk = FIELD_SEPARATOR.join(values) + separator + predicate.field_value
     dynamo_db_query.begins_with(pk, sk)
     return dynamo_db_query
@@ -201,7 +215,7 @@ def build_dynamo_query(predicate: Condition, collection_name: str) -> DynamoDBQu
         LtCondition: lambda fields, values, lt_condition: handle_lt_condition(dynamo_db_query, lt_condition,
                                                                               collection_name, fields,
                                                                               values),
-        Range: lambda fields, values, range_condition: handle_range_condition(dynamo_db_query, range_condition,
+        BetweenCondition: lambda fields, values, range_condition: handle_range_condition(dynamo_db_query, range_condition,
                                                                               collection_name, fields,
                                                                               values),
         BeginsWithCondition: lambda fields, values, begins_with_condition: handle_begins_with_condition(dynamo_db_query,
@@ -220,7 +234,7 @@ def build_dynamo_query(predicate: Condition, collection_name: str) -> DynamoDBQu
             fields.append(eq.field_name)
             prefix_values.append(eq.field_value)
         if predicate.last_condition:
-            fields.append(predicate.last_condition.field_name)
+            # fields.append(predicate.last_condition.field_name)
             handler = predicate_type_mapping.get(type(predicate.last_condition))
             return handler(fields, prefix_values, predicate.last_condition)
         else:

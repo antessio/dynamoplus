@@ -48,7 +48,7 @@ BASE_COLLECTION_SCHEMA_DEFINITION = {
     },
     "required": ["name"]
 }
-PREDICATE_SCHEMA_DEFINITION = {
+EQ_PREDICATE_SCHEMA_DEFINITION = {
     "properties": {
         "field_name": {"type": "string"},
         "value": {"type": "string"}
@@ -58,18 +58,46 @@ PREDICATE_SCHEMA_DEFINITION = {
         "value"
     ]
 }
-MATCHES_SCHEMA_DEFINITION = {
+RANGE_PREDICATE_SCHEMA_DEFINITION = {
     "properties": {
-        "eq": PREDICATE_SCHEMA_DEFINITION,
+        "field_name": {"type": "string"},
+        "from": {"type": "string"},
+        "to": {"type": "string"}
+    },
+    "required": ["field_name", "from", "to"]
+}
+MATCHES_SCHEMA_DEFINITION = {
+    "type": "object",
+    "oneOf": [
+        {
+            "required": ["and"]
+        },
+        {
+            "required": ["eq"]
+        },
+        {
+            "required": ["range"]
+        }
+    ],
+    "properties": {
+        "eq": EQ_PREDICATE_SCHEMA_DEFINITION,
         "and": {
             "type": "array",
             "items": {
+                "oneOf":[
+                    {
+                        "required": ["eq"]
+                    },
+                    {
+                        "required": ["range"]
+                    }
+                ],
                 "properties": {
-                    "eq": PREDICATE_SCHEMA_DEFINITION
-                },
-                "required": ["eq"]
+                    "eq": EQ_PREDICATE_SCHEMA_DEFINITION
+                }
             }
-        }
+        },
+        "range": RANGE_PREDICATE_SCHEMA_DEFINITION
     }
 }
 AGGREGATION_SCHEMA_DEFINITION = {
@@ -80,15 +108,15 @@ AGGREGATION_SCHEMA_DEFINITION = {
         },
         "configuration": {
             "properties": {
-                "on": {"type": "array", "items":{"type": "string", "enum": AggregationTrigger.types()}},
+                "on": {"type": "array", "items": {"type": "string", "enum": AggregationTrigger.types()}},
                 "target_field": {"type": "string"},
                 "matches": MATCHES_SCHEMA_DEFINITION
             },
             "required": ["on"]
         }
     },
-    "required":[
-        "collection","type","configuration"
+    "required": [
+        "collection", "type", "configuration"
     ]
 }
 
@@ -222,8 +250,9 @@ def validate_client_authorization(client_authorization: dict):
     else:
         raise JsonSchemaException("type not valid")
 
+
 def validate_aggregation(aggregation: dict):
-    __validate(aggregation,AGGREGATION_SCHEMA_DEFINITION)
+    __validate(aggregation, AGGREGATION_SCHEMA_DEFINITION)
 
 
 # def validate_document(document: dict, collection_schema: dict):

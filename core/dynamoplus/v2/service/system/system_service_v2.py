@@ -599,7 +599,7 @@ class IndexService:
             last_index_entity = self.__get_index_entity_by_id(start_from)
 
         data, last_evaluated_key = self.repo.query(dynamoplus.v2.repository.system_repositories.INDEX_ENTITY_NAME,
-                                                   EqCondition("collection.name", collection_name), limit,
+                                                   BeginsWithCondition("collection.name", collection_name), limit,
                                                    last_index_entity)
 
         return list(
@@ -636,6 +636,18 @@ class IndexService:
     def __get_index_entity_by_id(self, uid: uuid.UUID) -> dict:
         return self.repo.get(str(uid), 'index')
 
+    def get_all_indexes(self, limit: int, start_from: uuid.UUID):
+        start_from_entity = None
+        if start_from:
+            start_from_entity = self.get_index_by_id(start_from)
+        result, last_key = self.repo.query(dynamoplus.v2.repository.system_repositories.INDEX_ENTITY_NAME,
+                                           AnyCondition(), limit, start_from_entity)
+        if result:
+            return list(
+                map(lambda m: Index.from_dict(m), result)), last_key
+        else:
+            return [], None
+
 
 class AuthorizationService:
 
@@ -670,7 +682,7 @@ class AuthorizationService:
                                               last_client_authorization_id: uuid = None):
 
         data, last_evaluated_key = self.repo.query(CLIENT_AUTHORIZATION_ENTITY_NAME,
-                                                   BeginsWithCondition("client_id", client_id+"#"), limit,
+                                                   BeginsWithCondition("client_id", client_id + "#"), limit,
                                                    str(last_client_authorization_id) if last_client_authorization_id else None)
 
         return list(

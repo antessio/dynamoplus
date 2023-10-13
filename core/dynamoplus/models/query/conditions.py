@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import *
 import abc
 
@@ -23,6 +24,13 @@ class Predicate(FieldMatch):
 
     def get_values(self) -> List[str]:
         pass
+
+
+@dataclass(frozen=True)
+class QueryCommand:
+    predicate: Predicate
+    index_name: str
+    index_fields: List[str]
 
 
 @auto_str
