@@ -9,19 +9,19 @@ import time
 import jwt
 
 from dynamoplus.v2.service.system.system_service_v2 import AuthorizationService
-
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 # from Crypto.PublicKey import RSA
 # from Crypto.Signature import PKCS1_v1_5
 # from Crypto.Hash import SHA256
 import rsa
-from dynamoplus.models.system.client_authorization.client_authorization import ScopesType, Scope
+from dynamoplus.models.system.client_authorization.client_authorization import ScopesType, Scope, \
+    ClientAuthorizationApiKey
 
 JWT_SECRET = os.getenv("JWT_SECRET")
 
 API_KEY_PREFIX = "dynamoplus-api-key"
-CLIENT_ID_HEADER = "dynamoplus-client-id"
+CLIENT_ID_HEADER = "Dynamoplus-Client-Id"
 BEARER_PREFIX = "Bearer"
 
 path_regex = r"dynamoplus\/(\w+)(\/query)*(\/.*)*"
@@ -113,16 +113,26 @@ class SecurityService:
             return username
 
     @staticmethod
-    def get_client_authorization_by_api_key(headers: dict):
+    def get_client_authorization_by_api_key(headers: dict, client_authentication_loader: Callable[[str, int], ClientAuthorizationApiKey] = None):
         authorization_value = SecurityService.get_authorization_value(headers, API_KEY_PREFIX)
         logger.info("authorization value = {}".format(authorization_value))
         if authorization_value and CLIENT_ID_HEADER in headers:
             client_id = headers[CLIENT_ID_HEADER]
             logger.info("client_id = {}".format(client_id))
-            client_authorization = AuthorizationService.get_client_authorization(uuid.UUID(client_id))
-            logger.info("found client authorization {}".format(client_authorization))
-            if client_authorization.api_key == authorization_value:
-                return client_authorization
+            api_key = None
+            if client_authentication_loader:
+                results, next_id = client_authentication_loader(client_id, 1)
+                client_authorization_api_key = results[0]
+                api_key = client_authorization_api_key.api_key
+                logger.info("found client authorization {}".format(api_key))
+                if api_key == authorization_value:
+                    return client_authorization_api_key
+            else:
+                client_authorization = AuthorizationService.get_client_authorization(uuid.UUID(client_id))
+                api_key = client_authorization.api_key
+                logger.info("found client authorization {}".format(client_authorization))
+                if api_key == authorization_value:
+                    return client_authorization
 
     @staticmethod
     def check_scope(path: str, method: str, client_scopes: List[Scope]):

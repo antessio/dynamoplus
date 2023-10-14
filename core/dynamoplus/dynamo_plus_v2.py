@@ -6,7 +6,7 @@ import time
 from decimal import Decimal
 from enum import Enum
 from typing import List
-
+import os
 import dynamoplus.v2.service.system.system_service_v2
 from dynamoplus.models.query.conditions import QueryCommand
 from dynamoplus.models.query.index import Predicate, Eq, Range, And, Query
@@ -14,6 +14,7 @@ from dynamoplus.models.system.aggregation.aggregation import AggregationJoin, Ag
 from dynamoplus.models.system.client_authorization.client_authorization import ScopesType, Scope
 from dynamoplus.models.system.collection.collection import AttributeDefinition, AttributeConstraint, AttributeType
 from dynamoplus.models.system.index.index import IndexConfiguration
+from dynamoplus.service.security.security import SecurityService
 from dynamoplus.v2.repository.repositories import RepositoryInterface
 from dynamoplus.v2.service.system.system_service_v2 import Collection, \
     ClientAuthorizationHttpSignature, ClientAuthorizationApiKey, ClientAuthorization, \
@@ -28,6 +29,7 @@ from dynamoplus.v2.service.system.system_service_v2 import AggregationConfigurat
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+AUTHORIZATION_FEATURE_ENABLED = bool(os.getenv("AUTHORIZATION_FEATURE_ENABLED", "False"))
 
 
 class Converter:
@@ -43,7 +45,8 @@ class Converter:
                         filter(lambda p: isinstance(p, Eq),
                                and_predicate.predicates))
                 ),
-                Converter.convert_to_predicate(next(filter(lambda p: not isinstance(p, Eq), and_predicate.predicates), None))
+                Converter.convert_to_predicate(
+                    next(filter(lambda p: not isinstance(p, Eq), and_predicate.predicates), None))
             )
         elif isinstance(matches, Eq):
             eq_predicate: Eq = matches
@@ -68,7 +71,8 @@ class Converter:
         if "eq" in matches_dict:
             return Eq(matches_dict["eq"]["field_name"], matches_dict["eq"]["value"])
         elif "range" in matches_dict:
-            return Range(matches_dict["range"]["field_name"], matches_dict["range"]["from"], matches_dict["range"]["to"])
+            return Range(matches_dict["range"]["field_name"], matches_dict["range"]["from"],
+                         matches_dict["range"]["to"])
         elif "and" in matches_dict:
             conditions = list(map(lambda cd: Converter.from_API_to_predicate(cd), matches_dict["and"]))
             return And(conditions)
@@ -549,9 +553,6 @@ def from_dict_to_collection(d: dict):
                                                                      auto_generate_id)
 
 
-
-
-
 class Dynamoplus:
 
     def __init__(self,
@@ -826,7 +827,8 @@ class Dynamoplus:
                 Converter.convert_to_predicate(query.matches),
                 index_matching_conditions.name,
                 index_matching_conditions.conditions)
-            documents, last_evaluated_key = self.domain_service.query(collection_metadata, query_command, limit, start_from)
+            documents, last_evaluated_key = self.domain_service.query(collection_metadata, query_command, limit,
+                                                                      start_from)
         return documents, last_evaluated_key
 
     @delete_document
@@ -854,3 +856,41 @@ class Dynamoplus:
         return {
             "version": "0.5.0"
         }
+
+    def authorize(self, headers: dict, http_method: str, path: str) -> str:
+        if not AUTHORIZATION_FEATURE_ENABLED:
+            return 'anonymous'
+        else:
+            headers_dict = dict(headers)
+            try:
+                if SecurityService.is_bearer(headers_dict):
+                    username = SecurityService.get_bearer_authorized(headers_dict)
+                    logger.debug("Found {} in credentials".format(username))
+                    return username
+                elif SecurityService.is_basic_auth(headers_dict):
+                    username = SecurityService.get_basic_auth_authorized(headers_dict)
+                    logger.debug("Found {} in credentials".format(username))
+                    return username
+                elif SecurityService.is_api_key(headers_dict):
+                    client_authorization = SecurityService.get_client_authorization_by_api_key(headers_dict,
+                                                                                               self.client_authorization_service.get_client_authorization_by_client_id)
+                    logger.debug("client authorization = {}".format(client_authorization))
+                    if client_authorization and SecurityService.check_scope(path,
+                                                                            http_method,
+                                                                            client_authorization.client_scopes):
+                        return client_authorization.client_id
+                    else:
+                        return None
+
+                elif SecurityService.is_http_signature(headers_dict):
+                    client_authorization = SecurityService.get_client_authorization_using_http_signature_authorized(
+                        headers_dict, http_method.lower(), path)
+                    if client_authorization and SecurityService.check_scope(path, http_method,
+                                                                            client_authorization.client_scopes):
+                        return client_authorization.client_id
+                    else:
+                        return None
+            except Exception as e:
+                print(f'Exception encountered: {e}')
+                logger.error("exception encountered", e)
+                return None

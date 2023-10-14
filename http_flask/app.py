@@ -1,14 +1,45 @@
+import logging
+from enum import Enum
+from flask_login import LoginManager, UserMixin, AnonymousUserMixin, login_required
 from flask import Flask, jsonify, request
 from dotenv import load_dotenv
+from functools import wraps
 import os
 # from your_library import your_function  # Replace with actual import
 from dynamoplus import dynamo_plus_v2
 from aws.dynamodb.dynamodb_repository import DynamoDBRepository
 
 load_dotenv()
+def create_app():
 
-app = Flask(__name__)
-app.json.sort_keys = False
+    app = Flask(__name__)
+
+    # Set up the logging configuration
+    app.logger.setLevel(logging.INFO)  # Adjust the log level as needed
+
+    # Configure the log format
+    log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # Configure the log handler (you can use different handlers such as StreamHandler, FileHandler, etc.)
+    log_handler = logging.StreamHandler()
+    log_handler.setFormatter(log_formatter)
+
+    app.logger.addHandler(log_handler)
+    app.json.sort_keys = False
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+
+
+    @login_manager.request_loader
+    def load_user_from_request(request):
+        user_id = dynamoplus.authorize(dict(request.headers), request.method, request.path)
+        if user_id:
+            return DynamoPlusUser(user_id)
+        else:
+            return AnonymousUserMixin()
+    return app
+
+app = create_app()
 
 system_repository = DynamoDBRepository('system')
 domain_repository = DynamoDBRepository('domain')
@@ -20,6 +51,19 @@ dynamoplus = dynamo_plus_v2.Dynamoplus(
     system_repository,
     domain_repository
 )
+
+
+class AuthenticationType(Enum):
+    BASIC_AUTH = "BASIC_AUTH"
+    HTTP_SIGNATURE = "HTTP_SIGNATURE"
+    API_KEY = "API_KEY"
+
+class DynamoPlusUser(UserMixin):
+    def __init__(self, id:str):
+        self.id = id
+
+
+
 
 
 @app.route('/dynamoplus/system/info')
@@ -42,6 +86,7 @@ def cleanup():
 
 
 @app.route('/dynamoplus/<collection_name>/<id>', methods=['GET'])
+@login_required
 def get(collection_name: str, id: str):
     limit = request.args.get('limit', default=20, type=int)
     last_key = request.args.get('last_key', default=None, type=str)
@@ -54,6 +99,7 @@ def get(collection_name: str, id: str):
 
 
 @app.route('/dynamoplus/<collection_name>', methods=['GET'])
+@login_required
 def get_all(collection_name: str):
     limit = request.args.get('limit', default=20, type=int)
     last_key = request.args.get('last_key', default=None, type=str)
@@ -66,6 +112,7 @@ def get_all(collection_name: str):
 
 
 @app.route('/dynamoplus/<collection_name>', methods=['POST'])
+@login_required
 def add_to_collection(collection_name: str):
     data = request.get_json()  # Parse JSON data from the request body
     created_document = dynamoplus.create(collection_name, data)
@@ -73,6 +120,7 @@ def add_to_collection(collection_name: str):
 
 
 @app.route('/dynamoplus/<collection_name>/<document_id>', methods=['PUT'])
+@login_required
 def update_collection(collection_name: str, document_id: str):
     data = request.get_json()  # Parse JSON data from the request body
     updated_document = dynamoplus.update(collection_name, data, document_id)
@@ -80,6 +128,7 @@ def update_collection(collection_name: str, document_id: str):
 
 
 @app.route('/dynamoplus/<collection_name>/query', methods=['POST'])
+@login_required
 def query_collection(collection_name: str):
     limit = request.args.get('limit', default=20, type=int)
     start_from = request.args.get('last_key', default=None, type=str)
@@ -93,6 +142,7 @@ def query_collection(collection_name: str):
 
 
 @app.route('/dynamoplus/<collection_name>/<document_id>', methods=['DELETE'])
+@login_required
 def delete_collection(collection_name: str, document_id: str):
     ##  delete doesn't use entity name and id, the same gets in the system service
     dynamoplus.delete(collection_name, document_id)
