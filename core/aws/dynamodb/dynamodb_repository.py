@@ -5,7 +5,7 @@ from aws.dynamodb.dynamodbdao import DynamoDBDAO, DynamoDBKey, AtomicIncrement, 
 from dynamoplus.models.query.conditions import Predicate, AnyMatch, And, Range
 from dynamoplus.v2.repository.repositories_v2 import RepositoryInterface, Model, Query, Counter, IndexingOperation, \
     IndexModel, EqCondition, GtCondition, GteCondition, LteCondition, LtCondition, Condition, AndCondition, \
-    AnyCondition, BeginsWithCondition, BetweenCondition
+    AnyCondition, BeginsWithCondition, BetweenCondition, CounterIncrement
 
 
 class DynamoDBRepository(RepositoryInterface):
@@ -71,9 +71,17 @@ class DynamoDBRepository(RepositoryInterface):
 
     def handle_optimized_write_result(self, dynamo_db_model: DynamoDBModel, entity_name: str):
         if dynamo_db_model.document is None:
-            return self.get(dynamo_db_model.pk.replace(entity_name+"#", ''), entity_name)
+            return self.get(dynamo_db_model.pk.replace(entity_name + "#", ''), entity_name)
         else:
             return dynamo_db_model.document
+
+    def increment_count(self, param: CounterIncrement):
+        self.dao.increment_counter(AtomicIncrement(param.entity_name() + "#" + param.id, param.entity_name(),
+                                                   [DynamoDBCounter(
+                                                       "document." + param.field_name,
+                                                       param.increment,
+                                                       param.increment > 0
+                                                   )]))
 
     def increment_counter(self, model: Model, counters: List[Counter]):
 
@@ -188,7 +196,7 @@ def handle_begins_with_condition(dynamo_db_query: GSIDynamoDBQuery, predicate: B
     separator = FIELD_SEPARATOR if len(fields) > 0 else ""
     x = ""
     if len(fields) > 0:
-        x = "__".join(fields)  +"__"
+        x = "__".join(fields) + "__"
     pk = collection_name + FIELD_SEPARATOR + x + predicate.field_name
     sk = FIELD_SEPARATOR.join(values) + separator + predicate.field_value
     dynamo_db_query.begins_with(pk, sk)
@@ -215,9 +223,10 @@ def build_dynamo_query(predicate: Condition, collection_name: str) -> DynamoDBQu
         LtCondition: lambda fields, values, lt_condition: handle_lt_condition(dynamo_db_query, lt_condition,
                                                                               collection_name, fields,
                                                                               values),
-        BetweenCondition: lambda fields, values, range_condition: handle_range_condition(dynamo_db_query, range_condition,
-                                                                              collection_name, fields,
-                                                                              values),
+        BetweenCondition: lambda fields, values, range_condition: handle_range_condition(dynamo_db_query,
+                                                                                         range_condition,
+                                                                                         collection_name, fields,
+                                                                                         values),
         BeginsWithCondition: lambda fields, values, begins_with_condition: handle_begins_with_condition(dynamo_db_query,
                                                                                                         begins_with_condition,
                                                                                                         collection_name,

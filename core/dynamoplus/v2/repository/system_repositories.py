@@ -187,7 +187,7 @@ class AggregationConfigurationEntity(SystemModel):
         return "%s" % AGGREGATION_CONFIGURATION_ENTITY_NAME
 
     def ordering(self):
-        return None
+        return self.payload[INDEX_ORDERING_KEY]
 
     def object(self):
         return self.payload
@@ -255,7 +255,7 @@ class AggregationEntity(SystemModel):
         return "%s" % AGGREGATION_ENTITY_NAME
 
     def ordering(self):
-        return None
+        return self.payload[INDEX_ORDERING_KEY]
 
     def object(self):
         return self.payload
@@ -270,6 +270,7 @@ class AggregationIncrementCounter(CounterIncrement):
 
 @dataclass(frozen=True)
 class AggregationByAggregationConfigurationNameEntity(IndexModel):
+
     uid: uuid.UUID
     aggregation_configuration_name: str
     payload: dict
@@ -278,6 +279,8 @@ class AggregationByAggregationConfigurationNameEntity(IndexModel):
     def id(self):
         return str(self.uid)
 
+    def document(self):
+        return self.payload
     def entity_name(self):
         return AGGREGATION_ENTITY_NAME
 

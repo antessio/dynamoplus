@@ -6,7 +6,8 @@ from decimal import Decimal
 from dynamoplus.models.query.conditions import match_predicate
 from dynamoplus.models.system.aggregation.aggregation import AggregationType, AggregationTrigger
 from dynamoplus.v2.service.system.system_service_v2 import AggregationConfiguration, Collection, AggregationCount, \
-    AggregationSum, AggregationAvg, AggregationService, AggregationConfigurationService
+    AggregationSum, AggregationAvg, AggregationService, AggregationConfigurationService, AggregationCountCreateCommand, \
+    AggregationSumCreateCommand, AggregationAvgCreateCommand
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -101,7 +102,7 @@ class AvgAggregationExecutor(AggregationExecutor):
                 try:
                     x = record[aggregation_configuration.target_field]
                     count_target_field_aggregation = self.aggregation_service.create_aggregation(
-                        AggregationCount(uuid.uuid4(), "count_" + aggregation_configuration.name,
+                        AggregationCountCreateCommand("count_" + aggregation_configuration.name,
                                          aggregation_configuration.name, 1))
                     _count = 1
                 except Exception as e:
@@ -130,7 +131,7 @@ class AvgAggregationExecutor(AggregationExecutor):
                     if is_decrement:
                         value = value * -1
                     sum_target_field_aggregation = self.aggregation_service.create_aggregation(
-                        AggregationSum(uuid.uuid4(), "sum_" + aggregation_configuration.name,
+                        AggregationSumCreateCommand("sum_" + aggregation_configuration.name,
                                        aggregation_configuration.name, value))
                     _sum = value
                 except Exception as e:
@@ -152,7 +153,7 @@ class AvgAggregationExecutor(AggregationExecutor):
             else:
 
                 return self.aggregation_service.create_aggregation(
-                    AggregationAvg(uuid.uuid4(), "avg_" + aggregation_configuration.name, aggregation_configuration.name, avg))
+                    AggregationAvgCreateCommand("avg_" + aggregation_configuration.name, aggregation_configuration.name, avg))
 
 
 class SumAggregationExecutor(AggregationExecutor):
@@ -189,7 +190,7 @@ class SumAggregationExecutor(AggregationExecutor):
                     if is_decrement:
                         value = value * -1
                     return self.aggregation_service.create_aggregation(
-                        AggregationSum(uuid.uuid4(), aggregation_configuration.name, aggregation_configuration.name, value))
+                        AggregationSumCreateCommand( aggregation_configuration.name, aggregation_configuration.name, value))
                 except Exception as e:
                     logger.error("unable to sum the value ", e)
 
@@ -228,7 +229,7 @@ class CountAggregationExecutor(AggregationExecutor):
             ## create the aggregation if it doesn't exist
             logger.info("creating new aggregation count {} ".format(aggregation_configuration.name))
             return self.aggregation_service.create_aggregation(
-                AggregationCount(uuid.uuid4(), "count_" + aggregation_configuration.name,
+                AggregationCountCreateCommand("count_" + aggregation_configuration.name,
                                  aggregation_configuration.name,
                                  1))
 
@@ -238,9 +239,13 @@ class AggregationProcessingService:
     aggregation_configuration: AggregationConfiguration
     aggregation_configuration_service: AggregationConfigurationService
 
-    def __init__(self, aggregation_configuration: AggregationConfiguration):
-        self.aggregation_service = AggregationService()
-        self.aggregation_configuration_service = AggregationConfigurationService()
+    def __init__(self, aggregation_configuration: AggregationConfiguration,
+                 aggregation_service: AggregationService,
+                 aggregation_configuration_service: AggregationConfigurationService):
+        # self.aggregation_service = AggregationService()
+        # self.aggregation_configuration_service = AggregationConfigurationService()
+        self.aggregation_service = aggregation_service
+        self.aggregation_configuration_service = aggregation_configuration_service
         self.aggregation_configuration = aggregation_configuration
         self.aggregation_executor_factory = {
             AggregationType.AVG: AvgAggregationExecutor(self.aggregation_configuration_service,

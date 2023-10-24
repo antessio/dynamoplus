@@ -5,7 +5,7 @@ from fastjsonschema import JsonSchemaException
 from dynamoplus.service.validation_service import is_collection_schema_valid, validate_client_authorization_api_key,\
     __validate as validate, validate_query
 from dynamoplus.dynamo_plus_v2 import validate_collection, validate_index,  validate_client_authorization,\
-    validate_aggregation
+    validate_aggregation_configuration
 
 
 class TestValidationService(unittest.TestCase):
@@ -324,13 +324,13 @@ class TestValidationService(unittest.TestCase):
                 }
             }
         }
-        validate_aggregation(aggregation)
+        validate_aggregation_configuration(aggregation)
 
     def test_validate_aggregation_errors(self):
         aggregation = {
 
         }
-        self.assertRaises(JsonSchemaException, validate_aggregation, aggregation)
+        self.assertRaises(JsonSchemaException, validate_aggregation_configuration, aggregation)
         aggregation = {
             "collection": {
 
@@ -345,7 +345,7 @@ class TestValidationService(unittest.TestCase):
                 }
             }
         }
-        self.assertRaises(JsonSchemaException, validate_aggregation, aggregation)
+        self.assertRaises(JsonSchemaException, validate_aggregation_configuration, aggregation)
         aggregation = {
             "collection": {
                 "name": "example"
@@ -359,14 +359,14 @@ class TestValidationService(unittest.TestCase):
                 }
             }
         }
-        self.assertRaises(JsonSchemaException, validate_aggregation, aggregation)
+        self.assertRaises(JsonSchemaException, validate_aggregation_configuration, aggregation)
         aggregation = {
             "collection": {
                 "name": "example"
             },
             "type": "AVG_JOIN"
         }
-        self.assertRaises(JsonSchemaException, validate_aggregation, aggregation)
+        self.assertRaises(JsonSchemaException, validate_aggregation_configuration, aggregation)
         aggregation = {
             "collection": {
                 "name": "example"
@@ -380,4 +380,4 @@ class TestValidationService(unittest.TestCase):
                 }
             }
         }
-        self.assertRaises(JsonSchemaException, validate_aggregation, aggregation)
+        self.assertRaises(JsonSchemaException, validate_aggregation_configuration, aggregation)

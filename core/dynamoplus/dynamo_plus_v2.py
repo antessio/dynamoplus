@@ -19,10 +19,10 @@ from dynamoplus.v2.repository.repositories import RepositoryInterface
 from dynamoplus.v2.service.system.system_service_v2 import Collection, \
     ClientAuthorizationHttpSignature, ClientAuthorizationApiKey, ClientAuthorization, \
     ClientAuthorizationHttpSignatureCreateCommand, ClientAuthorizationApiKeyCreateCommand, \
-    ClientAuthorizationCreateCommand, Index, IndexCreateCommand
+    ClientAuthorizationCreateCommand, Index, IndexCreateCommand, AggregationConfigurationCreateCommand
 from dynamoplus.v2.service.common import is_system_collection as is_system
 from dynamoplus.service.validation_service import validate_collection, validate_index, validate_document, \
-    validate_client_authorization, validate_aggregation, validate_query
+    validate_client_authorization, validate_aggregation_configuration, validate_query
 from dynamoplus.service.indexing_decorator import create_document, update_document, delete_document
 from dynamoplus.v2.service.system.system_service_v2 import AggregationConfigurationService, AggregationConfiguration, \
     Aggregation, AggregationCount, AggregationSum, AggregationAvg, AggregationService
@@ -67,7 +67,7 @@ class Converter:
             return {"and": list(map(lambda c: Converter.from_predicate_to_dict(c), predicate.conditions))}
 
     @staticmethod
-    def from_API_to_predicate(matches_dict: dict):
+    def from_API_to_predicate(matches_dict: dict) -> Predicate:
         if "eq" in matches_dict:
             return Eq(matches_dict["eq"]["field_name"], matches_dict["eq"]["value"])
         elif "range" in matches_dict:
@@ -422,7 +422,7 @@ class HandlerException(Exception):
         self.message = message
 
 
-def from_API_to_aggregation_configuration(document: dict):
+def from_API_to_aggregation_configuration_create_command(document: dict) -> AggregationConfigurationCreateCommand:
     collection_name = document["collection"]["name"]
     t = AggregationType.value_of(document["type"])
     inner_aggregation_document = document["configuration"]
@@ -436,9 +436,9 @@ def from_API_to_aggregation_configuration(document: dict):
         join = AggregationJoin(inner_aggregation_document["join"]["collection_name"],
                                inner_aggregation_document["join"]["using_field"])
     if "matches" in inner_aggregation_document:
-        matches = Converter.from_API_to_query(inner_aggregation_document["matches"])
+        matches = Converter.from_API_to_predicate(inner_aggregation_document["matches"])
 
-    return AggregationConfiguration(uuid.uuid4(), collection_name, t, on, target_field, matches, join)
+    return AggregationConfigurationCreateCommand(collection_name, t, on, target_field, matches, join)
 
 
 def from_aggregation_configuration_to_API(aggregation_configuration: AggregationConfiguration,
@@ -472,7 +472,8 @@ def from_aggregation_configuration_to_API(aggregation_configuration: Aggregation
 def from_aggregation_to_API(aggregation: Aggregation):
     a = {
         "id": str(aggregation.id),
-        "name": aggregation.name
+        "name": aggregation.name,
+        "configuration_name": aggregation.configuration_name
     }
     if isinstance(aggregation, AggregationCount):
         a["type"] = AggregationType.COLLECTION_COUNT.name
@@ -709,11 +710,14 @@ class Dynamoplus:
                 logging.info("created client_authorization {}".format(client_authorization.__str__()))
                 return Converter.from_client_authorization_to_dict(client_authorization)
             elif collection_name == "aggregation_configuration":
-                validate_aggregation(document)
-                aggregation = from_API_to_aggregation_configuration(document)
-                aggregation = self.aggregation_configuration_service.create_aggregation_configuration(aggregation)
-                logging.info("created aggregation {}".format(aggregation.__str__()))
-                return Converter.from_aggregation_configuration_to_API(aggregation)
+                validate_aggregation_configuration(document)
+                aggregation_configuration_create_command = from_API_to_aggregation_configuration_create_command(
+                    document)
+                aggregation_configuration_create_command = self.aggregation_configuration_service.create_aggregation_configuration(
+                    aggregation_configuration_create_command)
+                logging.info("created aggregation_configuration_create_command {}".format(
+                    aggregation_configuration_create_command.__str__()))
+                return Converter.from_aggregation_configuration_to_API(aggregation_configuration_create_command)
             else:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "{} is not a valid collection".format(collection_name))
@@ -788,6 +792,17 @@ class Dynamoplus:
                 documents = list(
                     map(lambda i: Converter.from_client_authorization_to_dict(i), client_authorization_list))
                 last_evaluated_key = last_key
+            elif collection_name == 'aggregation':
+                validate_query(query)
+                query: Query = Converter.from_API_to_query(query)
+                if isinstance(query.matches, Eq) and query.matches.field_name == 'configuration_name':
+                    aggregation_configuration_eq_predicate: Eq = query.matches
+                    aggregations, last_key = self.aggregation_service.get_aggregations_by_configuration_name(aggregation_configuration_eq_predicate.value, limit, uuid.UUID(start_from) if start_from else None)
+                    documents = list(map(lambda c: from_aggregation_to_API(c), aggregations))
+                    last_evaluated_key = last_key
+                else:
+                    raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST, "invalid query for aggregation")
+
             else:
                 raise HandlerException(HandlerExceptionErrorCodes.BAD_REQUEST,
                                        "{} is not a valid collection".format(collection_name))

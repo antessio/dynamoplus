@@ -295,11 +295,28 @@ class DynamoDBDAO:
         # only updates attributes in the id_key or pk or sk
 
         # update_expression = "SET document.#field_name1 = document.#field_name1 + :increase1, document.#field_name2 = document.#field_name2 + :increase2"
-        update_expression = 'SET {}'.format(','.join(
-            f'document.#{k.field_name}= document.#{k.field_name} {"+" if k.is_increment else "-"} :{k.field_name}' for k
-            in atomic_increment.counters))
-        expression_attribute_values = {f':{k.field_name}': k.count for k in atomic_increment.counters}
-        expression_attribute_names = {f'#{k.field_name}': k.field_name for k in atomic_increment.counters}
+        update_expression = "SET "
+        expression_attribute_values = {}
+        expression_attribute_names = {}
+
+        for counter in atomic_increment.counters:
+            counter_name = counter.field_name
+            counter_value = counter.count
+            # Add the counter name to the UpdateExpression
+            update_expression += f"#data_name.#increment_name = #data_name.#increment_name + :increment, "
+
+            # Add the counter name and value to ExpressionAttributeValues
+            expression_attribute_values[f":increment"] = counter_value
+            # expression_attribute_values[f"#increment_name"] = counter_name
+            expression_attribute_names[f"#increment_name"] = 'count'
+            expression_attribute_names[f'#data_name'] = 'document'
+        update_expression = update_expression.rstrip(', ')
+
+        # update_expression = 'SET {}'.format(','.join(
+        #     f'{k.field_name}= {k.field_name} {"+" if k.is_increment else "-"} :_{k.field_name}_' for k
+        #     in atomic_increment.counters))
+        # expression_attribute_values = {f':{k.field_name}': k.count for k in atomic_increment.counters}
+        # expression_attribute_names = {f'#{k.field_name}': k.field_name for k in atomic_increment.counters}
 
         response = self.table.update_item(
             Key={
@@ -307,8 +324,8 @@ class DynamoDBDAO:
                 'sk': atomic_increment.sk
             },
             UpdateExpression=update_expression,
-            ExpressionAttributeValues=expression_attribute_values,
             ExpressionAttributeNames=expression_attribute_names,
+            ExpressionAttributeValues=expression_attribute_values,
             ReturnValues="UPDATED_NEW"
         )
         logger.info("Response from update operation is " + response.__str__())

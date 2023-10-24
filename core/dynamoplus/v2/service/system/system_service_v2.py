@@ -404,6 +404,65 @@ class AggregationAvg(Aggregation):
 
 
 @dataclass(frozen=True)
+class AggregationCreateCommand(abc.ABC):
+    name: str
+    configuration_name: str
+
+    @abc.abstractmethod
+    def to_dict(self) -> dict:
+        pass
+
+    @staticmethod
+    def from_dict(d: dict) -> AggregationCreateCommand:
+        name = d["name"]
+        configuration = d["configuration_name"]
+        if "count" in d:
+            return AggregationCountCreateCommand(name, configuration, d["count"])
+        elif "sum" in d:
+            return AggregationSumCreateCommand(name, configuration, d["sum"])
+        elif "avg" in d:
+            return AggregationAvgCreateCommand(name, configuration, d["avg"])
+        else:
+            raise ValueError('{} is not supported'.format(configuration))
+
+
+@dataclass(frozen=True)
+class AggregationCountCreateCommand(AggregationCreateCommand):
+    count: int
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "configuration_name": self.configuration_name,
+            "count": self.count,
+            "type": "COLLECTION_COUNT"}
+
+
+@dataclass(frozen=True)
+class AggregationSumCreateCommand(AggregationCreateCommand):
+    sum: float
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "configuration_name": self.configuration_name,
+            "sum": self.sum,
+            "type": "SUM"}
+
+
+@dataclass(frozen=True)
+class AggregationAvgCreateCommand(AggregationCreateCommand):
+    avg: float
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "configuration_name": self.configuration_name,
+            "avg": Decimal(self.avg),
+            "type": "AVG"}
+
+
+@dataclass(frozen=True)
 class AggregationConfiguration:
     uid: uuid.UUID
     name: str = field(init=False, repr=True)
@@ -497,6 +556,38 @@ class AggregationConfiguration:
                     map(lambda c: AggregationConfiguration.from_predicate_to_dict(c), predicate.eq_conditions))}
 
 
+@dataclass(frozen=True)
+class AggregationConfigurationCreateCommand:
+    collection_name: str
+    type: AggregationType
+    on: List[AggregationTrigger]
+    target_field: str
+    matches: Predicate
+    join: AggregationJoin = None
+
+    def to_dict(self):
+        a = {
+            "on": list(map(lambda o: o.name, self.on)),
+        }
+        d = {
+            "collection": {
+                "name": self.collection_name
+            },
+            "type": self.type.name
+        }
+        if self.join:
+            a["join"] = {
+                "collection_name": self.join.collection_name,
+                "using_field": self.join.using_field
+            }
+        if self.target_field:
+            a["target_field"] = self.target_field
+        if self.matches:
+            a["matches"] = AggregationConfiguration.from_predicate_to_dict(self.matches)
+        d["aggregation"] = a
+        return d
+
+
 class AggregationConfigurationEntityAdapter(AggregationConfigurationEntity):
     def __init__(self, aggregation_configuration: AggregationConfiguration):
         super(AggregationConfigurationEntityAdapter, self).__init__(aggregation_configuration.uid,
@@ -525,7 +616,7 @@ class CollectionService:
     def get_all_collections(self, limit: int = None, start_from: str = None) -> ([Collection], str):
         starting_from_collection = None
         if start_from:
-            starting_from_collection = self.repo.get(CollectionEntity(start_from))
+            starting_from_collection = self.repo.get(start_from, 'collection')
         result, last_evaluated_id = self.repo.query(
             dynamoplus.v2.repository.system_repositories.COLLECTION_ENTITY_NAME,
             AnyCondition(), limit, starting_from_collection)
@@ -714,7 +805,7 @@ class AggregationService:
             return Aggregation.from_dict(result)
 
     def __get_aggregation_entity_by_id(self, uid: uuid.UUID):
-        return self.repo.get(AggregationEntity(uid))
+        return self.repo.get(str(uid), 'aggregation')
 
     def get_aggregations_by_configuration_name(self, configuration_name: str, limit: int = 20,
                                                start_from: uuid.UUID = None) -> \
@@ -725,12 +816,12 @@ class AggregationService:
             start_from_entity = self.__get_aggregation_entity_by_id(start_from)
 
         result, last_key = self.repo.query(dynamoplus.v2.repository.system_repositories.AGGREGATION_ENTITY_NAME,
-                                           EqCondition("aggregation_configuration", configuration_name), limit,
+                                           BeginsWithCondition("configuration_name", configuration_name), limit,
                                            start_from_entity)
 
         if result:
             return list(
-                map(lambda m: self.get_aggregation_by_id(uuid.UUID(m.id())), result)), last_key
+                map(lambda m: self.get_aggregation_by_id(uuid.UUID(m['id'])), result)), last_key
         else:
             return [], None
 
@@ -774,10 +865,12 @@ class AggregationService:
 
         entity = AggregationEntity(aggregation.id, aggregation.to_dict())
         counter, converter = AggregationService.__get_increment(aggregation, new_value)
-
-        result = self.repo.increment_count(AggregationIncrementCounter(str(aggregation.id), 'count', counter))
-        if result:
-            return converter(aggregation)
+        if counter.count != 0:
+            result = self.repo.increment_count(AggregationIncrementCounter(str(aggregation.id), 'count', counter.count))
+            if result:
+                return converter(aggregation)
+            else:
+                return aggregation
         else:
             return aggregation
 
@@ -815,8 +908,13 @@ class AggregationService:
         return AggregationCount(aggregation.id, aggregation.name, aggregation.configuration_name,
                                 aggregation.count - 1)
 
-    def create_aggregation(self, aggregation: Aggregation) -> Aggregation:
-        model = self.repo.create(AggregationEntity(aggregation.id, aggregation.to_dict()))
+    def create_aggregation(self, aggregation_create_command: AggregationCreateCommand) -> Aggregation:
+        aggregation_create_command_dict = aggregation_create_command.to_dict()
+        uid = uuid.uuid4()
+        aggregation_create_command_dict['ordering'] = generate_unique_ordering_key()
+        aggregation_create_command_dict['id'] = str(uid)
+
+        model = self.repo.create(AggregationEntity(uid, aggregation_create_command_dict))
         if model:
             created_aggregation_entity = AggregationEntity.from_dict(model)
             created_aggregation = Aggregation.from_dict(model)
@@ -843,8 +941,8 @@ class AggregationConfigurationService:
     def __init__(self, repo: RepositoryInterface):
         self.repo = repo
 
-    def __get_aggregation_configuration_entity_by_id(self, uid: uuid.UUID) -> Model:
-        return self.repo.get(AggregationConfigurationEntity(uid))
+    def __get_aggregation_configuration_entity_by_id(self, uid: uuid.UUID) -> dict:
+        return self.repo.get(str(uid), 'aggregation_configuration')
 
     def get_aggregation_configuration_by_uid(self, uid: uuid.UUID):
         entity = self.__get_aggregation_configuration_entity_by_id(uid)
@@ -866,8 +964,15 @@ class AggregationConfigurationService:
         else:
             return [], None
 
-    def create_aggregation_configuration(self, aggregation_configuration: AggregationConfiguration):
-        model = self.repo.create(AggregationConfigurationEntityAdapter(aggregation_configuration))
+    def create_aggregation_configuration(self,
+                                         aggregation_configuration_create_command: AggregationConfigurationCreateCommand):
+        aggregation_configuration_to_dict = aggregation_configuration_create_command.to_dict()
+        uid = uuid.uuid4()
+        aggregation_configuration_to_dict['ordering'] = generate_unique_ordering_key()
+        aggregation_configuration_to_dict['name'] = self.generate_aggregation_configuration_name(
+            aggregation_configuration_create_command)
+        aggregation_configuration_to_dict['id'] = str(uid)
+        model = self.repo.create(AggregationConfigurationEntity(uid, aggregation_configuration_to_dict))
         created_aggregation = AggregationConfigurationService.__from_entity_to_aggregation_configuration(model)
         created_aggregation_entity = AggregationEntity.from_dict(model)
         self.repo.indexing(IndexingOperation([],
@@ -882,6 +987,22 @@ class AggregationConfigurationService:
                                                                                       model,
                                                                                       created_aggregation_entity.ordering())]))
         return created_aggregation
+
+    def generate_aggregation_configuration_name(self,
+                                                aggregation_configuration: AggregationConfigurationCreateCommand) -> str:
+        join_part = ""
+        target_part = ""
+        matches_part = ""
+        if aggregation_configuration.target_field:
+            target_part = "_{}".format(aggregation_configuration.target_field)
+        if aggregation_configuration.matches:
+            matches_part = "_{}".format("_".join(
+                aggregation_configuration.matches.get_fields() + aggregation_configuration.matches.get_values()))
+        if aggregation_configuration.join:
+            join_part = "by_{}".format(aggregation_configuration.join.collection_name)
+        return "{}{}_{}{}{}".format(aggregation_configuration.collection_name, matches_part,
+                                    aggregation_configuration.type.name.lower(), target_part,
+                                    join_part)
 
     def get_aggregation_configurations_by_collection_name_generator(self, collection_name: str) \
             -> Generator[AggregationConfiguration]:
@@ -906,7 +1027,7 @@ class AggregationConfigurationService:
             start_after_entity = self.__get_aggregation_configuration_entity_by_id(start_from)
         result, last_evaluated_key = self.repo.query(
             dynamoplus.v2.repository.system_repositories.AGGREGATION_CONFIGURATION_ENTITY_NAME,
-            EqCondition("collection.name", collection_name),
+            BeginsWithCondition("collection.name", collection_name),
             limit, start_after_entity)
         if result:
             return list(map(lambda m: AggregationConfigurationService.__from_entity_to_aggregation_configuration(m),

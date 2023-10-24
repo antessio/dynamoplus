@@ -247,5 +247,6 @@ class RepositoryInterface(abc.ABC):
               starting_after: str = None) -> (List[dict], str):
         pass
 
-    def increment_count(self, param):
+    @abc.abstractmethod
+    def increment_count(self, param:CounterIncrement):
         pass

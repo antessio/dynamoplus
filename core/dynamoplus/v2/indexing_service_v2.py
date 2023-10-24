@@ -24,11 +24,13 @@ class IndexingService:
     def __init__(self, index_service: IndexService,
                  collection_service: CollectionService,
                  domain_service: DomainService,
-                 aggregation_configuration_service: AggregationConfigurationService):
+                 aggregation_configuration_service: AggregationConfigurationService,
+                 aggregation_service: AggregationService):
         self.collection_service = collection_service
         self.index_service = index_service
         self.domain_service = domain_service
         self.aggregation_configuration_service = aggregation_configuration_service
+        self.aggregation_service = aggregation_service
 
     def create_indexes(self, collection_name: str, new_record: dict):
         collection = self.collection_service.get_collection(collection_name)
@@ -45,9 +47,12 @@ class IndexingService:
         is_system_collection = is_system(collection_metadata)
         if not is_system_collection:
             ## This doesn't work, if an attribute not indexed it's updated then it doesn't update it
-            to_remove_index_models = get_index_models_to_remove(self.index_service, collection_metadata, new_record, old_record)
-            to_add_index_models = get_index_models_to_add(self.index_service, collection_metadata, new_record, old_record)
-            to_update_index_models = get_index_models_to_update(self.index_service, collection_metadata, new_record, old_record)
+            to_remove_index_models = get_index_models_to_remove(self.index_service, collection_metadata, new_record,
+                                                                old_record)
+            to_add_index_models = get_index_models_to_add(self.index_service, collection_metadata, new_record,
+                                                          old_record)
+            to_update_index_models = get_index_models_to_update(self.index_service, collection_metadata, new_record,
+                                                                old_record)
 
             self.domain_service.indexing(
                 IndexingOperation(to_remove_index_models, to_update_index_models, to_add_index_models))
@@ -61,7 +66,10 @@ class IndexingService:
                 trigger = AggregationTrigger.DELETE
             for a in aggregations:
                 if trigger in a.on:
-                    AggregationProcessingService(a).execute_aggregation(collection_metadata, new_record, old_record)
+                    # self.aggregation_configuration_service.execute_aggregation(a, collection_metadata, new_record, old_record)
+                    AggregationProcessingService(a, self.aggregation_service,
+                                                 self.aggregation_configuration_service).execute_aggregation(
+                        collection_metadata, new_record, old_record)
 
 
 def get_index_models_to_remove(index_service: IndexService, collection_metadata, new_record: dict, old_record: dict):
@@ -110,6 +118,7 @@ def find_matching_indexes(index_service: IndexService, values: dict,
                         result.append(index_model)
     return result
 
+
 def extract_value(data_dict, keys):
     if not keys:
         return data_dict
@@ -127,6 +136,7 @@ def extract_value(data_dict, keys):
     else:
         return None  # Key not found
 
+
 def get_index_model(collection_metadata: Collection, index: Index, document: dict):
     index_values = []
     for attr in index.conditions:
@@ -135,7 +145,7 @@ def get_index_model(collection_metadata: Collection, index: Index, document: dic
             index_values.append(value)
 
     index_value = '#'.join(index_values)
-    index_name = collection_metadata.name+"#"+"__".join(index.conditions)
+    index_name = collection_metadata.name + "#" + "__".join(index.conditions)
     return IndexDomainEntity(collection_metadata.name,
                              document[collection_metadata.id_key],
                              index_name,

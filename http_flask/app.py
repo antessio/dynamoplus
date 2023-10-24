@@ -1,17 +1,18 @@
 import logging
 from enum import Enum
-from flask_login import LoginManager, UserMixin, AnonymousUserMixin, login_required
-from flask import Flask, jsonify, request
+
+from aws.dynamodb.dynamodb_repository import DynamoDBRepository
 from dotenv import load_dotenv
-from functools import wraps
-import os
 # from your_library import your_function  # Replace with actual import
 from dynamoplus import dynamo_plus_v2
-from aws.dynamodb.dynamodb_repository import DynamoDBRepository
+from flask import Flask, jsonify, request
+from flask_login import LoginManager, UserMixin, AnonymousUserMixin, login_required
+from werkzeug.exceptions import Unauthorized
 
 load_dotenv()
-def create_app():
 
+
+def create_app():
     app = Flask(__name__)
 
     # Set up the logging configuration
@@ -29,7 +30,6 @@ def create_app():
     login_manager = LoginManager()
     login_manager.init_app(app)
 
-
     @login_manager.request_loader
     def load_user_from_request(request):
         user_id = dynamoplus.authorize(dict(request.headers), request.method, request.path)
@@ -37,7 +37,9 @@ def create_app():
             return DynamoPlusUser(user_id)
         else:
             return AnonymousUserMixin()
+
     return app
+
 
 app = create_app()
 
@@ -58,12 +60,10 @@ class AuthenticationType(Enum):
     HTTP_SIGNATURE = "HTTP_SIGNATURE"
     API_KEY = "API_KEY"
 
+
 class DynamoPlusUser(UserMixin):
-    def __init__(self, id:str):
+    def __init__(self, id: str):
         self.id = id
-
-
-
 
 
 @app.route('/dynamoplus/system/info')
@@ -162,6 +162,13 @@ def handle_custom_exception(e):
 def handle_generic_exception(e):
     response = jsonify({'error': 'Internal Server Error: {0}'.format(str(e))})
     response.status_code = 500  # Map all other exceptions to a 500 Internal Server Error
+    return response
+
+
+@app.errorhandler(Unauthorized)
+def handle_unauthorized(e):
+    response = jsonify({'error': ' {0}'.format(str(e))})
+    response.status_code = 401
     return response
 
 

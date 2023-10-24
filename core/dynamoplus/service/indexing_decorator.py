@@ -31,7 +31,8 @@ def create_document(fun):
                         IndexingService(instance.index_service,
                                         instance.collection_service,
                                         instance.domain_service,
-                                        instance.aggregation_configuration_service).create_indexes(collection_name,
+                                        instance.aggregation_configuration_service,
+                                        instance.aggregation_service).create_indexes(collection_name,
                                                                                                    result)
             return result
 
@@ -67,7 +68,8 @@ def update_document(fun):
                     IndexingService(instance.index_service,
                                     instance.collection_service,
                                     instance.domain_service,
-                                    instance.aggregation_configuration_service).indexing(collection, after, before)
+                                    instance.aggregation_configuration_service,
+                                        instance.aggregation_service).indexing(collection, after, before)
                     logger.info("updating document index for {}".format(collection_name))
             return after
 
@@ -91,7 +93,8 @@ def delete_document(fun):
                 IndexingService(instance.index_service,
                                 instance.collection_service,
                                 instance.domain_service,
-                                instance.aggregation_configuration_service).indexing(collection, None, before)
+                                instance.aggregation_configuration_service,
+                                        instance.aggregation_service).indexing(collection, None, before)
             logger.info("delete document index for {}".format(collection_name))
         else:
             fun(instance, *args, **kwargs)

@@ -100,7 +100,7 @@ MATCHES_SCHEMA_DEFINITION = {
         "range": RANGE_PREDICATE_SCHEMA_DEFINITION
     }
 }
-AGGREGATION_SCHEMA_DEFINITION = {
+AGGREGATION_CONFIGURATION_SCHEMA_DEFINITION = {
     "properties": {
         "collection": BASE_COLLECTION_SCHEMA_DEFINITION,
         "type": {
@@ -213,8 +213,8 @@ def validate_query(query: dict):
     __validate(query, QUERY_SCHEMA_DEFINITION)
 
 
-def validate_aggregation(aggregation: dict):
-    __validate(aggregation, AGGREGATION_SCHEMA_DEFINITION)
+def validate_aggregation_configuration(aggregation_configuration: dict):
+    __validate(aggregation_configuration, AGGREGATION_CONFIGURATION_SCHEMA_DEFINITION)
 
 
 def validate_document(document: dict, collection_metadata: Collection):
@@ -251,8 +251,8 @@ def validate_client_authorization(client_authorization: dict):
         raise JsonSchemaException("type not valid")
 
 
-def validate_aggregation(aggregation: dict):
-    __validate(aggregation, AGGREGATION_SCHEMA_DEFINITION)
+# def validate_aggregation(aggregation: dict):
+#     __validate(aggregation, AGGREGATION_CONFIGURATION_SCHEMA_DEFINITION)
 
 
 # def validate_document(document: dict, collection_schema: dict):
