@@ -13,6 +13,7 @@ flask = "2.3.3"
 python-dotenv = "^1.0.0"
 flask-login = "^0.6.2"
 werkzeug = "2.3.7"
+awsgi = "^0.0.5"
 
 
 [build-system]

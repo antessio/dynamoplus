@@ -118,3 +118,8 @@ venv.bak/
 
 /core_venv
 /core_venv_test
+/.aws-sam/
+/aws_serverless/libs/python/
+/aws_serverless/.aws-sam/
+/core/core_venv/
+/sam/
