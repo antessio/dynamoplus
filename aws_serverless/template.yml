@@ -39,6 +39,55 @@ Resources:
             Path: /dynamoplus/info
             Method: get
 
+  DynamoPlusSetup:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: serverless/
+      Handler: admin.setup
+      Layers:
+        - !Ref DynamoPlusCoreLayer
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          SYSTEM_TABLE_NAME: !Ref SystemDynamoDBTable
+          DOMAIN_TABLE_NAME: !Ref DomainDynamoDBTable
+      Events:
+        SystemSetup:
+          Type: Api
+          Properties:
+            RestApiId: !Ref DynamoPlusRestApi
+            Path: /dynamoplus/admin/setup
+            Method: post
+  DynamoPlusCleanup:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: serverless/
+      Handler: admin.cleanup
+      Layers:
+        - !Ref DynamoPlusCoreLayer
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref SystemDynamoDBTable
+      - DynamoDBCrudPolicy:
+          TableName: !Ref DomainDynamoDBTable
+      Environment:
+        Variables:
+          SYSTEM_TABLE_NAME: !Ref SystemDynamoDBTable
+          DOMAIN_TABLE_NAME: !Ref DomainDynamoDBTable
+      Events:
+        SystemCleanup:
+          Type: Api
+          Properties:
+            RestApiId: !Ref DynamoPlusRestApi
+            Path: /dynamoplus/admin/cleanup
+            Method: post
+
+
   DynamoPlusCoreLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
