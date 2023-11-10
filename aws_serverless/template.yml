@@ -1,0 +1,160 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: DynamoPlus Serverless
+
+Parameters:
+  Stage:
+    Type: String
+    Default: Dev
+    Description: The deployment stage for the DynamoDB table
+
+Resources:
+  DynamoPlusRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Name: DynamoPlusRestApi
+      Description: "A rest api for dynamodb"
+      # Enabling cors
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS,PATCH,DELETE'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+
+  DynamoPlusInfo:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: serverless/
+      Handler: info.info
+      Layers:
+        - !Ref DynamoPlusCoreLayer
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Events:
+        GetSystemInfoInfo:
+          Type: Api
+          Properties:
+            RestApiId: !Ref DynamoPlusRestApi
+            Path: /dynamoplus/info
+            Method: get
+
+  DynamoPlusSetup:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: serverless/
+      Handler: admin.setup
+      Layers:
+        - !Ref DynamoPlusCoreLayer
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          SYSTEM_TABLE_NAME: !Ref SystemDynamoDBTable
+          DOMAIN_TABLE_NAME: !Ref DomainDynamoDBTable
+      Events:
+        SystemSetup:
+          Type: Api
+          Properties:
+            RestApiId: !Ref DynamoPlusRestApi
+            Path: /dynamoplus/admin/setup
+            Method: post
+  DynamoPlusCleanup:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: serverless/
+      Handler: admin.cleanup
+      Layers:
+        - !Ref DynamoPlusCoreLayer
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref SystemDynamoDBTable
+      - DynamoDBCrudPolicy:
+          TableName: !Ref DomainDynamoDBTable
+      Environment:
+        Variables:
+          SYSTEM_TABLE_NAME: !Ref SystemDynamoDBTable
+          DOMAIN_TABLE_NAME: !Ref DomainDynamoDBTable
+      Events:
+        SystemCleanup:
+          Type: Api
+          Properties:
+            RestApiId: !Ref DynamoPlusRestApi
+            Path: /dynamoplus/admin/cleanup
+            Method: post
+
+
+  DynamoPlusCoreLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: libs
+      CompatibleRuntimes:
+        - python3.9
+
+  SystemDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-${Stage}-system'
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: data
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST  # Use on-demand capacity mode
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      GlobalSecondaryIndexes:
+        - IndexName: SKDataGSI
+          KeySchema:
+            - AttributeName: sk
+              KeyType: HASH
+            - AttributeName: data
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL  # Adjust based on your needs
+
+  DomainDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-${Stage}-domain'
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: data
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST  # Use on-demand capacity mode
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      GlobalSecondaryIndexes:
+        - IndexName: SKDataGSI
+          KeySchema:
+            - AttributeName: sk
+              KeyType: HASH
+            - AttributeName: data
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL  # Adjust based on your needs
+
+
+Outputs:
+  RestApiUrl:
+    Description: API Gateway endpoint URL for Prod stage
+    Value: !Sub "https://${DynamoPlusRestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"

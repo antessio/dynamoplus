@@ -6,11 +6,9 @@ from decimal import Decimal
 
 from fastjsonschema import JsonSchemaException
 
-from dynamoplus.dynamo_plus_v2 import get as dynamoplus_get, update as dynamoplus_update, aggregation_configurations as get_aggregation_configurations, \
-    query as dynamoplus_query, \
-    create as dynamoplus_create, delete as dynamoplus_delete, get_all as dynamoplus_get_all, HandlerException
+from dynamoplus import Dynamoplus, HandlerException
 
-from dynamoplus.utils.decimalencoder import DecimalEncoder
+from dynamoplus import DecimalEncoder
 from custom.custom_service import CustomService
 
 logger = logging.getLogger()
@@ -18,20 +16,24 @@ logger.setLevel(logging.DEBUG)
 
 custom_service = CustomService()
 
+
 ## TODO : it has to be converter in "Router"
 
 class HttpHandler(object):
 
-    def custom(self, method,path, path_parameters, query_string_parameters=[], body=None, headers=None):
-        return custom_service.route(method,path, path_parameters, query_string_parameters, headers, body)
+    def __init__(self):
+        self.dynamoplus = Dynamoplus()
 
-    def get(self, path_parameters, query_string_parameters=[], body=None, headers=None, path:str=None):
+    def custom(self, method, path, path_parameters, query_string_parameters=[], body=None, headers=None):
+        return custom_service.route(method, path, path_parameters, query_string_parameters, headers, body)
+
+    def get(self, path_parameters, query_string_parameters=[], body=None, headers=None, path: str = None):
         collection = self.get_document_type_from_path_parameters(path_parameters)
         if 'id' in path_parameters:
             id = path_parameters['id']
             logger.info("get {} by id {}".format(collection, id))
             try:
-                result = dynamoplus_get(collection, id)
+                result = self.dynamoplus.get(collection, id)
                 if result:
                     return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
                                                   body=self.format_json(result))
@@ -52,12 +54,12 @@ class HttpHandler(object):
             limit = int(query_string_parameters[
                             "limit"]) if query_string_parameters and "limit" in query_string_parameters else None
 
-
             try:
-                if path.startswith("/dynamoplus/"+collection+"/aggregation_configuration"):
-                    documents, last_evaluated_key = get_aggregation_configurations(collection,last_key,limit)
+                if path.startswith("/dynamoplus/" + collection + "/aggregation_configuration"):
+                    documents, last_evaluated_key = self.dynamoplus.aggregation_configurations(collection, last_key,
+                                                                                               limit)
                 else:
-                    documents, last_evaluated_key = dynamoplus_get_all(collection, last_key, limit)
+                    documents, last_evaluated_key = self.dynamoplus.get_all(collection, last_key, limit)
 
                 result = {"data": documents, "has_more": last_evaluated_key is not None}
                 return self.get_http_response(body=self.format_json(result), headers=self.get_response_headers(headers),
@@ -72,7 +74,7 @@ class HttpHandler(object):
         data = json.loads(body, parse_float=Decimal)
         logger.info("Creating " + data.__str__())
         try:
-            dto = dynamoplus_create(collection, data)
+            dto = self.dynamoplus.create(collection, data)
             logger.info("dto = {}".format(dto))
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=201,
                                           body=self.format_json(dto))
@@ -98,7 +100,7 @@ class HttpHandler(object):
         logger.info("Updating " + data.__str__())
         try:
 
-            dto = dynamoplus_update(collection, data,id)
+            dto = self.dynamoplus.update(collection, data, id)
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200,
                                           body=self.format_json(dto))
         except HandlerException as e:
@@ -119,7 +121,7 @@ class HttpHandler(object):
         collection = self.get_document_type_from_path_parameters(path_parameters)
         logger.info("delete {} by document_id {}".format(collection, document_id))
         try:
-            dynamoplus_delete(collection, document_id)
+            self.dynamoplus.delete(collection, document_id)
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=200)
         except HandlerException as e:
             return self.get_http_response(headers=self.get_response_headers(headers), statusCode=e.code.value,
@@ -140,8 +142,8 @@ class HttpHandler(object):
         logger.debug("last_key = {}".format(last_key))
         logger.debug("limit = {}".format(limit))
         try:
-            documents, last_evaluated_key = dynamoplus_query(collection, q, last_key,
-                                                             limit)
+            documents, last_evaluated_key = self.dynamoplus.query(collection, q, last_key,
+                                                                  limit)
             result = {"data": documents, "has_more": last_evaluated_key is not None}
             return self.get_http_response(body=self.format_json(result), headers=self.get_response_headers(headers),
                                           statusCode=200)

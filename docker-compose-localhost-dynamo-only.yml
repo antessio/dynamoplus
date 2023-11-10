@@ -4,6 +4,6 @@ services:
     dynamolocal:
         image: cnadiminti/dynamodb-local:latest
         ports:
-            - 8000:8000
+            - 8001:8000
         volumes:
             - ./dynamodb-docker-data:/dynamodb_local_db

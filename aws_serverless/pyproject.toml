@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "dynamoplus-aws-serverless"
+version = "0.1.0"
+description = ""
+authors = ["Antonio D'Alessio <antessio7@gmail.com>"]
+readme = "README.md"
+packages = [{include = "serverless"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+dynamoplus-core = {path = "../core", develop = true}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

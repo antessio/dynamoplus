@@ -3,7 +3,7 @@ import boto3
 import json
 from boto3.dynamodb.types import TypeDeserializer
 from decimal import Decimal
-from  dynamoplus.v2.indexing_service_v2 import create_indexes,update_indexes,delete_indexes
+from dynamoplus.v2.indexing_service_v2 import create_indexes,update_indexes,delete_indexes
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

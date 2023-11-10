@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "dynamoplus-http-flask"
+version = "0.1.0"
+description = "An HTTP server for DynamoPlus"
+authors = ["antessio <<antessio7@gmail.com>>"]
+readme = "README.md"
+packages = [{include = "http"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+dynamoplus-core = "0.5.5"
+flask = "2.3.3"
+python-dotenv = "^1.0.0"
+flask-login = "^0.6.2"
+werkzeug = "2.3.7"
+awsgi = "^0.0.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

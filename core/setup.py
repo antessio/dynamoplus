@@ -1,0 +1,37 @@
+from setuptools import setup, find_packages
+
+setup(
+    name='dynamoplus-core',
+    version='0.5.1',
+    description='Python library to use dynamodb with single table design',
+    author='antessio',
+    author_email='antessio7@gmail.com',
+    url='https://github.com/antessio/dynamoplus',
+    packages=find_packages(),
+    install_requires=[
+        'mock',
+        'fastjsonschema',
+        'boto3',
+        'moto',
+        'parameterized',
+        'setuptools',
+        'jmespath',
+        'cryptography',
+        'pip',
+        'attrs',
+        'toml',
+        'wheel',
+        'Jinja2',
+        'rsa',
+        'pyasn1',
+        'botocore',
+        's3transfer',
+        'six',
+        'python',
+        'urllib3',
+        'certifi',
+        'PyJWT',
+        'apispec'
+    ],
+    classifiers=[],
+)
